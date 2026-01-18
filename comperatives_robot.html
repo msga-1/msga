@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Robot Assembly - Mister Seb's Grammar Apps</title>
+    
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bungee&family=Outfit:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+        
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #0f172a;
+            color: #ffffff;
+            margin: 0;
+            min-height: 100 screen;
+            display: flex;
+            flex-col;
+        }
+
+        .font-bungee { font-family: 'Bungee', cursive; }
+        .font-mono { font-family: 'Share Tech Mono', monospace; }
+
+        .title-gradient {
+            background: linear-gradient(to right, #10b981, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Robot Specifieke Styles */
+        .robot-body { 
+            position: relative; 
+            background: #475569;
+            border: 4px solid #1e293b;
+            z-index: 30;
+            border-radius: 12px;
+        }
+        .chest-plate { position: absolute; top: 55%; left: 10%; width: 80%; height: 35%; background: #334155; border: 2px solid #1e293b; border-radius: 4px; z-index: 31; }
+        .status-light { position: absolute; width: 10px; height: 10px; border-radius: 50%; bottom: 15%; right: 15%; background: #22c55e; z-index: 32; animation: blink 0.8s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; box-shadow: 0 0 10px #22c55e; } 50% { opacity: 0.2; } }
+        .eye-screen { position: absolute; top: 15%; left: 15%; width: 70%; height: 30%; background: #000; border-radius: 6px; display: flex; justify-content: space-around; align-items: center; z-index: 32; }
+        .pixel-eye { width: 12px; height: 12px; background: #22c55e; box-shadow: 0 0 15px #22c55e; }
+        .antenna { position: absolute; width: 4px; background: #94a3b8; bottom: 100%; left: 50%; transform: translateX(-50%); z-index: 25; }
+        .antenna-tip { position: absolute; top: -10px; left: -4px; width: 12px; height: 12px; background: #ef4444; border-radius: 50%; box-shadow: 0 0 10px #ef4444; }
+        .shoulder { position: absolute; width: 20px; height: 20px; background: #1e293b; border-radius: 50%; top: 40%; z-index: 35; }
+        .robo-arm { position: absolute; width: 45%; height: 15px; background: #64748b; top: 45%; z-index: 40; border-radius: 4px; border: 2px solid #1e293b; }
+        .gripper { position: absolute; width: 20px; height: 30px; border: 5px solid #334155; border-left: none; top: -8px; border-radius: 0 6px 6px 0; }
+        .tracks { position: absolute; bottom: -20%; width: 95%; height: 30px; background: #1e293b; border-radius: 8px; z-index: 20; border: 2px solid #000; }
+        .wheel { position: absolute; width: 18px; height: 18px; background: #334155; border-radius: 50%; top: 4px; animation: spin 1s infinite linear; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .overclock { animation: shake 0.2s infinite, glow 1s infinite alternate; }
+        @keyframes shake { 0% { transform: translate(1px, 1px); } 50% { transform: translate(-1px, -1px); } 100% { transform: translate(1px, -1px); } }
+        @keyframes glow { from { box-shadow: 0 0 5px #0ea5e9; } to { box-shadow: 0 0 30px #0ea5e9; } }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <nav class="border-b border-slate-800 bg-slate-900/50 px-6 py-5">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <a href="adverbs_comparison.html" class="text-slate-400 hover:text-white transition-colors font-bold uppercase tracking-widest text-sm flex items-center gap-2">
+                <span>←</span> Back
+            </a>
+            <span class="font-bungee text-xl title-gradient tracking-tighter">Robot Assembly</span>
+            <div class="w-20"></div> 
+        </div>
+    </nav>
+
+    <main class="flex-grow flex flex-col md:flex-row max-w-6xl mx-auto w-full p-6 gap-8">
+        <div id="game-root" class="w-full h-full min-h-[500px] flex"></div>
+    </main>
+
+    <footer class="border-t border-slate-800 bg-slate-900/80 py-8 px-6">
+        <div class="max-w-6xl mx-auto text-center md:text-left">
+            <div class="font-bungee text-slate-600 text-sm tracking-widest">© Mister Seb's Grammar Apps 2026</div>
+        </div>
+    </footer>
+
+    <script type="text/babel">
+        const { useState, useMemo } = React;
+
+        const ALL_QUESTIONS = [
+            { q: "This robot is fast, but the new one is even ...", a: "faster" },
+            { q: "This is the ... (fast) engine we have ever built.", a: "fastest" },
+            { q: "Steel is strong, but titanium is ...", a: "stronger" },
+            { q: "This is the ... (strong) metal in the world.", a: "strongest" },
+            { q: "The blue light is bright, but the sun is ...", a: "brighter" },
+            { q: "That was the ... (bright) flash I have seen.", a: "brightest" },
+            { q: "My room is cold, but the freezer is ...", a: "colder" },
+            { q: "This is the ... (cold) winter ever.", a: "coldest" },
+            { q: "A mouse is small, but an ant is ...", a: "smaller" },
+            { q: "This is the ... (small) microchip available.", a: "smallest" },
+            { q: "This box is light, but that one is even ...", a: "lighter" },
+            { q: "Helium is the ... (light) gas we use.", a: "lightest" },
+            { q: "That tower is high, but the mountain is ...", a: "higher" },
+            { q: "Mount Everest is the ... (high) point on Earth.", a: "highest" },
+            { q: "This cable is long, but we need a ... one.", a: "longer" },
+            { q: "The Nile is the ... (long) river.", a: "longest" },
+            { q: "The ocean is deep, but this trench is ...", a: "deeper" },
+            { q: "This is the ... (deep) part of the sea.", a: "deepest" },
+            { q: "This wire is thin, but the needle is ...", a: "thinner" },
+            { q: "That is the ... (thin) laptop I have seen.", a: "thinnest" },
+            { q: "The street is wide, but the highway is ...", a: "wider" },
+            { q: "This is the ... (wide) bridge in the country.", a: "widest" },
+            { q: "The stone is hard, but a diamond is ...", a: "harder" },
+            { q: "Diamond is the ... (hard) material.", a: "hardest" },
+            { q: "My bed is soft, but the pillow is ...", a: "softer" },
+            { q: "This task is difficult, but the next is ...", a: "more difficult" },
+            { q: "This is the ... (difficult) level in the game.", a: "most difficult" },
+            { q: "My phone is expensive, but a car is ...", a: "more expensive" },
+            { q: "Gold is the ... (expensive) metal here.", a: "most expensive" },
+            { q: "The story is interesting, but the movie is ...", a: "more interesting" },
+            { q: "This is the ... (interesting) book I own.", a: "most interesting" },
+            { q: "The city is dangerous, but the jungle is ...", a: "more dangerous" },
+            { q: "This is the ... (dangerous) animal.", a: "most dangerous" },
+            { q: "A robot is intelligent, but a human is ...", a: "more intelligent" },
+            { q: "Mister Sebel is one of the ... (intelligent) people.", a: "most intelligent" },
+            { q: "This flower is beautiful, but that sunset is ...", a: "more beautiful" },
+            { q: "This is the ... (beautiful) painting here.", a: "most beautiful" },
+            { q: "This engine is powerful, but the rocket is ...", a: "more powerful" },
+            { q: "That is the ... (powerful) computer in the lab.", a: "most powerful" },
+            { q: "My setup is modern, but yours is ...", a: "more modern" },
+            { q: "This is the ... (modern) building in town.", a: "most modern" },
+            { q: "This sensor is sensitive, but the new is ...", a: "more sensitive" },
+            { q: "That is the ... (sensitive) equipment we have.", a: "most sensitive" },
+            { q: "The plan is effective, but the strategy is ...", a: "more effective" },
+            { q: "This is the ... (effective) way to work.", a: "most effective" },
+            { q: "Your robot is wonderful, but this is ...", a: "more wonderful" },
+            { q: "This is the ... (wonderful) day.", a: "most wonderful" },
+            { q: "The situation is terrible, but it could be ...", a: "more terrible" },
+            { q: "That was the ... (terrible) mistake.", a: "most terrible" },
+            { q: "This machine is reliable, but the old was ...", a: "more reliable" }
+        ];
+
+        const App = () => {
+            const shuffledQuestions = useMemo(() => [...ALL_QUESTIONS].sort(() => Math.random() - 0.5), []);
+            const [score, setScore] = useState(0);
+            const [currentIdx, setCurrentIdx] = useState(0);
+            const [input, setInput] = useState("");
+            const [phase, setPhase] = useState('START');
+
+            const checkAnswer = (e) => {
+                e.preventDefault();
+                if (input.toLowerCase().trim() === shuffledQuestions[currentIdx].a) {
+                    const next = score + 1;
+                    setScore(next);
+                    if (next >= 15) setPhase('WIN');
+                    else { setCurrentIdx(prev => prev + 1); setInput(""); }
+                } else { setInput(""); }
+            };
+
+            return (
+                <div className="w-full flex flex-col md:flex-row items-center justify-center gap-12 py-10">
+                    {/* Robot Canvas */}
+                    <div className="flex justify-center items-center h-64 w-64">
+                        <div className={`relative ${score >= 15 ? 'overclock' : ''}`} style={{ width: 180, height: 180 }}>
+                            {score >= 1 && (
+                                <div className="robot-body w-full h-full">
+                                    {score >= 2 && <div className="eye-screen">{score >= 3 && <div className="pixel-eye"></div>}{score >= 4 && <div className="pixel-eye"></div>}</div>}
+                                    {score >= 5 && <div className="tracks">{score >= 6 && <><div className="wheel" style={{left:'10%'}}></div><div className="wheel" style={{right:'10%'}}></div></>}</div>}
+                                    {score >= 7 && <div className="status-light"></div>}
+                                    {score >= 8 && <div className="antenna" style={{height:'35px'}}>{score >= 9 && <div className="antenna-tip"></div>}</div>}
+                                    {score >= 10 && <div className="chest-plate"></div>}
+                                    {score >= 11 && <div className="shoulder" style={{left: '-10px'}}></div>}
+                                    {score >= 12 && <div className="robo-arm" style={{ left: '-40%', transform: 'rotate(-10deg)' }}><div className="gripper" style={{left:'-12px', transform:'scaleX(-1)'}}></div></div>}
+                                    {score >= 13 && <div className="shoulder" style={{right: '-10px'}}></div>}
+                                    {score >= 14 && <div className="robo-arm" style={{ right: '-40%', transform: 'rotate(10deg)' }}><div className="gripper" style={{right:'-12px'}}></div></div>}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Game Interface */}
+                    <div className="flex-1 max-w-xl w-full">
+                        {phase === 'START' && (
+                            <div className="text-center">
+                                <h1 className="text-emerald-400 text-3xl mb-4 font-black font-bungee">INITIALIZE CONSTRUCTOR</h1>
+                                <p className="text-slate-400 mb-8">Bouw de robot door 15 vragen over vergelijkingen correct te beantwoorden.</p>
+                                <button onClick={() => setPhase('PLAY')} className="bg-emerald-600 px-10 py-4 rounded-2xl text-white font-black tracking-widest hover:bg-emerald-500 transition-all shadow-xl uppercase">Start Boot Sequence</button>
+                            </div>
+                        )}
+
+                        {phase === 'PLAY' && (
+                            <div className="bg-slate-900/50 border border-slate-800 p-8 rounded-3xl shadow-2xl">
+                                <h2 className="text-xl text-emerald-400 mb-6 font-mono leading-relaxed min-h-[4rem]">
+                                    {shuffledQuestions[currentIdx].q}
+                                </h2>
+                                <form onSubmit={checkAnswer}>
+                                    <input 
+                                        autoFocus 
+                                        placeholder="Type answer..."
+                                        className="bg-slate-950 border-b-2 border-emerald-900 text-2xl text-white outline-none text-center font-mono w-full py-2 focus:border-emerald-500 transition-colors" 
+                                        value={input} 
+                                        onChange={(e) => setInput(e.target.value)} 
+                                    />
+                                </form>
+                                <div className="mt-8 flex justify-between items-center text-[10px] font-bold tracking-widest text-slate-500 uppercase">
+                                    <span>System Progress</span>
+                                    <span>{score} / 15</span>
+                                </div>
+                                <div className="w-full bg-slate-800 h-1.5 mt-2 rounded-full overflow-hidden">
+                                    <div className="bg-emerald-500 h-full transition-all duration-500" style={{width: `${(score/15)*100}%`}}></div>
+                                </div>
+                            </div>
+                        )}
+
+                        {phase === 'WIN' && (
+                            <div className="text-center p-8 bg-emerald-500/10 border border-emerald-500/20 rounded-3xl">
+                                <h2 className="text-4xl text-emerald-500 font-black mb-4 font-bungee">MISSION COMPLETE</h2>
+                                <p className="text-slate-400 mb-8 font-mono">Status: All systems functional. Robot fully assembled.</p>
+                                <button onClick={() => window.location.reload()} className="bg-white text-slate-950 px-8 py-3 rounded-xl font-bold hover:bg-emerald-400 transition-colors uppercase text-sm">Restart System</button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('game-root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
