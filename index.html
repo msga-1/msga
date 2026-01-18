@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mister Seb's Grammar Apps</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bungee&family=Outfit:wght@400;700;900&display=swap');
+        
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #0f172a;
+            color: #ffffff;
+            margin: 0;
+        }
+
+        .font-bungee { font-family: 'Bungee', cursive; }
+
+        .topic-card {
+            background: #1e293b;
+            border: 2px solid #334155;
+            transition: all 0.2s ease-in-out;
+            height: 100%;
+        }
+
+        .topic-card:hover {
+            border-color: #8b5cf6;
+            transform: translateY(-4px);
+            background: #232f45;
+            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        .title-gradient {
+            background: linear-gradient(to right, #a78bfa, #f472b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .description-text {
+            color: #cbd5e1;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <nav class="border-b border-slate-800 bg-slate-900/50 px-6 py-5">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-violet-600 p-2 rounded-lg text-xl">⚡</div>
+                <span class="font-bungee text-2xl tracking-tight title-gradient">
+                    Mister Seb's Grammar Apps
+                </span>
+            </div>
+            <a href="contact.html" class="bg-slate-800 hover:bg-slate-700 text-white px-6 py-2 rounded-xl font-bold transition-colors border border-slate-600 tracking-tight">
+                CONTACT
+            </a>
+        </div>
+    </nav>
+
+    <header class="max-w-6xl mx-auto px-6 py-10 md:py-12 w-full">
+        <h1 class="text-3xl md:text-4xl font-black mb-4 leading-tight uppercase">
+            Level Up Your <br/>
+            <span class="title-gradient">English Skills.</span>
+        </h1>
+        <p class="description-text text-lg w-full">
+            Kies een categorie om de apps te bekijken. zo kun je zelf oefenen met de Engelse grammatica.
+        </p>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-6 pb-24 w-full">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            
+            <a href="basics.html" class="topic-card rounded-3xl p-8 flex flex-col group">
+                <div class="text-4xl mb-6 group-hover:scale-110 transition-transform origin-left">🔤</div>
+                <h3 class="text-xl font-black mb-2 uppercase tracking-tight text-white">Basics</h3>
+                <p class="description-text mb-6 text-sm">
+                    Het alfabet, hoofdlettergebruik, etc. <br>
+                </p>
+                <div class="mt-auto flex items-center text-violet-400 font-bold text-xs uppercase tracking-widest">
+                    Naar de apps <span class="ml-2 group-hover:translate-x-2 transition-transform">→</span>
+                </div>
+            </a>
+
+            <a href="topic-numbers-counting.html" class="topic-card rounded-3xl p-8 flex flex-col group border-violet-500/30">
+                <div class="text-4xl mb-6 group-hover:scale-110 transition-transform origin-left">🔢</div>
+                <h3 class="text-xl font-black mb-2 uppercase tracking-tight text-white">Numbers & Counting</h3>
+                <p class="description-text mb-6 text-sm">
+                    Tellen, rangtelwoorden, datums, tijd, telbaar en ontelbaar, etc. <br>
+                </p>
+                <div class="mt-auto flex items-center text-violet-400 font-bold text-xs uppercase tracking-widest">
+                    Naar de apps <span class="ml-2 group-hover:translate-x-2 transition-transform">→</span>
+                </div>
+            </a>
+
+            <a href="topic-pronouns.html" class="topic-card rounded-3xl p-8 flex flex-col group">
+                <div class="text-4xl mb-6 group-hover:scale-110 transition-transform origin-left">👤</div>
+                <h3 class="text-xl font-black mb-2 uppercase tracking-tight text-white">Pronouns</h3>
+                <p class="description-text mb-6 text-sm">
+                    Persoonlijke voornaamwoorden, bezittelijke voornaamwoorden, aanwijzende voornaamwoorden, etc. <br>
+                </p>
+                <div class="mt-auto flex items-center text-violet-400 font-bold text-xs uppercase tracking-widest">
+                    Naar de apps <span class="ml-2 group-hover:translate-x-2 transition-transform">→</span>
+                </div>
+            </a>
+
+            <a href="topic-adverbs.html" class="topic-card rounded-3xl p-8 flex flex-col group">
+                <div class="text-4xl mb-6 group-hover:scale-110 transition-transform origin-left">🪄</div>
+                <h3 class="text-xl font-black mb-2 uppercase tracking-tight text-white">Adverbs & Comparison</h3>
+                <p class="description-text mb-6 text-sm">
+                    Bijwoorden, bijvoeglijk naamwoorden, vergelijkingen, etc.<br>
+                </p>
+                <div class="mt-auto flex items-center text-violet-400 font-bold text-xs uppercase tracking-widest">
+                    Naar de apps <span class="ml-2 group-hover:translate-x-2 transition-transform">→</span>
+                </div>
+            </a>
+
+            <a href="topic-verbs-tenses.html" class="topic-card rounded-3xl p-8 flex flex-col group">
+                <div class="text-4xl mb-6 group-hover:scale-110 transition-transform origin-left">⏳</div>
+                <h3 class="text-xl font-black mb-2 uppercase tracking-tight text-white">Verb Tenses</h3>
+                <p class="description-text mb-6 text-sm">
+                    Present, past, future, etc. <br>
+                </p>
+                <div class="mt-auto flex items-center text-violet-400 font-bold text-xs uppercase tracking-widest">
+                    Naar de apps <span class="ml-2 group-hover:translate-x-2 transition-transform">→</span>
+                </div>
+            </a>
+
+        </div>
+    </main>
+
+    <footer class="mt-auto border-t border-slate-800 bg-slate-900/80 py-10 px-6 text-center md:text-left">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="font-bungee text-slate-500 text-lg">© Mister Seb's Grammar Apps, 2026</div>
+        </div>
+    </footer>
+
+</body>
+</html>
