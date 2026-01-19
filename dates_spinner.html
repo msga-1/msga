@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Date Spinner - Mister Seb's Grammar Apps</title>
+    
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bungee&family=Outfit:wght@400;700;900&display=swap');
+        
+        body, html { 
+            margin: 0; padding: 0;
+            font-family: 'Outfit', sans-serif; 
+            background: #0f172a; 
+            min-height: 100dvh;
+            color: #f8fafc;
+            touch-action: manipulation;
+        }
+        
+        .font-bungee { font-family: 'Bungee', cursive; }
+
+        /* Spinner Specifieke Styling */
+        .wheel-container {
+            position: relative;
+            width: 160px;
+            height: 160px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @media (min-width: 768px) {
+            .wheel-container { width: 192px; height: 192px; }
+        }
+
+        .neon-wheel {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background: conic-gradient(from 0deg, #f472b6, #8b5cf6, #3b82f6, #2dd4bf, #f472b6);
+            border: 6px solid #1e293b;
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .neon-wheel::after {
+            content: '';
+            position: absolute;
+            width: 85%;
+            height: 85%;
+            border-radius: 50%;
+            background: #0f172a;
+            z-index: 1;
+        }
+
+        .wheel-content { z-index: 2; font-size: 3rem; }
+        .spinner-active { animation: ultra-spin 0.5s linear infinite; }
+        @keyframes ultra-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .idle-pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+
+        /* UI Componenten */
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .title-gradient {
+            background: linear-gradient(to right, #f472b6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .date-row {
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            opacity: 0;
+        }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.9) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+    <div id="root" class="flex flex-col min-h-screen"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        const DAYS_NL = ["Zondag", "Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag", "Zaterdag"];
+        const DAYS_EN = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        const MONTHS_EN = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        
+        const ORDINALS_FULL = [
+            "", "first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth",
+            "eleventh", "twelfth", "thirteenth", "fourteenth", "fifteenth", "sixteenth", "seventeenth", "eighteenth", "nineteenth", "twentieth",
+            "twenty-first", "twenty-second", "twenty-third", "twenty-fourth", "twenty-fifth", "twenty-sixth", "twenty-seventh", "twenty-eighth", "twenty-ninth", "thirtieth", "thirty-first"
+        ];
+
+        const generateFiveUniqueDates = () => {
+            const result = [];
+            const usedDays = new Set();
+            const usedMonths = new Set();
+            while (result.length < 5) {
+                const monthIdx = Math.floor(Math.random() * 12);
+                const daysInMonth = new Date(2024, monthIdx + 1, 0).getDate();
+                const day = Math.floor(Math.random() * daysInMonth) + 1;
+                const tempDate = new Date(2024, monthIdx, day);
+                const dayIdx = tempDate.getDay();
+                if (!usedMonths.has(monthIdx) && !usedDays.has(dayIdx)) {
+                    usedMonths.add(monthIdx);
+                    usedDays.add(dayIdx);
+                    result.push({
+                        question: `${DAYS_NL[dayIdx]} ${day}-${monthIdx + 1}`,
+                        british: `${DAYS_EN[dayIdx]} the ${ORDINALS_FULL[day]} of ${MONTHS_EN[monthIdx]}`,
+                        american: `${DAYS_EN[dayIdx]}, ${MONTHS_EN[monthIdx]} ${ORDINALS_FULL[day]}`
+                    });
+                }
+            }
+            return result;
+        };
+
+        const App = () => {
+            const [dates, setDates] = useState([]);
+            const [isSpinning, setIsSpinning] = useState(false);
+            const [showAnswers, setShowAnswers] = useState(false);
+
+            const startSpin = () => {
+                setIsSpinning(true);
+                setShowAnswers(false);
+                setDates([]);
+                setTimeout(() => {
+                    setDates(generateFiveUniqueDates());
+                    setIsSpinning(false);
+                }, 1200);
+            };
+
+            return (
+                <>
+                    {/* Template Navigatie */}
+                    <nav className="border-b border-slate-800 bg-slate-900/50 px-6 py-5">
+                        <div className="max-w-6xl mx-auto grid grid-cols-3 items-center">
+                            <a href="index.html" className="text-slate-400 hover:text-white transition-colors font-bold uppercase tracking-widest text-sm flex items-center gap-2">
+                                <span>←</span> Home
+                            </a>
+                            <span className="font-bungee text-xl title-gradient tracking-tighter text-center">
+                                Date Spinner
+                            </span>
+                            <div></div> 
+                        </div>
+                    </nav>
+
+                    {/* Main Content (Spinner Logic) */}
+                    <main className="flex-grow p-4 md:p-8 max-w-2xl mx-auto w-full">
+                        <header className="text-center mb-8">
+                            <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Level Up Your English</p>
+                        </header>
+
+                        <div className="relative flex flex-col items-center justify-center mb-10">
+                            <div className="wheel-container">
+                                <div className={`neon-wheel ${isSpinning ? 'spinner-active' : ''}`}>
+                                    <div className={`wheel-content ${!isSpinning ? 'idle-pulse' : ''}`}>📅</div>
+                                </div>
+                                <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-6 h-8 bg-pink-500 rounded-b-full shadow-[0_0_15px_#ec4899] z-20"></div>
+                            </div>
+
+                            <button 
+                                onClick={startSpin} 
+                                disabled={isSpinning}
+                                className={`mt-10 w-full md:w-72 py-5 rounded-full text-xl font-black shadow-2xl transition-all transform active:scale-95 tracking-tighter uppercase
+                                    ${isSpinning ? 'bg-slate-700 text-slate-500' : 'bg-gradient-to-r from-violet-600 to-pink-600 hover:scale-105 text-white border-b-4 border-violet-800'}`}
+                            >
+                                {isSpinning ? 'SPINNING...' : 'GET NEW DATES'}
+                            </button>
+                        </div>
+
+                        <div className="space-y-4 mb-8">
+                            {dates.map((date, i) => (
+                                <div key={i} className="date-row glass-card p-6 rounded-2xl" style={{ animationDelay: `${i * 0.1}s` }}>
+                                    <div className="flex items-center space-x-4">
+                                        <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center font-black text-violet-400 border border-violet-500/30">
+                                            {i + 1}
+                                        </div>
+                                        <span className="text-2xl font-black text-white">{date.question}</span>
+                                    </div>
+                                    
+                                    {showAnswers && (
+                                        <div className="mt-4 grid grid-cols-1 gap-4 pt-4 border-t border-slate-700">
+                                            <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
+                                                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">British (UK)</span>
+                                                <p className="text-indigo-100 font-bold text-lg leading-tight">{date.british}</p>
+                                            </div>
+                                            <div className="p-3 rounded-xl bg-pink-500/10 border border-pink-500/20">
+                                                <span className="text-[10px] font-black text-pink-400 uppercase tracking-widest">American (US)</span>
+                                                <p className="text-pink-100 font-bold text-lg leading-tight">{date.american}</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
+                        {dates.length > 0 && (
+                            <div className="space-y-4">
+                                <button 
+                                    onClick={() => setShowAnswers(!showAnswers)}
+                                    className="w-full bg-slate-800 text-white py-4 rounded-2xl font-black text-lg border-2 border-slate-700 hover:bg-slate-700 transition-all active:scale-95 shadow-xl"
+                                >
+                                    {showAnswers ? 'HIDE ANSWERS' : 'CHECK ANSWERS'}
+                                </button>
+                                
+                                {showAnswers && (
+                                    <div className="p-6 bg-gradient-to-br from-slate-800 to-slate-900 text-slate-300 rounded-3xl shadow-2xl border border-slate-700 relative overflow-hidden">
+                                        <div className="absolute -right-4 -top-4 text-6xl opacity-10">💡</div>
+                                        <h3 className="font-black text-lg mb-3 text-white uppercase tracking-tight">Pro Tips:</h3>
+                                        <ul className="space-y-2 text-sm font-medium">
+                                            <li className="flex items-center">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-violet-500 mr-2" />
+                                                <span>Hoofdletters voor <strong>dagen</strong> en <strong>maanden</strong>!</span>
+                                            </li>
+                                            <li className="flex items-center">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-pink-500 mr-2" />
+                                                <span>Rangtelwoorden (first, twelfth, etc) schrijf je <strong>voluit</strong>.</span>
+                                            </li>
+                                            <li className="flex items-center">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 mr-2" />
+                                                <span><strong>Amerikaans:</strong> gebruik een komma na de dag van de week.</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </main>
+
+                    {/* Template Footer */}
+                    <footer className="mt-auto border-t border-slate-800 bg-slate-900/80 py-8 px-6">
+                        <div className="max-w-6xl mx-auto text-center md:text-left">
+                            <div className="font-bungee text-slate-600 text-sm tracking-widest">
+                                © Mister Seb's Grammar Apps 2026
+                            </div>
+                        </div>
+                    </footer>
+                </>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
