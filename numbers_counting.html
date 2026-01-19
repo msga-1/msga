@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Numbers & Counting - Mister Seb's Grammar Apps</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bungee&family=Outfit:wght@400;700;900&display=swap');
+        
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #0f172a;
+            color: #ffffff;
+            margin: 0;
+        }
+
+        .font-bungee { font-family: 'Bungee', cursive; }
+
+        .app-card {
+            background: #1e293b;
+            border: 2px solid #334155;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .app-card:hover {
+            border-color: #6366f1; /* Indigo voor Numbers */
+            transform: translateY(-4px);
+            background: #232f45;
+        }
+
+        .title-gradient {
+            background: linear-gradient(to right, #6366f1, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .icon-box {
+            min-width: 64px;
+            height: 64px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <nav class="border-b border-slate-800 bg-slate-900/50 px-6 py-5">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <a href="index.html" class="text-slate-400 hover:text-white transition-colors font-bold uppercase tracking-widest text-sm flex items-center gap-2">
+                <span>←</span> Home
+            </a>
+            <span class="font-bungee text-xl title-gradient tracking-tighter">Numbers & Counting</span>
+            <div class="w-20"></div> 
+        </div>
+    </nav>
+
+    <header class="max-w-6xl mx-auto px-6 py-10 w-full">
+        <h1 class="text-4xl font-black mb-2 uppercase italic">
+            Numbers <span class="text-indigo-500">& Counting</span>
+        </h1>
+        <p class="text-slate-400 text-lg">
+            Oefenen met getallen, rangtelwoorden en tellen.
+        </p>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-6 pb-24 w-full">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+            <a href="ordinal_numbers.html" class="app-card rounded-3xl p-6 flex items-center gap-5 group">
+                <div class="icon-box bg-indigo-500/20 rounded-2xl flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
+                    🗓️
+                </div>
+                <div>
+                    <h3 class="text-white font-bold uppercase text-xs tracking-widest mb-1 text-indigo-400">Dates Spinner</h3>
+                    <h4 class="text-xl font-black text-white leading-tight">Data</h4>
+                    <p class="text-slate-400 text-sm mt-1">Monday the twenty-first of March / Monday, March the twenty-first</p>
+                </div>
+            </a>
+
+            <div class="border-2 border-dashed border-slate-700 rounded-3xl p-6 flex items-center justify-center opacity-40">
+                <p class="text-slate-500 font-bold uppercase tracking-widest text-xs">Binnenkort meer...</p>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="mt-auto border-t border-slate-800 bg-slate-900/80 py-8 px-6">
+        <div class="max-w-6xl mx-auto text-center md:text-left">
+            <div class="font-bungee text-slate-600 text-sm tracking-widest">© Mister Seb's Grammar Apps 2026</div>
+        </div>
+    </footer>
+
+</body>
+</html>
