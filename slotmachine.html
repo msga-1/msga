@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Have (got) slots</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bungee&family=Lobster&family=Outfit:wght@400;900&family=Ubuntu+Mono&display=swap');
+        
+        body { 
+            font-family: 'Outfit', sans-serif;
+            background: radial-gradient(circle, #450a0a 0%, #180303 100%);
+            color: #ffffff; margin: 0; height: 100vh; overflow: hidden;
+        }
+
+        .font-vegas { font-family: 'Lobster', cursive; }
+        .font-bungee { font-family: 'Bungee', cursive; }
+
+        .slot-machine-body {
+            background: linear-gradient(145deg, #be123c, #881337);
+            border: 8px solid #fbbf24;
+            border-radius: 40px;
+            box-shadow: 0 0 50px rgba(251, 191, 36, 0.4), inset 0 0 20px rgba(0,0,0,0.5);
+            padding: 1.5rem; width: 100%; max-width: 800px; z-index: 10;
+        }
+
+        .score-display {
+            background: #000; border: 3px solid #fbbf24; color: #fbbf24;
+            font-family: 'Ubuntu Mono', monospace; padding: 5px 20px;
+            border-radius: 10px; font-weight: bold; font-size: 1.8rem;
+        }
+
+        .slot-reel {
+            background: white; color: #1e293b; height: 90px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem; font-weight: 900; border: 4px solid #475569; border-radius: 12px;
+            text-align: center;
+        }
+
+        .reel-spinning { animation: shake 0.1s infinite; }
+        @keyframes shake { 0% { transform: translateY(-2px); } 100% { transform: translateY(2px); } }
+
+        .big-input {
+            background: white; border: 5px solid #fbbf24; color: #1e293b;
+            font-weight: 900; font-size: 1.8rem; border-radius: 15px;
+            text-align: center; width: 100%; padding: 0.5rem; outline: none;
+        }
+
+        .bet-slider {
+            -webkit-appearance: none; width: 100%; height: 12px;
+            border-radius: 10px; background: #450a0a; outline: none; border: 1px solid #fbbf24;
+        }
+
+        .bet-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 28px; height: 28px;
+            border-radius: 50%; background: #fbbf24; cursor: pointer;
+        }
+
+        .money-particle {
+            position: absolute; top: -100px; font-size: 2.5rem;
+            animation: rain linear forwards; z-index: 1000; pointer-events: none;
+        }
+        @keyframes rain { to { transform: translateY(110vh) rotate(720deg); } }
+
+        .jackpot-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.95);
+            z-index: 500; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="root" class="contents"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const playTone = (freq, type, duration, vol = 0.1) => {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, ctx.currentTime);
+                gain.gain.setValueAtTime(vol, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.start(); osc.stop(ctx.currentTime + duration);
+            } catch(e) {}
+        };
+
+       const ITEMS = [
+    // --- POSITIVE (+) HAVE GOT ---
+    { q: "I ___ a cold.", t: "have got", m: "+", a: ["have got", "'ve got"] },
+    { q: "You ___ a nice smile.", t: "have got", m: "+", a: ["have got", "'ve got"] },
+    { q: "He ___ a fast bike.", t: "have got", m: "+", a: ["has got", "'s got"] },
+    { q: "She ___ a red dress.", t: "have got", m: "+", a: ["has got", "'s got"] },
+    { q: "It ___ a long tail.", t: "have got", m: "+", a: ["has got", "'s got"] },
+    { q: "We ___ a lot of work.", t: "have got", m: "+", a: ["have got", "'ve got"] },
+    { q: "They ___ a big garden.", t: "have got", m: "+", a: ["have got", "'ve got"] },
+    { q: "My brother ___ a new job.", t: "have got", m: "+", a: ["has got", "'s got"] },
+    { q: "Sarah ___ two cats.", t: "have got", m: "+", a: ["has got", "'s got"] },
+    { q: "The kids ___ a secret.", t: "have got", m: "+", a: ["have got", "'ve got"] },
+    { q: "I ___ your phone number.", t: "have got", m: "+", a: ["have got", "'ve got"] },
+    { q: "He ___ brown hair.", t: "have got", m: "+", a: ["has got", "'s got"] },
+    { q: "We ___ an old map.", t: "have got", m: "+", a: ["have got", "'ve got"] },
+    { q: "The dog ___ a bone.", t: "have got", m: "+", a: ["has got", "'s got"] },
+    { q: "My parents ___ a villa.", t: "have got", m: "+", a: ["have got", "'ve got"] },
+    { q: "John ___ a headache.", t: "have got", m: "+", a: ["has got", "'s got"] },
+    { q: "The car ___ four doors.", t: "have got", m: "+", a: ["has got", "'s got"] },
+    { q: "You ___ a great idea.", t: "have got", m: "+", a: ["have got", "'ve got"] },
+    { q: "The house ___ a green roof.", t: "have got", m: "+", a: ["has got", "'s got"] },
+    { q: "I ___ a message for you.", t: "have got", m: "+", a: ["have got", "'ve got"] },
+    { q: "Lisa ___ a laptop.", t: "have got", m: "+", a: ["has got", "'s got"] },
+    { q: "We ___ enough time.", t: "have got", m: "+", a: ["have got", "'ve got"] },
+    { q: "He ___ a lot of books.", t: "have got", m: "+", a: ["has got", "'s got"] },
+    { q: "They ___ a meeting now.", t: "have got", m: "+", a: ["have got", "'ve got"] },
+    { q: "The cat ___ white paws.", t: "have got", m: "+", a: ["has got", "'s got"] },
+    { q: "My teacher ___ a new car.", t: "have got", m: "+", a: ["has got", "'s got"] },
+    { q: "I ___ a question.", t: "have got", m: "+", a: ["have got", "'ve got"] },
+    { q: "You ___ a package.", t: "have got", m: "+", a: ["have got", "'ve got"] },
+    { q: "He ___ a lucky coin.", t: "have got", m: "+", a: ["has got", "'s got"] },
+    { q: "She ___ a pretty face.", t: "have got", m: "+", a: ["has got", "'s got"] },
+    { q: "The tree ___ many leaves.", t: "have got", m: "+", a: ["has got", "'s got"] },
+    { q: "We ___ a reservation.", t: "have got", m: "+", a: ["have got", "'ve got"] },
+    { q: "They ___ a small boat.", t: "have got", m: "+", a: ["have got", "'ve got"] },
+    { q: "The bird ___ blue wings.", t: "have got", m: "+", a: ["has got", "'s got"] },
+    { q: "I ___ some free time.", t: "have got", m: "+", a: ["have got", "'ve got"] },
+    { q: "Mike ___ a guitar.", t: "have got", m: "+", a: ["has got", "'s got"] },
+    { q: "The city ___ many parks.", t: "have got", m: "+", a: ["has got", "'s got"] },
+    { q: "You ___ a phone call.", t: "have got", m: "+", a: ["have got", "'ve got"] },
+    { q: "We ___ a map.", t: "have got", m: "+", a: ["have got", "'ve got"] },
+    { q: "They ___ a problem.", t: "have got", m: "+", a: ["have got", "'ve got"] },
+
+    // --- POSITIVE (+) HAVE (WITHOUT GOT) ---
+    { q: "I ___ breakfast at 8.", t: "have", m: "+", a: ["have"] },
+    { q: "She ___ a shower daily.", t: "have", m: "+", a: ["has"] },
+    { q: "We ___ fun at the park.", t: "have", m: "+", a: ["have"] },
+    { q: "He ___ a busy day.", t: "have", m: "+", a: ["has"] },
+    { q: "They ___ lunch together.", t: "have", m: "+", a: ["have"] },
+    { q: "It ___ a bad battery.", t: "have", m: "+", a: ["has"] },
+    { q: "The store ___ many sales.", t: "have", m: "+", a: ["has"] },
+    { q: "I ___ a dream last night.", t: "have", m: "+", a: ["have"] },
+    { q: "You ___ a lot of energy.", t: "have", m: "+", a: ["have"] },
+    { q: "Peter ___ a party tonight.", t: "have", m: "+", a: ["has"] },
+    { q: "The book ___ 200 pages.", t: "have", m: "+", a: ["has"] },
+    { q: "We ___ a break now.", t: "have", m: "+", a: ["have"] },
+    { q: "They ___ an exam today.", t: "have", m: "+", a: ["have"] },
+    { q: "She ___ a great voice.", t: "have", m: "+", a: ["has"] },
+    { q: "I ___ a brother.", t: "have", m: "+", a: ["have"] },
+    { q: "He ___ a nice apartment.", t: "have", m: "+", a: ["has"] },
+    { q: "The clock ___ new batteries.", t: "have", m: "+", a: ["has"] },
+    { q: "You ___ a good memory.", t: "have", m: "+", a: ["have"] },
+    { q: "We ___ dinner at 7.", t: "have", m: "+", a: ["have"] },
+    { q: "The table ___ four legs.", t: "have", m: "+", a: ["has"] },
+    { q: "I ___ coffee every morning.", t: "have", m: "+", a: ["have"] },
+    { q: "Mary ___ a test tomorrow.", t: "have", m: "+", a: ["has"] },
+    { q: "They ___ a big family.", t: "have", m: "+", a: ["have"] },
+    { q: "He ___ a lot of courage.", t: "have", m: "+", a: ["has"] },
+    { q: "The baby ___ blue eyes.", t: "have", m: "+", a: ["has"] },
+    { q: "We ___ many friends.", t: "have", m: "+", a: ["have"] },
+    { q: "She ___ an appointment.", t: "have", m: "+", a: ["has"] },
+    { q: "I ___ a headache.", t: "have", m: "+", a: ["have"] },
+    { q: "The hotel ___ a pool.", t: "have", m: "+", a: ["has"] },
+    { q: "You ___ a lot of talent.", t: "have", m: "+", a: ["have"] },
+    { q: "The garden ___ many flowers.", t: "have", m: "+", a: ["has"] },
+    { q: "He ___ a soccer match.", t: "have", m: "+", a: ["has"] },
+    { q: "They ___ a nice car.", t: "have", m: "+", a: ["have"] },
+    { q: "The mountain ___ snow.", t: "have", m: "+", a: ["has"] },
+    { q: "I ___ a new camera.", t: "have", m: "+", a: ["have"] },
+
+    // --- NEGATIVE (-) HAVE GOT ---
+    { q: "I ___ any money.", t: "have got", m: "-", a: ["haven't got", "have not got"] },
+    { q: "She ___ a sister.", t: "have got", m: "-", a: ["hasn't got", "has not got"] },
+    { q: "We ___ a car yet.", t: "have got", m: "-", a: ["haven't got", "have not got"] },
+    { q: "He ___ his passport.", t: "have got", m: "-", a: ["hasn't got", "has not got"] },
+    { q: "They ___ much time.", t: "have got", m: "-", a: ["haven't got", "have not got"] },
+    { q: "It ___ any milk left.", t: "have got", m: "-", a: ["hasn't got", "has not got"] },
+    { q: "You ___ a ticket.", t: "have got", m: "-", a: ["haven't got", "have not got"] },
+    { q: "Sarah ___ any homework.", t: "have got", m: "-", a: ["hasn't got", "has not got"] },
+    { q: "The cat ___ a collar.", t: "have got", m: "-", a: ["hasn't got", "has not got"] },
+    { q: "The boys ___ their bags.", t: "have got", m: "-", a: ["haven't got", "have not got"] },
+    { q: "I ___ your email.", t: "have got", m: "-", a: ["haven't got", "have not got"] },
+    { q: "He ___ a pen.", t: "have got", m: "-", a: ["hasn't got", "has not got"] },
+    { q: "We ___ an umbrella.", t: "have got", m: "-", a: ["haven't got", "have not got"] },
+    { q: "They ___ any plans.", t: "have got", m: "-", a: ["haven't got", "have not got"] },
+    { q: "She ___ a bike.", t: "have got", m: "-", a: ["hasn't got", "has not got"] },
+    { q: "I ___ a lighter.", t: "have got", m: "-", a: ["haven't got", "have not got"] },
+    { q: "You ___ my keys.", t: "have got", m: "-", a: ["haven't got", "have not got"] },
+    { q: "It ___ a screen.", t: "have got", m: "-", a: ["hasn't got", "has not got"] },
+    { q: "Tom ___ any pets.", t: "have got", m: "-", a: ["hasn't got", "has not got"] },
+    { q: "We ___ our coats.", t: "have got", m: "-", a: ["haven't got", "have not got"] },
+    { q: "They ___ their books.", t: "have got", m: "-", a: ["haven't got", "have not got"] },
+    { q: "I ___ a charger.", t: "have got", m: "-", a: ["haven't got", "have not got"] },
+    { q: "She ___ a coat.", t: "have got", m: "-", a: ["hasn't got", "has not got"] },
+    { q: "He ___ his phone.", t: "have got", m: "-", a: ["hasn't got", "has not got"] },
+    { q: "The dog ___ a leash.", t: "have got", m: "-", a: ["hasn't got", "has not got"] },
+    { q: "I ___ a map.", t: "have got", m: "-", a: ["haven't got", "have not got"] },
+    { q: "We ___ any water.", t: "have got", m: "-", a: ["haven't got", "have not got"] },
+    { q: "They ___ any shoes.", t: "have got", m: "-", a: ["haven't got", "have not got"] },
+    { q: "You ___ a jacket.", t: "have got", m: "-", a: ["haven't got", "have not got"] },
+    { q: "She ___ any paper.", t: "have got", m: "-", a: ["hasn't got", "has not got"] },
+    { q: "I ___ any ideas.", t: "have got", m: "-", a: ["haven't got", "have not got"] },
+    { q: "The hotel ___ a gym.", t: "have got", m: "-", a: ["hasn't got", "has not got"] },
+    { q: "We ___ a TV.", t: "have got", m: "-", a: ["haven't got", "have not got"] },
+    { q: "He ___ any brothers.", t: "have got", m: "-", a: ["hasn't got", "has not got"] },
+    { q: "They ___ a ball.", t: "have got", m: "-", a: ["haven't got", "have not got"] },
+
+    // --- NEGATIVE (-) HAVE (WITHOUT GOT) ---
+    { q: "I ___ a car.", t: "have", m: "-", a: ["don't have", "do not have"] },
+    { q: "She ___ any money.", t: "have", m: "-", a: ["doesn't have", "does not have"] },
+    { q: "We ___ classes today.", t: "have", m: "-", a: ["don't have", "do not have"] },
+    { q: "He ___ a job.", t: "have", m: "-", a: ["doesn't have", "does not have"] },
+    { q: "They ___ lunch here.", t: "have", m: "-", a: ["don't have", "do not have"] },
+    { q: "You ___ my address.", t: "have", m: "-", a: ["don't have", "do not have"] },
+    { q: "The house ___ a yard.", t: "have", m: "-", a: ["doesn't have", "does not have"] },
+    { q: "I ___ a laptop.", t: "have", m: "-", a: ["don't have", "do not have"] },
+    { q: "She ___ a watch.", t: "have", m: "-", a: ["doesn't have", "does not have"] },
+    { q: "The cat ___ a tail.", t: "have", m: "-", a: ["doesn't have", "does not have"] },
+    { q: "We ___ enough milk.", t: "have", m: "-", a: ["don't have", "do not have"] },
+    { q: "They ___ an oven.", t: "have", m: "-", a: ["don't have", "do not have"] },
+    { q: "John ___ a pencil.", t: "have", m: "-", a: ["doesn't have", "does not have"] },
+    { q: "I ___ your book.", t: "have", m: "-", a: ["don't have", "do not have"] },
+    { q: "She ___ much time.", t: "have", m: "-", a: ["doesn't have", "does not have"] },
+    { q: "We ___ a meeting.", t: "have", m: "-", a: ["don't have", "do not have"] },
+    { q: "The car ___ a radio.", t: "have", m: "-", a: ["doesn't have", "does not have"] },
+    { q: "He ___ any hobbies.", t: "have", m: "-", a: ["doesn't have", "does not have"] },
+    { q: "You ___ a choice.", t: "have", m: "-", a: ["don't have", "do not have"] },
+    { q: "They ___ any children.", t: "have", m: "-", a: ["don't have", "do not have"] },
+    { q: "I ___ a key.", t: "have", m: "-", a: ["don't have", "do not have"] },
+    { q: "The baby ___ any teeth.", t: "have", m: "-", a: ["doesn't have", "does not have"] },
+    { q: "We ___ a garden.", t: "have", m: "-", a: ["don't have", "do not have"] },
+    { q: "They ___ any news.", t: "have", m: "-", a: ["don't have", "do not have"] },
+    { q: "She ___ a headache.", t: "have", m: "-", a: ["doesn't have", "does not have"] },
+    { q: "I ___ any plans.", t: "have", m: "-", a: ["don't have", "do not have"] },
+    { q: "The phone ___ a signal.", t: "have", m: "-", a: ["doesn't have", "does not have"] },
+    { q: "We ___ a map.", t: "have", m: "-", a: ["don't have", "do not have"] },
+    { q: "He ___ a sister.", t: "have", m: "-", a: ["doesn't have", "does not have"] },
+    { q: "They ___ a boat.", t: "have", m: "-", a: ["don't have", "do not have"] },
+    { q: "I ___ a dollar.", t: "have", m: "-", a: ["don't have", "do not have"] },
+    { q: "She ___ any cats.", t: "have", m: "-", a: ["doesn't have", "does not have"] },
+    { q: "You ___ a cold.", t: "have", m: "-", a: ["don't have", "do not have"] },
+    { q: "The tree ___ leaves.", t: "have", m: "-", a: ["doesn't have", "does not have"] },
+    { q: "We ___ any help.", t: "have", m: "-", a: ["don't have", "do not have"] },
+    { q: "He ___ a piano.", t: "have", m: "-", a: ["doesn't have", "does not have"] },
+    { q: "They ___ an umbrella.", t: "have", m: "-", a: ["don't have", "do not have"] },
+    { q: "I ___ a sister.", t: "have", m: "-", a: ["don't have", "do not have"] },
+    { q: "She ___ a bike.", t: "have", m: "-", a: ["doesn't have", "does not have"] },
+    { q: "It ___ a name.", t: "have", m: "-", a: ["doesn't have", "does not have"] }
+];
+
+        const App = () => {
+            const [view, setView] = useState('intro');
+            const [credits, setCredits] = useState(100);
+            const [bet, setBet] = useState(10);
+            const [count, setCount] = useState(0);
+            const [spinning, setSpinning] = useState(false);
+            const [status, setStatus] = useState(null);
+            const [current, setCurrent] = useState(ITEMS[0]);
+            const [val, setVal] = useState("");
+            const [particles, setParticles] = useState([]);
+            const [showFinale, setShowFinale] = useState(false);
+
+            const maxBet = Math.max(10, Math.floor(credits / 2));
+
+            const triggerRain = (amount = 30) => {
+                const newParticles = Array.from({length: amount}).map((_, i) => ({
+                    id: Math.random(),
+                    left: Math.random() * 100 + '%',
+                    delay: Math.random() * 1 + 's',
+                    dur: Math.random() * 2 + 1 + 's',
+                    char: ['💵','💰','💎','🪙'][Math.floor(Math.random()*4)]
+                }));
+                setParticles(prev => [...prev, ...newParticles]);
+            };
+
+            const check = (e) => {
+                e.preventDefault();
+                const isCorrect = current.a.some(opt => val.toLowerCase().trim() === opt.toLowerCase());
+                
+                setCount(c => c + 1);
+                if (isCorrect) {
+                    playTone(523, 'square', 0.2);
+                    setCredits(prev => prev + (bet * 2));
+                    setStatus('win');
+                    triggerRain(20);
+                } else {
+                    playTone(150, 'triangle', 0.4);
+                    setCredits(prev => prev - bet);
+                    setStatus('lose');
+                }
+            };
+
+            const spin = () => {
+                if (count >= 10) {
+                    setShowFinale(true);
+                    triggerRain(100);
+                    return;
+                }
+                
+                setSpinning(true);
+                setStatus(null);
+                setVal("");
+                playTone(200, 'sawtooth', 0.5);
+
+                setTimeout(() => {
+                    setCurrent(ITEMS[Math.floor(Math.random() * ITEMS.length)]);
+                    setSpinning(false);
+                    if (bet > credits / 2) setBet(Math.max(10, Math.floor(credits / 2)));
+                }, 800);
+            };
+
+            if (view === 'intro') return (
+                <div className="flex items-center justify-center h-screen p-6">
+                    <div className="bg-black/80 p-8 rounded-[40px] border-4 border-yellow-500 text-center max-w-md shadow-2xl">
+                        <h1 className="font-vegas text-4xl text-yellow-400 mb-4 uppercase tracking-tighter">Have (got) slots</h1>
+                        <div className="text-left text-sm space-y-3 mb-8 text-gray-200 font-medium">
+                            <p className="border-b border-white/10 pb-2">🎰 <b className="text-yellow-500">How to play:</b> Complete the sentences using the correct form of "Have" or "Have Got".</p>
+                            <p className="border-b border-white/10 pb-2">💰 <b className="text-yellow-500">The Bet:</b> Choose your risk. Correct answers pay double! Wrong answers lose the bet.</p>
+                            <p>🎯 <b className="text-yellow-500">The Goal:</b> Play 10 rounds and reach the Jackpot!</p>
+                        </div>
+                        <button onClick={() => setView('game')} className="w-full bg-yellow-500 text-black font-bungee py-4 rounded-xl text-2xl shadow-[0_5px_0_#92400e] hover:bg-yellow-400 active:translate-y-1 transition-all">LET'S SPIN!</button>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className="flex flex-col h-screen">
+                    {particles.map(p => <div key={p.id} className="money-particle" style={{left: p.left, animationDelay: p.delay, animationDuration: p.dur}}>{p.char}</div>)}
+                    
+                    {showFinale && (
+                        <div className="jackpot-overlay">
+                            <h2 className="font-vegas text-8xl text-yellow-400 mb-4 animate-bounce">JACKPOT!</h2>
+                            <div className="bg-yellow-500 text-black font-bungee px-12 py-6 rounded-3xl text-6xl mb-8 shadow-[0_0_50px_#fbbf24]">
+                                ${credits}
+                            </div>
+                            <button onClick={() => window.location.reload()} className="bg-white text-black font-bungee px-10 py-4 rounded-xl text-xl mb-4">PLAY AGAIN</button>
+                            <a href="verb_tenses.html" className="text-yellow-500 underline uppercase font-bungee text-xs tracking-widest">Quit Game</a>
+                        </div>
+                    )}
+
+                    <nav className="p-4 flex justify-between items-center bg-rose-950 border-b-2 border-yellow-600 shadow-lg">
+                        <a href="verb_tenses.html" className="text-yellow-500 font-bold text-[10px] tracking-widest px-3 py-1 border border-yellow-500/30 rounded uppercase">← Back</a>
+                        <div className="flex flex-col items-center">
+                            <span className="font-bungee text-yellow-500 text-[10px]">ROUND</span>
+                            <span className="font-bungee text-white text-xl leading-none">{count}/10</span>
+                        </div>
+                        <div className="score-display">${credits}</div>
+                    </nav>
+
+                    <main className="flex-grow flex flex-col items-center justify-center p-4 relative">
+                        <div className="slot-machine-body">
+                            <div className="grid grid-cols-3 gap-3 mb-6">
+                                <div className={`slot-reel px-2 text-sm ${spinning ? 'reel-spinning' : ''}`}>
+                                    {spinning ? "???" : current.q}
+                                </div>
+                                <div className={`slot-reel font-bungee text-blue-700 text-[10px] ${spinning ? 'reel-spinning' : ''}`}>
+                                    {spinning ? "???" : current.t}
+                                </div>
+                                <div className={`slot-reel text-5xl font-bungee ${spinning ? 'reel-spinning' : ''}`} style={{color: current.m === '+' ? '#22c55e' : '#ef4444'}}>
+                                    {spinning ? "!" : current.m}
+                                </div>
+                            </div>
+
+                            {!spinning && (
+                                <form onSubmit={check} className="flex flex-col gap-4">
+                                    {!status && (
+                                        <div className="bg-black/40 p-4 rounded-2xl border border-yellow-500/30">
+                                            <div className="flex justify-between text-yellow-500 font-bungee text-[10px] uppercase mb-2">
+                                                <span>Your Bet: ${bet}</span>
+                                                <span>Limit: ${maxBet}</span>
+                                            </div>
+                                            <input type="range" min="10" max={maxBet} step="10" value={bet} onChange={(e) => setBet(parseInt(e.target.value))} className="bet-slider" />
+                                        </div>
+                                    )}
+
+                                    <input autoFocus className="big-input" value={val} onChange={e => setVal(e.target.value)} disabled={status} placeholder="Type your answer..." />
+
+                                    {status === 'lose' && (
+                                        <div className="bg-black/90 p-4 border-2 border-red-500 rounded-xl text-center shadow-[0_0_15px_rgba(239,68,68,0.4)]">
+                                            <p className="text-red-500 text-[10px] font-bungee uppercase mb-1">Unlucky! Correct was:</p>
+                                            <p className="text-white text-2xl font-mono font-bold uppercase">{current.a[0]}</p>
+                                        </div>
+                                    )}
+
+                                    {status === 'win' && (
+                                        <div className="text-center">
+                                            <p className="font-vegas text-yellow-400 text-3xl animate-bounce">WINNER!</p>
+                                        </div>
+                                    )}
+
+                                    {status ? (
+                                        <button type="button" onClick={spin} className="bg-blue-600 text-white font-bungee py-5 rounded-xl text-2xl animate-pulse shadow-lg uppercase">
+                                            {count >= 10 ? 'Check Final Score' : 'Next Spin'}
+                                        </button>
+                                    ) : (
+                                        <button className="bg-yellow-500 text-black font-bungee py-5 rounded-xl text-2xl shadow-[0_6px_0_#92400e] active:translate-y-1 transition-all uppercase">Place Bet!</button>
+                                    )}
+                                </form>
+                            )}
+                        </div>
+                    </main>
+
+                    <footer className="w-full bg-black py-4 px-6 flex justify-between items-center border-t-2 border-yellow-900">
+                        <span className="font-bungee text-yellow-700 text-[9px] tracking-widest uppercase">© Mister Seb's Grammar Apps, 2026</span>                    </footer>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

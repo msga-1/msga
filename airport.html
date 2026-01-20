@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Airport Terminal - Mister Seb's Grammar Apps</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bungee&family=Outfit:wght@400;700;900&family=Ubuntu+Mono:wght@400;700&display=swap');
+        
+        body { 
+            font-family: 'Outfit', sans-serif;
+            background-color: #001a33; 
+            color: #ffffff; 
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .font-bungee { font-family: 'Bungee', cursive; }
+        .font-terminal { font-family: 'Ubuntu Mono', monospace; }
+
+        .title-gradient {
+            background: linear-gradient(to right, #00d4ff, #ffffff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .changing-letter {
+            color: #00d4ff;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.6);
+        }
+
+        .board-row {
+            border-bottom: 2px solid #003366;
+            background: linear-gradient(180deg, #002b55 0%, #001f3f 100%);
+            padding-top: 1.5rem;
+            padding-bottom: 1.5rem;
+        }
+
+        input {
+            background: #ffffff !important;
+            border: 3px solid #00d4ff !important;
+            color: #001a33 !important;
+            font-weight: bold;
+            font-size: 1.5rem;
+            border-radius: 8px;
+            transition: all 0.2s;
+            padding: 0.5rem 1rem;
+            min-width: 250px;
+        }
+
+        input:focus {
+            outline: none;
+            box-shadow: 0 0 25px rgba(0, 212, 255, 0.5);
+            border-color: #ffffff !important;
+        }
+
+        .scanline {
+            width: 100%; height: 3px; background: rgba(255, 255, 255, 0.05);
+            position: fixed; top: 0; left: 0; pointer-events: none;
+            animation: move 10s linear infinite; z-index: 100;
+        }
+        @keyframes move { 0% { top: 0; } 100% { top: 100%; } }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <nav class="border-b border-blue-900 bg-[#001f3f]/80 px-6 py-5 sticky top-0 z-50 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <a href="index.html" class="text-blue-300 hover:text-white transition-colors font-bold uppercase tracking-widest text-sm flex items-center gap-2">
+                <span>←</span> Terug
+            </a>
+            <span class="font-bungee text-xl title-gradient tracking-tighter">Present Continuous Terminal</span>
+            <div class="w-20 hidden md:block"></div> 
+        </div>
+    </nav>
+
+    <main class="flex-grow flex flex-col items-center w-full p-4 md:p-8">
+        <div id="game-root" class="w-full max-w-6xl"></div>
+    </main>
+
+    <footer class="border-t border-blue-900 bg-[#001226] py-8 px-6">
+        <div class="max-w-6xl mx-auto text-center md:text-left">
+            <div class="font-bungee text-blue-800 text-sm tracking-widest uppercase">
+                © Mister Seb's Grammar Apps 2026
+            </div>
+        </div>
+    </footer>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback } = React;
+
+        const FlapText = ({ text, speed = 25 }) => {
+            const [displayText, setDisplayText] = useState("");
+            const [isAnimating, setIsAnimating] = useState(true);
+            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!?#$";
+
+            useEffect(() => {
+                let iteration = 0;
+                setIsAnimating(true);
+                const interval = setInterval(() => {
+                    setDisplayText(text.split("").map((letter, index) => {
+                        if (index < Math.floor(iteration)) return text[index];
+                        if (letter === " ") return " ";
+                        return chars[Math.floor(Math.random() * chars.length)];
+                    }).join(""));
+
+                    if (iteration >= text.length) {
+                        clearInterval(interval);
+                        setIsAnimating(false);
+                    }
+                    iteration += 0.5;
+                }, speed);
+                return () => clearInterval(interval);
+            }, [text]);
+
+            return <span className={`font-terminal ${isAnimating ? "changing-letter" : ""}`}>{displayText}</span>;
+        };
+
+        const MASTER_DATABASE = [
+            { verb: "wait", q1: "The passengers ", q2: " at Gate 7.", answer: "are waiting" },
+            { verb: "check in", q1: "Sophie ", q2: " her luggage now.", answer: "is checking in" },
+            { verb: "fly", q1: "The pilot ", q2: " the plane above the clouds.", answer: "is flying" },
+            { verb: "not land", q1: "Flight UA20 ", q2: " due to heavy fog.", answer: "is not landing" },
+            { verb: "have", q1: "We ", q2: " lunch in the VIP lounge.", answer: "are having" },
+            { verb: "wear", q1: "The crew members ", q2: " their new uniforms.", answer: "are wearing" },
+            { verb: "run", q1: "They ", q2: " to catch the final shuttle.", answer: "are running" },
+            { verb: "get", q1: "It ", q2: " late for our connection.", answer: "is getting" },
+            { verb: "take off", q1: "The aircraft ", q2: " from runway 4.", answer: "is taking off" },
+            { verb: "fix", q1: "Engineers ", q2: " the technical issue.", answer: "are fixing" },
+            { verb: "talk", q1: "The ground staff ", q2: " to the captain.", answer: "is talking" },
+            { verb: "drink", q1: "The tourists ", q2: " orange juice.", answer: "are drinking" },
+            { verb: "read", q1: "A woman ", q2: " a book about London.", answer: "is reading" },
+            { verb: "buy", q1: "We ", q2: " some snacks for the flight.", answer: "are buying" },
+            { verb: "sit", q1: "The children ", q2: " on their suitcases.", answer: "are sitting" },
+            { verb: "search", q1: "Security ", q2: " the black backpack.", answer: "is searching" },
+            { verb: "look", q1: "Everyone ", q2: " at the departure board.", answer: "is looking" },
+            { verb: "not use", q1: "The pilots ", q2: " the autopilot yet.", answer: "are not using" },
+            { verb: "make", q1: "The stewardess ", q2: " an announcement.", answer: "is making" },
+            { verb: "smile", q1: "The travelers ", q2: " for a photo.", answer: "are smiling" },
+            { verb: "sleep", q1: "He ", q2: " on the bench.", answer: "is sleeping" },
+            { verb: "work", q1: "I ", q2: " at the information desk today.", answer: "am working" },
+            { verb: "not listen", q1: "You ", q2: " to the safety instructions!", answer: "are not listening" },
+            { verb: "show", q1: "The officer ", q2: " us where to go.", answer: "is showing" },
+            { verb: "carry", q1: "Tom ", q2: " two heavy suitcases.", answer: "is carrying" },
+            { verb: "arrive", q1: "The bus ", q2: " at the terminal.", answer: "is arriving" },
+            { verb: "not move", q1: "The line ", q2: " very fast.", answer: "is not moving" },
+            { verb: "charge", q1: "She ", q2: " her phone near the gate.", answer: "is charging" },
+            { verb: "eat", q1: "They ", q2: " sandwiches before boarding.", answer: "are eating" },
+            { verb: "clean", q1: "The janitor ", q2: " the floor.", answer: "is cleaning" },
+            { verb: "prepare", q1: "The chef ", q2: " the airplane meals.", answer: "is preparing" },
+            { verb: "not rain", q1: "It ", q2: " on the runway now.", answer: "is not raining" },
+            { verb: "watch", q1: "We ", q2: " the sunset from the lounge.", answer: "are watching" },
+            { verb: "help", q1: "He ", q2: " an elderly passenger.", answer: "is helping" },
+            { verb: "check", q1: "Mr. Sebel ", q2: " his watch constantly.", answer: "is checking" },
+            { verb: "sing", q1: "A street musician ", q2: " in the hall.", answer: "is singing" },
+            { verb: "not open", q1: "The duty-free shop ", q2: " yet.", answer: "is not opening" },
+            { verb: "write", q1: "I ", q2: " a postcard to my family.", answer: "am writing" },
+            { verb: "dance", q1: "The little girls ", q2: " with joy.", answer: "are dancing" },
+            { verb: "take", q1: "You ", q2: " my jacket by mistake!", answer: "are taking" },
+            { verb: "stand", q1: "The guards ", q2: " at the entrance.", answer: "are standing" },
+            { verb: "not feel", q1: "She ", q2: " very well after the flight.", answer: "is not feeling" },
+            { verb: "drive", q1: "The driver ", q2: " the luggage cart.", answer: "is driving" },
+            { verb: "play", q1: "The boys ", q2: " games on their tablets.", answer: "are playing" },
+            { verb: "listen", q1: "We ", q2: " to our favorite podcast.", answer: "are listening" },
+            { verb: "not stay", q1: "They ", q2: " at a hotel tonight.", answer: "are not staying" },
+            { verb: "smoke", q1: "Nobody ", q2: " in the building.", answer: "is smoking" },
+            { verb: "bring", q1: "The waiter ", q2: " our drinks.", answer: "is bringing" },
+            { verb: "travel", q1: "My parents ", q2: " around the world.", answer: "are traveling" },
+            { verb: "not talk", q1: "He ", q2: " to anyone right now.", answer: "is not talking" },
+            { verb: "look for", q1: "I ", q2: " my passport.", answer: "am looking for" },
+            { verb: "walk", q1: "You ", q2: " too fast for me.", answer: "are walking" },
+            { verb: "enjoy", q1: "We ", q2: " the air conditioning.", answer: "are enjoying" },
+            { verb: "cry", q1: "The baby ", q2: " in the back row.", answer: "is crying" },
+            { verb: "buy", q1: "Lisa ", q2: " a new neck pillow.", answer: "is buying" },
+            { verb: "not go", q1: "The train ", q2: " to the city center.", answer: "is not going" },
+            { verb: "park", q1: "The pilot ", q2: " the plane at the gate.", answer: "is parking" },
+            { verb: "wait", q1: "You ", q2: " for the wrong flight.", answer: "are waiting" },
+            { verb: "learn", q1: "He ", q2: " some Spanish words.", answer: "is learning" },
+            { verb: "not work", q1: "The elevator ", q2: " today.", answer: "is not working" },
+            { verb: "count", q1: "The agent ", q2: " the tickets.", answer: "is counting" },
+            { verb: "hold", q1: "She ", q2: " a teddy bear.", answer: "is holding" },
+            { verb: "try", q1: "They ", q2: " to find their terminal.", answer: "are trying" },
+            { verb: "use", q1: "We ", q2: " the free Wi-Fi.", answer: "are using" },
+            { verb: "not sleep", q1: "I ", q2: " very well on planes.", answer: "am not sleeping" },
+            { verb: "laugh", q1: "The flight attendants ", q2: " at a joke.", answer: "are laughing" },
+            { verb: "call", q1: "Tom ", q2: " his wife.", answer: "is calling" },
+            { verb: "not wear", q1: "You ", q2: " a warm coat.", answer: "are not wearing" },
+            { verb: "sit", q1: "A dog ", q2: " under the chair.", answer: "is sitting" },
+            { verb: "climb", q1: "The passengers ", q2: " the stairs.", answer: "are climbing" },
+            { verb: "not eat", q1: "We ", q2: " meat today.", answer: "are not eating" },
+            { verb: "ask", q1: "She ", q2: " for directions.", answer: "is asking" },
+            { verb: "plan", q1: "They ", q2: " their next vacation.", answer: "are planning" },
+            { verb: "not buy", q1: "He ", q2: " any souvenirs.", answer: "is not buying" },
+            { verb: "open", q1: "I ", q2: " my suitcase for inspection.", answer: "am opening" },
+            { verb: "study", q1: "You ", q2: " the airport map.", answer: "are studying" },
+            { verb: "not sit", q1: "The cat ", q2: " in the bag.", answer: "is not sitting" },
+            { verb: "scan", q1: "The machine ", q2: " your boarding pass.", answer: "is scanning" },
+            { verb: "carry", q1: "We ", q2: " our own bags.", answer: "are carrying" },
+            { verb: "not play", q1: "The band ", q2: " at the moment.", answer: "is not playing" },
+            { verb: "wash", q1: "The staff ", q2: " the windows.", answer: "is washing" },
+            { verb: "think", q1: "He ", q2: " about his home.", answer: "is thinking" },
+            { verb: "not use", q1: "They ", q2: " the escalator.", answer: "are not using" },
+            { verb: "paint", q1: "The artist ", q2: " the sky.", answer: "is painting" },
+            { verb: "not look", q1: "I ", q2: " at the screen.", answer: "am not looking" },
+            { verb: "close", q1: "The gate ", q2: " in five minutes.", answer: "is closing" },
+            { verb: "send", q1: "She ", q2: " an email to her boss.", answer: "is sending" },
+            { verb: "not wait", q1: "We ", q2: " for anyone.", answer: "are not waiting" },
+            { verb: "bring", q1: "The taxi ", q2: " more people.", answer: "is bringing" },
+            { verb: "shout", q1: "Someone ", q2: " in the distance.", answer: "is shouting" },
+            { verb: "not drink", q1: "He ", q2: " any alcohol.", answer: "is not drinking" },
+            { verb: "travel", q1: "You ", q2: " with a lot of bags.", answer: "are traveling" },
+            { verb: "sell", q1: "The shop ", q2: " expensive watches.", answer: "is selling" },
+            { verb: "not arrive", q1: "The flight ", q2: " on time.", answer: "is not arriving" },
+            { verb: "tell", q1: "The pilot ", q2: " us about the weather.", answer: "is telling" },
+            { verb: "give", q1: "They ", q2: " us free water.", answer: "are giving" },
+            { verb: "not follow", q1: "You ", q2: " the rules.", answer: "are not following" },
+            { verb: "put", q1: "I ", q2: " my bag in the bin.", answer: "am putting" },
+            { verb: "run", q1: "She ", q2: " to the bathroom.", answer: "is running" },
+            { verb: "not stand", q1: "We ", q2: " in line anymore.", answer: "are not standing" },
+            { verb: "leave", q1: "The plane ", q2: " the runway.", answer: "is leaving" },
+            { verb: "smile", q1: "He ", q2: " at the cameras.", answer: "is smiling" },
+            { verb: "not talk", q1: "They ", q2: " to the press.", answer: "are not talking" },
+            { verb: "check", q1: "I ", q2: " the gate number again.", answer: "am checking" },
+            { verb: "sit", q1: "You ", q2: " on the floor.", answer: "are sitting" },
+            { verb: "not work", q1: "The printer ", q2: " right now.", answer: "is not working" },
+            { verb: "wait", q1: "Mr. Jones ", q2: " for his luggage.", answer: "is waiting" },
+            { verb: "not rain", q1: "It ", q2: " outside today.", answer: "is not raining" },
+            { verb: "look for", q1: "They ", q2: " a taxi.", answer: "are looking for" },
+            { verb: "wear", q1: "She ", q2: " red shoes.", answer: "is wearing" },
+            { verb: "not help", q1: "He ", q2: " with the bags.", answer: "is not helping" },
+            { verb: "buy", q1: "We ", q2: " some magazines.", answer: "are buying" },
+            { verb: "not stay", q1: "I ", q2: " for long.", answer: "am not staying" },
+            { verb: "prepare", q1: "They ", q2: " for landing.", answer: "are preparing" },
+            { verb: "drink", q1: "You ", q2: " tea.", answer: "are drinking" },
+            { verb: "not use", q1: "She ", q2: " her computer.", answer: "is not using" },
+            { verb: "show", q1: "The screen ", q2: " the departures.", answer: "is showing" },
+            { verb: "not move", q1: "The bus ", q2: " yet.", answer: "is not moving" },
+            { verb: "arrive", q1: "My friend ", q2: " today.", answer: "is arriving" },
+            { verb: "not go", q1: "We ", q2: " to Paris.", answer: "are not going" },
+            { verb: "clean", q1: "The robot ", q2: " the terminal.", answer: "is cleaning" },
+            { verb: "eat", q1: "He ", q2: " a burger.", answer: "is eating" },
+            { verb: "not watch", q1: "They ", q2: " the news.", answer: "are not watching" },
+            { verb: "listen", q1: "I ", q2: " to music.", answer: "am listening" },
+            { verb: "not call", q1: "You ", q2: " your parents.", answer: "are not calling" },
+            { verb: "sit", q1: "Sophie ", q2: " in the first class.", answer: "is sitting" },
+            { verb: "not sleep", q1: "The pilot ", q2: " now.", answer: "is not sleeping" },
+            { verb: "read", q1: "We ", q2: " the newspaper.", answer: "are reading" },
+            { verb: "not smoke", q1: "People ", q2: " here.", answer: "are not smoking" },
+            { verb: "make", q1: "The agent ", q2: " a phone call.", answer: "is making" },
+            { verb: "not run", q1: "The child ", q2: " anymore.", answer: "is not running" },
+            { verb: "fix", q1: "The technician ", q2: " the light.", answer: "is fixing" },
+            { verb: "not wait", q1: "They ", q2: " at the gate.", answer: "are not waiting" },
+            { verb: "walk", q1: "He ", q2: " towards the exit.", answer: "is walking" },
+            { verb: "not wear", q1: "She ", q2: " a hat.", answer: "is not wearing" },
+            { verb: "talk", q1: "You ", q2: " too loud.", answer: "are talking" },
+            { verb: "not have", q1: "We ", q2: " a meeting.", answer: "are not having" },
+            { verb: "carry", q1: "I ", q2: " my laptop bag.", answer: "am carrying" },
+            { verb: "not stand", q1: "The guard ", q2: " there.", answer: "is not standing" },
+            { verb: "cry", q1: "The baby ", q2: " again.", answer: "is crying" },
+            { verb: "not look", q1: "He ", q2: " at me.", answer: "is not looking" },
+            { verb: "take", q1: "They ", q2: " the bus.", answer: "are taking" },
+            { verb: "not play", q1: "You ", q2: " correctly.", answer: "are not playing" },
+            { verb: "sing", q1: "She ", q2: " a song.", answer: "is singing" },
+            { verb: "not study", q1: "We ", q2: " grammar now.", answer: "are not studying" },
+            { verb: "give", q1: "The man ", q2: " some money.", answer: "is giving" },
+            { verb: "not prepare", q1: "I ", q2: " my dinner.", answer: "am not preparing" },
+            { verb: "write", q1: "The author ", q2: " a new book.", answer: "is writing" },
+            { verb: "not help", q1: "They ", q2: " us today.", answer: "are not helping" },
+            { verb: "count", q1: "The banker ", q2: " the cash.", answer: "is counting" },
+            { verb: "not stay", q1: "You ", q2: " in Rome.", answer: "are not staying" }
+        ];
+
+        const App = () => {
+            const [view, setView] = useState('INTRO');
+            const [currentExercises, setCurrentExercises] = useState([]);
+            const [answers, setAnswers] = useState({});
+            const [showResults, setShowResults] = useState(false);
+            const [round, setRound] = useState(0);
+
+            const getNewQuestions = useCallback(() => {
+                const shuffled = [...MASTER_DATABASE].sort(() => 0.5 - Math.random());
+                setCurrentExercises(shuffled.slice(0, 10));
+                setAnswers({});
+                setShowResults(false);
+                setRound(r => r + 1);
+            }, []);
+
+            useEffect(() => {
+                getNewQuestions();
+            }, [getNewQuestions]);
+
+            if (view === 'INTRO') {
+                return (
+                    <div className="flex items-center justify-center py-20">
+                        <div className="max-w-2xl w-full border-4 border-[#00d4ff] p-8 md:p-12 bg-[#001f3f] text-center rounded-3xl shadow-2xl">
+                            <h1 className="text-4xl md:text-5xl font-black text-white mb-6 tracking-widest uppercase font-bungee italic">Flight Briefing</h1>
+                            <p className="text-blue-100 text-xl mb-10 leading-relaxed border-l-4 border-[#00d4ff] pl-6 text-left font-terminal">
+                                Update de digitale schermen van de terminal met de <strong className="text-[#00d4ff]">Present Continuous</strong> (am/is/are + ing).
+                            </p>
+                            <button 
+                                onClick={() => setView('TERMINAL')}
+                                className="bg-[#00d4ff] hover:bg-white text-[#001a33] font-black px-12 py-5 text-2xl transition-all rounded-2xl uppercase font-bungee shadow-lg hover:scale-105 active:scale-95"
+                            >
+                                Enter Terminal >>
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="w-full flex flex-col items-center">
+                    <div className="scanline"></div>
+                    
+                    <div className="w-full bg-[#001f3f] border-2 md:border-4 border-blue-900 rounded-3xl shadow-2xl overflow-hidden">
+                        <div className="bg-[#002b55] p-6 md:p-10 border-b-8 border-[#00d4ff] flex justify-between items-center">
+                            <div>
+                                <h1 className="text-4xl md:text-6xl font-black text-white tracking-widest uppercase font-bungee">
+                                    <FlapText text="DEPARTURES" key={round}/>
+                                </h1>
+                                <p className="text-[#00d4ff] mt-2 tracking-[0.4em] text-xs font-black uppercase italic font-terminal">System Batch: 0{round}</p>
+                            </div>
+                        </div>
+
+                        <div className="text-xl md:text-2xl font-terminal">
+                            {currentExercises.map((ex, index) => (
+                                <div key={`${round}-${index}`} className="grid grid-cols-1 md:grid-cols-12 p-6 md:p-10 board-row items-center gap-6">
+                                    <div className="col-span-1 md:col-span-9 flex flex-col md:flex-row md:items-center flex-wrap leading-relaxed">
+                                        <span className="text-white">
+                                            <FlapText text={ex.q1} key={`${round}-${index}-q1`} />
+                                        </span>
+                                        <input 
+                                            type="text"
+                                            className="md:mx-6 w-full md:w-72 text-center font-terminal"
+                                            placeholder={`(${ex.verb})`}
+                                            value={answers[index] || ""}
+                                            onChange={(e) => setAnswers({...answers, [index]: e.target.value})}
+                                            disabled={showResults}
+                                            autoCapitalize="none"
+                                            autoCorrect="off"
+                                        />
+                                        <span className="text-white">
+                                            <FlapText text={ex.q2} key={`${round}-${index}-q2`} />
+                                        </span>
+                                    </div>
+                                    <div className="col-span-1 md:col-span-3 text-center md:text-right min-h-[50px]">
+                                        {showResults && (
+                                            answers[index]?.toLowerCase().trim() === ex.answer 
+                                            ? <span className="text-green-400 font-black text-2xl tracking-widest border-2 border-green-500 px-4 py-1 rounded-lg">OK ✓</span>
+                                            : <div className="bg-red-600 px-4 py-2 rounded-xl font-bold text-xl text-white uppercase shadow-lg animate-pulse">{ex.answer}</div>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="mt-12 mb-24 w-full flex flex-col items-center">
+                        <button 
+                            onClick={showResults ? getNewQuestions : () => setShowResults(true)}
+                            className={`w-full md:w-auto font-black px-20 py-6 text-2xl uppercase tracking-widest transition-all rounded-2xl border-4 shadow-2xl font-bungee active:scale-95 ${
+                                showResults 
+                                ? "bg-white text-[#001a33] border-[#00d4ff] hover:bg-[#00d4ff]" 
+                                : "bg-[#00d4ff] text-[#001a33] border-white hover:bg-white hover:scale-105"
+                            }`}
+                        >
+                            {showResults ? "Next Flights >>" : "Update Board"}
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('game-root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
