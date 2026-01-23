@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Much & Many: Slime Edition</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bungee&family=Outfit:wght@400;900&display=swap');
+        
+        body { 
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(to bottom, #87ceeb 0%, #e0f2fe 100%);
+            color: #1e293b; margin: 0; height: 100vh; overflow: hidden;
+        }
+
+        .font-bungee { font-family: 'Bungee', cursive; }
+
+        .game-button {
+            width: 240px; 
+            padding: 28px; 
+            border-radius: 30px;
+            font-family: 'Bungee'; 
+            font-size: 2.4rem; 
+            color: white;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-transform: uppercase;
+            position: relative;
+            overflow: hidden;
+            border: 4px solid rgba(255,255,255,0.3);
+            letter-spacing: 2px;
+            text-shadow: 0px 4px 0px rgba(0,0,0,0.2);
+        }
+
+        .game-button::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 50%;
+            background: linear-gradient(rgba(255,255,255,0.4), rgba(255,255,255,0));
+            border-radius: 20px 20px 0 0;
+        }
+
+        .game-button-much {
+            background: #f43f5e;
+            box-shadow: 0 12px 0 #9f1239, 0 20px 30px rgba(244, 63, 94, 0.4);
+        }
+
+        .game-button-many {
+            background: #0ea5e9;
+            box-shadow: 0 12px 0 #0369a1, 0 20px 30px rgba(14, 165, 233, 0.4);
+        }
+
+        .game-button:hover { transform: scale(1.05) translateY(-5px); }
+        .game-button:active { transform: translateY(8px); }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        .animate-float { animation: float 3s ease-in-out infinite; }
+
+        .confetti {
+            position: absolute; pointer-events: none; z-index: 100;
+            animation: confettiFall var(--d) linear forwards;
+        }
+
+        @keyframes confettiFall {
+            0% { transform: translateY(-10vh) translateX(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(110vh) translateX(var(--x)) rotate(720deg); opacity: 0; }
+        }
+
+        .slime {
+            position: absolute; pointer-events: none; z-index: 110;
+            background: #4ade80; border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+            box-shadow: inset -5px -5px 15px #166534, 0 5px 10px rgba(0,0,0,0.2);
+            filter: blur(1px);
+            animation: slimeDrip var(--d) ease-in forwards;
+        }
+
+        @keyframes slimeDrip {
+            0% { transform: translateY(-100%) scaleY(1); opacity: 0; }
+            10% { opacity: 1; }
+            100% { transform: translateY(110vh) scaleY(1.5); opacity: 0.8; }
+        }
+
+        .animate-shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-2px, 0, 0); }
+            20%, 80% { transform: translate3d(4px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+            40%, 60% { transform: translate3d(6px, 0, 0); }
+        }
+    </style>
+</head>
+<body>
+    <div id="root" class="contents"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const RAW_ITEMS = [
+            // MUCH (Uncountable)
+            { q: "How ___ water is in the bottle?", a: "much" },
+            { q: "There isn't ___ sugar in my coffee.", a: "much" },
+            { q: "How ___ money do you have?", a: "much" },
+            { q: "We don't have ___ time left.", a: "much" },
+            { q: "There is too ___ salt in this soup.", a: "much" },
+            { q: "How ___ luggage are you carrying?", a: "much" },
+            { q: "He doesn't show ___ interest in art.", a: "much" },
+            { q: "How ___ milk is in the fridge?", a: "much" },
+            { q: "There isn't ___ space in the car.", a: "much" },
+            { q: "I don't have ___ work today.", a: "much" },
+            { q: "How ___ traffic was there?", a: "much" },
+            { q: "There is so ___ noise here!", a: "much" },
+            { q: "How ___ energy do you have?", a: "much" },
+            { q: "You put too ___ oil in the pan.", a: "much" },
+            { q: "Is there ___ snow on the mountain?", a: "much" },
+            { q: "We didn't eat ___ bread.", a: "much" },
+            { q: "How ___ information did he give?", a: "much" },
+            { q: "There isn't ___ hope for a win.", a: "much" },
+            { q: "How ___ rice did you buy?", a: "much" },
+            { q: "I don't need ___ advice.", a: "much" },
+            { q: "How ___ rain did it fall?", a: "much" },
+            { q: "There is too ___ butter on the toast.", a: "much" },
+            { q: "How ___ cheese do you want?", a: "much" },
+            { q: "She doesn't drink ___ tea.", a: "much" },
+            { q: "How ___ flour is needed for the cake?", a: "much" },
+            { q: "There isn't ___ furniture in the room.", a: "much" },
+            { q: "How ___ electricity do we use?", a: "much" },
+            { q: "He doesn't have ___ patience.", a: "much" },
+            { q: "How ___ soup is left?", a: "much" },
+            { q: "There isn't ___ light in this room.", a: "much" },
+            { q: "How ___ gold was found?", a: "much" },
+            { q: "We don't have ___ experience.", a: "much" },
+            { q: "How ___ juice did she drink?", a: "much" },
+            { q: "There is too ___ dust on the shelf.", a: "much" },
+            { q: "How ___ sleep did you get?", a: "much" },
+            { q: "Is there ___ meat in the pasta?", a: "much" },
+            { q: "How ___ progress have you made?", a: "much" },
+            { q: "She doesn't spend ___ time online.", a: "much" },
+            { q: "How ___ gas is in the tank?", a: "much" },
+            { q: "There isn't ___ sand on this beach.", a: "much" },
+            { q: "How ___ luck did you have?", a: "much" },
+            { q: "We didn't see ___ sunshine.", a: "much" },
+            { q: "How ___ power does the engine have?", a: "much" },
+            { q: "There is too ___ pepper in the sauce.", a: "much" },
+            { q: "How ___ honey is in the jar?", a: "much" },
+            { q: "I don't have ___ knowledge about this.", a: "much" },
+            { q: "How ___ heat can this glass take?", a: "much" },
+            { q: "There isn't ___ ice in my drink.", a: "much" },
+            { q: "How ___ fear did he feel?", a: "much" },
+            { q: "Is there ___ news today?", a: "much" },
+            { q: "How ___ paper do you need?", a: "much" },
+            { q: "There wasn't ___ wind yesterday.", a: "much" },
+            { q: "How ___ perfume did you use?", a: "much" },
+            { q: "We don't have ___ oxygen.", a: "much" },
+            { q: "How ___ pressure is in the tire?", a: "much" },
+            { q: "There isn't ___ evidence.", a: "much" },
+            { q: "How ___ danger is there?", a: "much" },
+            { q: "I don't have ___ confidence.", a: "much" },
+            { q: "How ___ soap do you use?", a: "much" },
+            { q: "There is too ___ pollution.", a: "much" },
+            { q: "How ___ glue did you use?", a: "much" },
+            { q: "She doesn't show ___ emotion.", a: "much" },
+            { q: "How ___ courage did it take?", a: "much" },
+            { q: "There isn't ___ respect here.", a: "much" },
+            { q: "How ___ iron is in the ore?", a: "much" },
+            { q: "I didn't get ___ attention.", a: "much" },
+            { q: "How ___ fruit is on the table?", a: "much" },
+            { q: "There is too ___ humidity.", a: "much" },
+            { q: "How ___ music do you listen to?", a: "much" },
+            { q: "He doesn't have ___ talent.", a: "much" },
+            { q: "How ___ garlic is in the bread?", a: "much" },
+            { q: "There isn't ___ beauty in that building.", a: "much" },
+            { q: "How ___ truth is in his story?", a: "much" },
+            { q: "We don't have ___ storage.", a: "much" },
+            { q: "How ___ plastic is in the ocean?", a: "much" },
+
+            // MANY (Countable)
+            { q: "How ___ apples are in the bowl?", a: "many" },
+            { q: "There aren't ___ students in the class.", a: "many" },
+            { q: "How ___ friends do you have?", a: "many" },
+            { q: "I have ___ books on my shelf.", a: "many" },
+            { q: "Are there ___ cars in the parking lot?", a: "many" },
+            { q: "How ___ people were at the party?", a: "many" },
+            { q: "He doesn't have ___ pens.", a: "many" },
+            { q: "How ___ questions did you answer?", a: "many" },
+            { q: "There are too ___ cookies on the plate.", a: "many" },
+            { q: "How ___ countries have you visited?", a: "many" },
+            { q: "I saw ___ birds in the garden.", a: "many" },
+            { q: "How ___ days are in a week?", a: "many" },
+            { q: "Are there ___ chairs in the room?", a: "many" },
+            { q: "How ___ languages can you speak?", a: "many" },
+            { q: "She has ___ dolls in her collection.", a: "many" },
+            { q: "How ___ computers does the school have?", a: "many" },
+            { q: "There aren't ___ trees in the desert.", a: "many" },
+            { q: "How ___ windows are in the house?", a: "many" },
+            { q: "I made ___ mistakes on the test.", a: "many" },
+            { q: "How ___ shoes do you own?", a: "many" },
+            { q: "Are there ___ stars in the sky?", a: "many" },
+            { q: "How ___ brothers do you have?", a: "many" },
+            { q: "There aren't ___ clouds today.", a: "many" },
+            { q: "How ___ cups of coffee do you drink?", a: "many" },
+            { q: "He bought ___ toys for his son.", a: "many" },
+            { q: "How ___ photos did you take?", a: "many" },
+            { q: "Are there ___ fish in the pond?", a: "many" },
+            { q: "How ___ shirts do you have?", a: "many" },
+            { q: "I don't have ___ coins.", a: "many" },
+            { q: "How ___ bottles of water are left?", a: "many" },
+            { q: "There are ___ flowers in the park.", a: "many" },
+            { q: "How ___ miles did you walk?", a: "many" },
+            { q: "Are there ___ eggs in the carton?", a: "many" },
+            { q: "How ___ keys are on your ring?", a: "many" },
+            { q: "She doesn't know ___ people here.", a: "many" },
+            { q: "How ___ tickets did you buy?", a: "many" },
+            { q: "There aren't ___ tigers left in the wild.", a: "many" },
+            { q: "How ___ pencils do you need?", a: "many" },
+            { q: "I have ___ ideas for the project.", a: "many" },
+            { q: "How ___ songs are on your phone?", a: "many" },
+            { q: "Are there ___ spiders in the attic?", a: "many" },
+            { q: "How ___ students passed the exam?", a: "many" },
+            { q: "She has ___ rings on her fingers.", a: "many" },
+            { q: "How ___ plates do we need for dinner?", a: "many" },
+            { q: "There aren't ___ buses on Sunday.", a: "many" },
+            { q: "How ___ games do you play?", a: "many" },
+            { q: "I saw ___ movies last month.", a: "many" },
+            { q: "How ___ boxes did you move?", a: "many" },
+            { q: "Are there ___ spoons on the table?", a: "many" },
+            { q: "How ___ cities are in this region?", a: "many" },
+            { q: "He has ___ hats.", a: "many" },
+            { q: "How ___ bags did you pack?", a: "many" },
+            { q: "There aren't ___ shops open now.", a: "many" },
+            { q: "How ___ hours do you sleep?", a: "many" },
+            { q: "I don't read ___ magazines.", a: "many" },
+            { q: "How ___ letters did you receive?", a: "many" },
+            { q: "Are there ___ forks in the drawer?", a: "many" },
+            { q: "How ___ mountains are in Holland?", a: "many" },
+            { q: "She doesn't have ___ worries.", a: "many" },
+            { q: "How ___ minutes are left?", a: "many" },
+            { q: "There aren't ___ apples on the tree.", a: "many" },
+            { q: "How ___ glasses do you need?", a: "many" },
+            { q: "I have ___ puzzles at home.", a: "many" },
+            { q: "How ___ planets are in our system?", a: "many" },
+            { q: "Are there ___ mosquitoes tonight?", a: "many" },
+            { q: "How ___ jokes do you know?", a: "many" },
+            { q: "He doesn't have ___ cousins.", a: "many" },
+            { q: "How ___ tools are in the box?", a: "many" },
+            { q: "There aren't ___ boats in the harbor.", a: "many" },
+            { q: "How ___ lamps are in the room?", a: "many" },
+            { q: "I don't have ___ stamps.", a: "many" },
+            { q: "How ___ steps did you take?", a: "many" },
+            { q: "Are there ___ houses on this street?", a: "many" },
+            { q: "How ___ pilots are on the plane?", a: "many" },
+            { q: "She has ___ pairs of socks.", a: "many" }
+        ];
+
+        const shuffleAndPick = (array, count) => {
+            const shuffled = [...array].sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, count);
+        };
+
+        const App = () => {
+            const [items, setItems] = useState([]);
+            const [view, setView] = useState('intro');
+            const [score, setScore] = useState(0);
+            const [round, setRound] = useState(0);
+            const [status, setStatus] = useState(null);
+            const [elements, setElements] = useState([]);
+
+            useEffect(() => {
+                setItems(shuffleAndPick(RAW_ITEMS, 10));
+            }, []);
+
+            const spawnEffects = (type) => {
+                const newElements = [];
+                const count = type === 'win' ? 100 : 150;
+                for (let i = 0; i < count; i++) {
+                    const left = Math.random() * 100 + '%';
+                    const duration = (Math.random() * 2 + 1) + 's';
+                    const delay = (Math.random() * 0.5) + 's';
+                    const size = type === 'win' ? (Math.random() * 10 + 5) + 'px' : (Math.random() * 70 + 30) + 'px';
+                    const drift = (Math.random() - 0.5) * 200 + 'px';
+                    newElements.push({
+                        id: Math.random(), left, duration, delay, size, drift,
+                        color: type === 'win' ? `hsl(${Math.random() * 360}, 80%, 60%)` : '#4ade80',
+                        type: type
+                    });
+                }
+                setElements(newElements);
+            };
+
+            const handleAnswer = (choice) => {
+                if (status) return;
+                const isCorrect = choice === items[round].a;
+                if (isCorrect) {
+                    setScore(s => s + 1);
+                    setStatus('win');
+                    spawnEffects('win');
+                } else {
+                    setStatus('lose');
+                    spawnEffects('lose');
+                }
+            };
+
+            const next = () => {
+                if (round + 1 >= items.length) {
+                    setView('end');
+                    return;
+                }
+                setRound(r => r + 1);
+                setStatus(null);
+                setElements([]);
+            };
+
+            const resetGame = () => {
+                setItems(shuffleAndPick(RAW_ITEMS, 10));
+                setScore(0);
+                setRound(0);
+                setStatus(null);
+                setElements([]);
+                setView('game');
+            };
+
+            if (view === 'intro') return (
+                <div className="flex flex-col h-screen">
+                    <div className="flex-grow flex items-center justify-center p-6">
+                        <div className="bg-white p-10 rounded-[40px] border-8 border-sky-400 text-center max-w-md shadow-2xl">
+                            <h1 className="font-bungee text-5xl text-sky-600 mb-2 drop-shadow-sm">Pop Quiz!</h1>
+                            <p className="text-xl font-bold text-slate-400 mb-8 uppercase tracking-widest italic">Much vs Many</p>
+                            <div className="space-y-4 mb-10 text-slate-600 font-medium text-lg">
+                                <p className="bg-sky-50 p-3 rounded-2xl">✅ 10 Random Questions</p>
+                                <p className="bg-yellow-50 p-3 rounded-2xl">🎉 Win: Confetti Party</p>
+                                <p className="bg-green-50 p-3 rounded-2xl">🤢 Fail: Slime Attack</p>
+                            </div>
+                            <button onClick={() => setView('game')} className="w-full bg-sky-500 text-white font-bungee py-5 rounded-3xl text-3xl shadow-[0_8px_0_#0284c7] hover:scale-105 active:translate-y-1 transition-all uppercase">Play Now</button>
+                        </div>
+                    </div>
+                    <footer className="w-full bg-black/10 py-4 px-6 flex justify-center items-center">
+                        <span className="font-bungee text-sky-900/40 text-[9px] tracking-widest uppercase text-center">© Mister Seb's Grammar Apps, 2026</span>
+                    </footer>
+                </div>
+            );
+
+            if (view === 'end') return (
+                <div className="flex flex-col h-screen">
+                    <div className="flex-grow flex items-center justify-center p-6">
+                        <div className="bg-white p-12 rounded-[50px] border-8 border-yellow-400 text-center max-w-md shadow-2xl">
+                            <h1 className="font-bungee text-6xl text-yellow-500 mb-4 drop-shadow-md">Finish!</h1>
+                            <p className="text-3xl font-bold text-slate-700 mb-8 uppercase">Score: {score} / 10</p>
+                            <button onClick={resetGame} className="w-full bg-yellow-500 text-white font-bungee py-5 rounded-3xl text-2xl shadow-[0_8px_0_#ca8a04] hover:scale-105 active:translate-y-1 transition-all uppercase">New Round</button>
+                        </div>
+                    </div>
+                    <footer className="w-full bg-black/10 py-4 px-6 flex justify-center items-center">
+                        <span className="font-bungee text-sky-900/40 text-[9px] tracking-widest uppercase text-center">© Mister Seb's Grammar Apps, 2026</span>
+                    </footer>
+                </div>
+            );
+
+            const current = items[round];
+
+            return (
+                <div className={`flex flex-col h-screen relative overflow-hidden transition-colors duration-500 ${status === 'lose' ? 'animate-shake' : ''}`}>
+                    {elements.map(el => (
+                        <div key={el.id} className={el.type === 'win' ? 'confetti' : 'slime'} 
+                             style={{ left: el.left, width: el.size, height: el.type === 'win' ? el.size : `calc(${el.size} * 1.5)`, backgroundColor: el.color, '--d': el.duration, '--x': el.drift, animationDelay: el.delay }} 
+                        />
+                    ))}
+
+                    <nav className="p-6 flex justify-between items-center z-10">
+                        <a href="numbers_counting.html" className="bg-white/90 hover:bg-white text-sky-600 px-6 py-2 rounded-2xl font-bungee text-sm shadow-lg border-2 border-sky-200 transition-all">⬅ Back</a>
+                        <div className="flex gap-4">
+                            <div className="bg-white/90 px-6 py-2 rounded-2xl border-2 border-sky-200 font-bungee text-sky-600 shadow-lg tracking-tighter">Round {round + 1}/10</div>
+                            <div className="bg-yellow-400 px-6 py-2 rounded-2xl border-2 border-yellow-600 font-bungee text-yellow-900 shadow-lg">⭐ {score}</div>
+                        </div>
+                    </nav>
+
+                    <main className="flex-grow flex flex-col items-center justify-center gap-16 p-4 relative">
+                        <div className="bg-white/95 p-12 rounded-[50px] shadow-2xl border-4 border-white max-w-3xl w-full text-center z-10 mx-4">
+                            <h2 className="text-3xl md:text-5xl font-black text-slate-800 leading-tight">
+                                "{current?.q.split('___').map((t, i) => i === 0 ? <span key={i}>{t}<span className="text-sky-500 underline underline-offset-[12px] mx-4">_____</span></span> : t)}"
+                            </h2>
+                        </div>
+
+                        <div className="flex flex-wrap gap-12 justify-center items-center z-10 w-full">
+                            {!status ? (
+                                <>
+                                    <button onClick={() => handleAnswer('much')} className="game-button game-button-much animate-float" style={{animationDelay: '0s'}}>Much</button>
+                                    <button onClick={() => handleAnswer('many')} className="game-button game-button-many animate-float" style={{animationDelay: '0.2s'}}>Many</button>
+                                </>
+                            ) : (
+                                <div className="text-center z-50">
+                                    <h2 className={`text-8xl font-bungee mb-10 drop-shadow-2xl ${status === 'win' ? 'text-yellow-500' : 'text-green-600'}`}>
+                                        {status === 'win' ? 'BRILLIANT!' : 'SLIMED!'}
+                                    </h2>
+                                    <button onClick={next} className="bg-slate-800 text-white font-bungee px-20 py-6 rounded-[30px] text-3xl shadow-[0_10px_0_#000] hover:bg-slate-700 active:translate-y-2 transition-all">
+                                        Continue ➡
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </main>
+
+                    <footer className="w-full bg-black/10 py-4 px-6 flex justify-center items-center border-t border-sky-900/10">
+                        <span className="font-bungee text-sky-900/40 text-[9px] tracking-widest uppercase text-center">© Mister Seb's Grammar Apps, 2026</span>
+                    </footer>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
