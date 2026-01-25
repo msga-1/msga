@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>(In)definite pronoun dice</title>
+    <style>
+        :root {
+            --neon-cyan: #00f2ff;
+            --neon-pink: #ff00ea;
+            --neon-lime: #39ff14;
+            --cyber-dark: #05050a;
+            --glass: rgba(255, 255, 255, 0.03);
+            --die-size: 70px;
+        }
+
+        body {
+            background: var(--cyber-dark);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(0, 242, 255, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(255, 0, 234, 0.15) 0%, transparent 40%);
+            color: #fff;
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            display: flex; align-items: center; justify-content: center;
+            min-height: 100vh; margin: 0; overflow-x: hidden;
+        }
+
+        #app-window {
+            width: 95vw; max-width: 800px; background: var(--glass);
+            backdrop-filter: blur(30px); border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 40px; padding: 40px; text-align: center;
+            box-shadow: 0 0 60px rgba(0,0,0,0.9); display: flex;
+            flex-direction: column; position: relative; min-height: 550px;
+        }
+
+        .nav-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 30px; padding-bottom: 15px; border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .back-nav { text-decoration: none; color: var(--neon-cyan); font-size: 0.9rem; font-weight: 800; text-shadow: 0 0 10px var(--neon-cyan); flex: 1; text-align: left; }
+        .unit-title { flex: 2; font-size: 1rem; letter-spacing: 5px; background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-transform: uppercase; font-weight: 900; }
+        .score-pill { flex: 1; text-align: right; font-size: 1.1rem; color: var(--neon-lime); font-weight: 900; text-shadow: 0 0 10px var(--neon-lime); }
+
+        h2 { font-size: 1.8rem; margin: 30px 0; font-weight: 800; color: #fff; min-height: 80px; }
+        .progress-container { width: 100%; height: 8px; background: rgba(255, 255, 255, 0.05); border-radius: 20px; margin-bottom: 40px; }
+        #progress-bar { width: 0%; height: 100%; background: linear-gradient(90deg, var(--neon-cyan), var(--neon-lime)); box-shadow: 0 0 20px var(--neon-cyan); transition: width 0.6s ease; }
+
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 30px; }
+        button.opt {
+            background: rgba(255, 255, 255, 0.05); border: 2px solid rgba(255, 255, 255, 0.2);
+            color: #fff; padding: 20px; border-radius: 20px; font-size: 1.4rem;
+            cursor: pointer; transition: 0.3s; font-weight: 800; text-transform: uppercase;
+        }
+        .opt:nth-child(1) { border-color: var(--neon-cyan); color: var(--neon-cyan); }
+        .opt:nth-child(2) { border-color: var(--neon-pink); color: var(--neon-pink); }
+        .opt:nth-child(3) { border-color: var(--neon-lime); color: var(--neon-lime); }
+        .opt:hover:not(:disabled) { transform: scale(1.05); filter: brightness(1.3); background: rgba(255,255,255,0.1); }
+
+        .action-btn { background: linear-gradient(135deg, var(--neon-cyan), #00a2ff); color: #000; border: none; padding: 20px 40px; border-radius: 20px; font-weight: 900; font-size: 1.2rem; cursor: pointer; }
+
+        #dice-zone { display: flex; justify-content: center; gap: 60px; margin: 20px 0; height: 90px; perspective: 1000px; }
+        .die { position: relative; width: var(--die-size); height: var(--die-size); transform-style: preserve-3d; transition: transform 0.8s ease-out; }
+        .die div { position: absolute; width: var(--die-size); height: var(--die-size); background: #fff; border-radius: 12px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); padding: 8px; box-sizing: border-box; }
+        .pip { background: #111; border-radius: 50%; width: 10px; height: 10px; margin: auto; }
+        .front { transform: rotateY(0deg) translateZ(35px); }
+        .back { transform: rotateY(180deg) translateZ(35px); }
+        .right { transform: rotateY(90deg) translateZ(35px); }
+        .left { transform: rotateY(-90deg) translateZ(35px); }
+        .top { transform: rotateX(90deg) translateZ(35px); }
+        .bottom { transform: rotateX(-90deg) translateZ(35px); }
+        .rolling-animation { animation: roll3D 0.2s infinite linear; }
+        @keyframes roll3D { 0% { transform: rotateX(0deg) rotateY(0deg); } 100% { transform: rotateX(360deg) rotateY(360deg); } }
+        .val-1 { transform: rotateX(0deg) rotateY(0deg); }
+        .val-2 { transform: rotateX(-90deg) rotateY(0deg); }
+        .val-3 { transform: rotateX(0deg) rotateY(-90deg); }
+        .val-4 { transform: rotateX(0deg) rotateY(90deg); }
+        .val-5 { transform: rotateX(90deg) rotateY(0deg); }
+        .val-6 { transform: rotateX(180deg) rotateY(0deg); }
+
+        .internal-footer {
+            margin-top: auto;
+            padding-top: 30px;
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.4);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-weight: 700;
+        }
+
+        .hidden { display: none !important; }
+        #feedback-msg { height: 30px; font-size: 1.1rem; font-weight: 900; margin-top: 20px; letter-spacing: 1px; }
+    </style>
+</head>
+<body>
+
+    <div id="app-window">
+        <div class="nav-header">
+            <a href="pronouns.html" class="back-nav">← Back</a>
+            <div class="unit-title">(In)definite Pronoun Dice</div>
+            <div id="score-label" class="score-pill">0 CR</div>
+        </div>
+
+        <div id="start-screen">
+            <h1 style="font-size: 3.5rem; margin: 30px 0; font-weight: 900;">DICE<span style="color: var(--neon-pink);">PRO</span></h1>
+            <p style="font-size: 1.2rem; color: rgba(255,255,255,0.7); margin-bottom: 40px;">Voltooi de missies door het juiste antwoord te kiezen.</p>
+            <button onclick="startGame()" class="action-btn">INITIALISEER SYSTEEM</button>
+        </div>
+
+        <div id="game-screen" class="hidden">
+            <div style="display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 10px; font-weight: 700;">
+                <span id="q-label" style="color: var(--neon-cyan)">QUEST 01</span>
+                <span style="color:var(--neon-lime)">CORE ACTIVE</span>
+            </div>
+            <div class="progress-container"><div id="progress-bar"></div></div>
+            <h2 id="question-text">Loading...</h2>
+            <div class="options-grid" id="options"></div>
+            <div id="dice-zone">
+                <div id="die1" class="die hidden">
+                    <div class="front"><span class="pip" style="grid-area: 2/2"></span></div>
+                    <div class="top"><span class="pip"></span><span class="pip" style="grid-column: 3; grid-row: 3"></span></div>
+                    <div class="right"><span class="pip"></span><span class="pip" style="grid-area: 2/2"></span><span class="pip" style="grid-area: 3/3"></span></div>
+                    <div class="left"><span class="pip"></span><span class="pip" style="grid-column: 3"></span><span class="pip" style="grid-row: 3"></span><span class="pip" style="grid-area: 3/3"></span></div>
+                    <div class="bottom"><span class="pip"></span><span class="pip" style="grid-column: 3"></span><span class="pip" style="grid-area: 2/2"></span><span class="pip" style="grid-row: 3"></span><span class="pip" style="grid-area: 3/3"></span></div>
+                    <div class="back"><span class="pip"></span><span class="pip" style="grid-column: 3"></span><span class="pip" style="grid-row: 1; grid-column: 1"></span><span class="pip" style="grid-row: 2; grid-column: 1"></span><span class="pip" style="grid-row: 2; grid-column: 3"></span><span class="pip" style="grid-row: 3; grid-column: 1"></span><span class="pip" style="grid-row: 3; grid-column: 3"></span></div>
+                </div>
+                <div id="die2" class="die hidden">
+                    <div class="front"><span class="pip" style="grid-area: 2/2"></span></div>
+                    <div class="top"><span class="pip"></span><span class="pip" style="grid-column: 3; grid-row: 3"></span></div>
+                    <div class="right"><span class="pip"></span><span class="pip" style="grid-area: 2/2"></span><span class="pip" style="grid-area: 3/3"></span></div>
+                    <div class="left"><span class="pip"></span><span class="pip" style="grid-column: 3"></span><span class="pip" style="grid-row: 3"></span><span class="pip" style="grid-area: 3/3"></span></div>
+                    <div class="bottom"><span class="pip"></span><span class="pip" style="grid-column: 3"></span><span class="pip" style="grid-area: 2/2"></span><span class="pip" style="grid-row: 3"></span><span class="pip" style="grid-area: 3/3"></span></div>
+                    <div class="back"><span class="pip"></span><span class="pip" style="grid-column: 3"></span><span class="pip" style="grid-row: 1; grid-column: 1"></span><span class="pip" style="grid-row: 2; grid-column: 1"></span><span class="pip" style="grid-row: 2; grid-column: 3"></span><span class="pip" style="grid-row: 3; grid-column: 1"></span><span class="pip" style="grid-row: 3; grid-column: 3"></span></div>
+                </div>
+            </div>
+            <div id="feedback-msg"></div>
+        </div>
+
+        <div class="internal-footer">© Mister Seb's Grammar Apps, 2026</div>
+    </div>
+
+<script>
+const database = [
+    // --- AT (50 vragen) ---
+    { q: "The meeting starts exactly ___ 9:00 AM.", c: "at" },
+    { q: "The ghost appeared ___ midnight in the tower.", c: "at" },
+    { q: "I'll see you ___ lunchtime in the canteen.", c: "at" },
+    { q: "The stars are most visible ___ night.", c: "at" },
+    { q: "He is standing right ___ the bus stop.", c: "at" },
+    { q: "Turn left ___ the next traffic lights.", c: "at" },
+    { q: "Wait for me ___ the entrance of the base.", c: "at" },
+    { q: "The ship is docked ___ the harbor.", c: "at" },
+    { q: "I am busy ___ the moment, please wait.", c: "at" },
+    { q: "The shop closes ___ sunset every day.", c: "at" },
+    { q: "We arrived ___ the end of the movie.", c: "at" },
+    { q: "The pilot is ___ the controls of the X-wing.", c: "at" },
+    { q: "Meet me ___ the corner of the street.", c: "at" },
+    { q: "He graduated ___ the age of twenty-one.", c: "at" },
+    { q: "The price is shown ___ the bottom of the page.", c: "at" },
+    { q: "I’ll be ___ home if you need me.", c: "at" },
+    { q: "She is studying ___ university this year.", c: "at" },
+    { q: "The party starts ___ 8 o'clock sharp.", c: "at" },
+    { q: "The rebels are hiding ___ the edge of the forest.", c: "at" },
+    { q: "I work ___ a large tech company.", c: "at" },
+    { q: "The train stops ___ every station.", c: "at" },
+    { q: "Check the details ___ the top of the file.", c: "at" },
+    { q: "We sat ___ the same table for dinner.", c: "at" },
+    { q: "He is waiting ___ the reception desk.", c: "at" },
+    { q: "The sun is at its highest ___ noon.", c: "at" },
+    { q: "I woke up ___ dawn to start the journey.", c: "at" },
+    { q: "The captain is ___ dinner right now.", c: "at" },
+    { q: "The target is located ___ the center of the grid.", c: "at" },
+    { q: "Please sign your name ___ the bottom.", c: "at" },
+    { q: "I saw a strange droid ___ the market.", c: "at" },
+    { q: "The ceremony takes place ___ sunrise.", c: "at" },
+    { q: "We met ___ a secret location.", c: "at" },
+    { q: "The speed is limited ___ 50 km/h here.", c: "at" },
+    { q: "I’m staying ___ a luxury hotel in Naboo.", c: "at" },
+    { q: "The message arrived ___ the perfect time.", c: "at" },
+    { q: "He lives ___ 221B Baker Street.", c: "at" },
+    { q: "There is a guard ___ the gate.", c: "at" },
+    { q: "We had a break ___ half-past ten.", c: "at" },
+    { q: "I’ll meet you ___ the airport terminal.", c: "at" },
+    { q: "The storm started ___ the weekend.", c: "at" },
+    { q: "Look ___ the holographic map.", c: "at" },
+    { q: "The droid is ___ the charging station.", c: "at" },
+    { q: "I am currently ___ work.", c: "at" },
+    { q: "The sensor picked up a signal ___ 300 meters.", c: "at" },
+    { q: "We celebrate ___ Christmas every year.", c: "at" },
+    { q: "The scout is ___ the lookout point.", c: "at" },
+    { q: "The data is stored ___ the core.", c: "at" },
+    { q: "I was ___ school when it happened.", c: "at" },
+    { q: "The escape pod is ___ the docking bay.", c: "at" },
+    { q: "See you ___ the library tonight.", c: "at" },
+
+    // --- ON (50 vragen) ---
+    { q: "The data is stored ___ the hard drive.", c: "on" },
+    { q: "I have a flight ___ Monday morning.", c: "on" },
+    { q: "The map is lying ___ the table.", c: "on" },
+    { q: "The landing will occur ___ the 15th of May.", c: "on" },
+    { q: "There is a smudge ___ your screen.", c: "on" },
+    { q: "I saw the news ___ the internet.", c: "on" },
+    { q: "The base is located ___ a desert planet.", c: "on" },
+    { q: "We are traveling ___ a high-speed train.", c: "on" },
+    { q: "Put the crystal ___ the pedestal.", c: "on" },
+    { q: "The file is ___ the desktop.", c: "on" },
+    { q: "I found this information ___ a website.", c: "on" },
+    { q: "He has a scar ___ his right arm.", c: "on" },
+    { q: "We are ___ the right track now.", c: "on" },
+    { q: "The poster is hanging ___ the wall.", c: "on" },
+    { q: "I was born ___ a Tuesday.", c: "on" },
+    { q: "The droid is ___ the balcony.", c: "on" },
+    { q: "There is a fly ___ your nose!", c: "on" },
+    { q: "The ship is ___ its way to Coruscant.", c: "on" },
+    { q: "I am listening to music ___ the radio.", c: "on" },
+    { q: "The soldiers are ___ duty today.", c: "on" },
+    { q: "We live ___ the third floor.", c: "on" },
+    { q: "The cat is sitting ___ the roof.", c: "on" },
+    { q: "I’ll call you ___ my lunch break.", c: "on" },
+    { q: "The signature is ___ the back of the card.", c: "on" },
+    { q: "We went for a walk ___ Christmas Day.", c: "on" },
+    { q: "The remote control is ___ the sofa.", c: "on" },
+    { q: "There are many labels ___ the box.", c: "on" },
+    { q: "He is playing a game ___ his phone.", c: "on" },
+    { q: "The report is ___ your desk, sir.", c: "on" },
+    { q: "I wrote the code ___ a napkin.", c: "on" },
+    { q: "The army is ___ the move.", c: "on" },
+    { q: "The sun shines ___ the surface of the moon.", c: "on" },
+    { q: "I met him ___ the bus yesterday.", c: "on" },
+    { q: "We are ___ the guest list.", c: "on" },
+    { q: "The island is ___ the coast of Italy.", c: "on" },
+    { q: "Please focus ___ the mission.", c: "on" },
+    { q: "I have a meeting ___ Friday.", c: "on" },
+    { q: "The painting is ___ the ceiling.", c: "on" },
+    { q: "We sat ___ the grass for a picnic.", c: "on" },
+    { q: "The price is ___ the tag.", c: "on" },
+    { q: "He is ___ the phone right now.", c: "on" },
+    { q: "The scratches are ___ the helmet.", c: "on" },
+    { q: "I am ___ the list of survivors.", c: "on" },
+    { q: "There is a spider ___ the floor!", c: "on" },
+    { q: "The game is ___ TV tonight.", c: "on" },
+    { q: "I left my keys ___ the counter.", c: "on" },
+    { q: "The city is ___ fire!", c: "on" },
+    { q: "We are ___ the edge of glory.", c: "on" },
+    { q: "Put the helmet ___ your head.", c: "on" },
+    { q: "The stars are ___ the flag.", c: "on" },
+
+    // --- IN (50 vragen) ---
+    { q: "The Jedi lives ___ a cave.", c: "in" },
+    { q: "The war began ___ 2019.", c: "in" },
+    { q: "It is very cold ___ winter.", c: "in" },
+    { q: "The flowers bloom ___ spring.", c: "in" },
+    { q: "The rebels are hiding ___ the forest.", c: "in" },
+    { q: "I live ___ a small apartment.", c: "in" },
+    { q: "The city is ___ the northern hemisphere.", c: "in" },
+    { q: "The coins are ___ my pocket.", c: "in" },
+    { q: "I'll be ready ___ ten minutes.", c: "in" },
+    { q: "The liquid is ___ the bottle.", c: "in" },
+    { q: "He is swimming ___ the ocean.", c: "in" },
+    { q: "There are many stars ___ the galaxy.", c: "in" },
+    { q: "I saw a face ___ the mirror.", c: "in" },
+    { q: "The secret is kept ___ a box.", c: "in" },
+    { q: "I love walking ___ the rain.", c: "in" },
+    { q: "The ship disappeared ___ the clouds.", c: "in" },
+    { q: "We are ___ deep trouble.", c: "in" },
+    { q: "The droid is ___ the garage.", c: "in" },
+    { q: "He was born ___ July.", c: "in" },
+    { q: "The meeting is ___ the conference room.", c: "in" },
+    { q: "I read about it ___ a book.", c: "in" },
+    { q: "The money is ___ the bank.", c: "in" },
+    { q: "She is sitting ___ the car.", c: "in" },
+    { q: "The lights are off ___ the room.", c: "in" },
+    { q: "I will finish the project ___ October.", c: "in" },
+    { q: "There is a bird ___ the cage.", c: "in" },
+    { q: "We met ___ the 21st century.", c: "in" },
+    { q: "He is ___ the army now.", c: "in" },
+    { q: "The town is ___ the valley.", c: "in" },
+    { q: "Put the clothes ___ the drawer.", c: "in" },
+    { q: "I am interested ___ science.", c: "in" },
+    { q: "The message is written ___ code.", c: "in" },
+    { q: "I saw a ghost ___ my dream.", c: "in" },
+    { q: "The prisoners are ___ the dungeon.", c: "in" },
+    { q: "It happened ___ the middle of the night.", c: "in" },
+    { q: "The leaves change color ___ autumn.", c: "in" },
+    { q: "I like to stay ___ bed on Sundays.", c: "in" },
+    { q: "The pilot is ___ the cockpit.", c: "in" },
+    { q: "We got lost ___ the city.", c: "in" },
+    { q: "The answer is ___ the envelope.", c: "in" },
+    { q: "He is ___ a lot of pain.", c: "in" },
+    { q: "There is a crack ___ the glass.", c: "in" },
+    { q: "I’ll see you ___ the morning.", c: "in" },
+    { q: "The virus is spreading ___ the system.", c: "in" },
+    { q: "They live ___ France.", c: "in" },
+    { q: "The cat is hiding ___ the cupboard.", c: "in" },
+    { q: "We are waiting ___ a queue.", c: "in" },
+    { q: "I am ___ the mood for a movie.", c: "in" },
+    { q: "The key is ___ the lock.", c: "in" },
+    { q: "There is a bug ___ the software.", c: "in" }
+];
+
+let current = 0; let score = 0; let questions = [];
+
+function startGame() { 
+    questions = [...database].sort(() => 0.5 - Math.random()).slice(0, 10);
+    current = 0; score = 0;
+    document.getElementById('start-screen').classList.add('hidden'); 
+    document.getElementById('game-screen').classList.remove('hidden'); 
+    loadQuestion(); 
+}
+
+function loadQuestion() {
+    if (current >= 10) return endGame();
+    document.getElementById('q-label').innerText = `QUEST ${String(current + 1).padStart(2, '0')}`;
+    document.getElementById('progress-bar').style.width = ((current + 1) * 10) + "%";
+    document.getElementById('question-text').innerText = questions[current].q;
+    
+    const opts = ["in", "on", "at"];
+    document.getElementById('options').innerHTML = opts.map(o => `<button class="opt" onclick="process('${o}')">${o}</button>`).join('');
+    document.getElementById('die1').className = "die hidden"; 
+    document.getElementById('die2').className = "die hidden";
+    document.getElementById('feedback-msg').innerText = "";
+}
+
+function process(ans) {
+    const btns = document.querySelectorAll('.opt'); btns.forEach(b => b.disabled = true);
+    if (ans === questions[current].c) {
+        document.getElementById('feedback-msg').innerText = "SUCCESS. ROLL TRIGGERED.";
+        document.getElementById('feedback-msg').style.color = "var(--neon-lime)";
+        triggerDice();
+    } else {
+        document.getElementById('feedback-msg').innerText = `FAILED. CORRECT: ${questions[current].c.toUpperCase()}`;
+        document.getElementById('feedback-msg').style.color = "var(--neon-pink)";
+        setTimeout(next, 2000);
+    }
+}
+
+function triggerDice() {
+    const d1 = document.getElementById('die1'); const d2 = document.getElementById('die2');
+    d1.classList.remove('hidden'); d2.classList.remove('hidden');
+    d1.classList.add('rolling-animation'); d2.classList.add('rolling-animation');
+    setTimeout(() => {
+        d1.classList.remove('rolling-animation'); d2.classList.remove('rolling-animation');
+        const v1 = Math.floor(Math.random() * 6) + 1; const v2 = Math.floor(Math.random() * 6) + 1;
+        d1.className = `die val-${v1}`; d2.className = `die val-${v2}`;
+        updateScore(v1 + v2); setTimeout(next, 2000);
+    }, 1000);
+}
+
+function updateScore(p) {
+    score += p; document.getElementById('score-label').innerText = `${score} CR`;
+}
+
+function next() { current++; loadQuestion(); }
+
+function endGame() {
+    let rank = score > 80 ? "ELITE LEGEND" : score > 50 ? "MASTER HACKER" : "RECRUIT";
+    document.getElementById('game-screen').innerHTML = `
+        <h1 style="color:var(--neon-cyan); font-size: 3rem; font-weight:900;">MISSION COMPLETE</h1>
+        <p style="color:var(--neon-pink); letter-spacing:5px;">FINAL RANK: ${rank}</p>
+        <div style="font-size:6rem; font-weight:900; text-shadow:0 0 40px var(--neon-cyan);">${score}</div>
+        <button onclick="location.reload()" class="action-btn">RELOAD MISSION</button>
+    `;
+}
+</script>
+</body>
+</html>
