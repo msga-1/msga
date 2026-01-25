@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nebula Navigator: Present Continuous Space</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Space+Mono&display=swap');
+        
+        body { 
+            font-family: 'Space Mono', monospace; 
+            background-color: #020617; 
+            color: #f8fafc; 
+            overflow: hidden; 
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .orbitron { font-family: 'Orbitron', sans-serif; }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            opacity: 0.5;
+            animation: moveStars 25s linear infinite;
+        }
+
+        @keyframes moveStars {
+            from { transform: translateY(0); }
+            to { transform: translateY(100vh); }
+        }
+
+        .nebula-panel {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            box-shadow: 0 0 50px rgba(56, 189, 248, 0.15);
+        }
+
+        .large-input {
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px solid #334155;
+            border-bottom: 4px solid #22d3ee;
+            color: #22d3ee;
+            outline: none;
+            text-align: center;
+            width: 100%;
+            max-width: 650px;
+            padding: 20px;
+            font-size: 2.5rem;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .large-input:focus {
+            border-color: #22d3ee;
+            box-shadow: 0 0 20px rgba(34, 211, 238, 0.2);
+        }
+
+        .landed-anim {
+            animation: landing 1s ease-out forwards;
+        }
+
+        @keyframes landing {
+            0% { transform: scale(0.9); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .nav-header {
+            background: rgba(15, 23, 42, 0.9);
+            border-bottom: 1px solid rgba(56, 189, 248, 0.3);
+            z-index: 50;
+        }
+    </style>
+</head>
+<body>
+    <div id="root" class="flex-grow flex flex-col"></div>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const MASTER_LIST = [
+            { start: "I", end: "to school", verb: "walk", full: "am walking", short: "'m walking" },
+            { start: "You", end: "a book", verb: "read", full: "are reading", short: "'re reading" },
+            { start: "He", end: "an apple", verb: "eat", full: "is eating", short: "'s eating" },
+            { start: "She", end: "now", verb: "dance", full: "is dancing", short: "'s dancing" },
+            { start: "It", end: "outside", verb: "rain", full: "is raining", short: "'s raining" },
+            { start: "We", end: "football", verb: "play", full: "are playing", short: "'re playing" },
+            { start: "They", end: "TV", verb: "watch", full: "are watching", short: "'re watching" },
+            { start: "The birds", end: "in the garden", verb: "sing", full: "are singing", short: "are singing" },
+            { start: "My dad", end: "dinner", verb: "cook", full: "is cooking", short: "'s cooking" },
+            { start: "We", end: "for the bus", verb: "wait", full: "are waiting", short: "'re waiting" },
+            { start: "The sun", end: "brightly today", verb: "shine", full: "is shining", short: "'s shining" },
+            { start: "I", end: "my homework", verb: "do", full: "am doing", short: "'m doing" },
+            { start: "They", end: "in the pool", verb: "swim", full: "are swimming", short: "'re swimming" },
+            { start: "She", end: "a blue dress", verb: "wear", full: "is wearing", short: "'s wearing" },
+            { start: "The dog", end: "after the ball", verb: "run", full: "is running", short: "'s running" },
+            { start: "We", end: "a new language", verb: "learn", full: "are learning", short: "'re learning" },
+            { start: "You", end: "the piano", verb: "play", full: "are playing", short: "'re playing" },
+            { start: "The cat", end: "on the mat", verb: "sleep", full: "is sleeping", short: "'s sleeping" },
+            { start: "He", end: "his car", verb: "wash", full: "is washing", short: "'s washing" },
+            { start: "They", end: "to the radio", verb: "listen", full: "are listening", short: "'re listening" },
+            { start: "I", end: "a letter", verb: "write", full: "am writing", short: "'m writing" },
+            { start: "She", end: "a cake", verb: "make", full: "is making", short: "'s making" },
+            { start: "The baby", end: "in the crib", verb: "cry", full: "is crying", short: "'s crying" },
+            { start: "We", end: "the house", verb: "clean", full: "are cleaning", short: "'re cleaning" },
+            { start: "The students", end: "for the exam", verb: "study", full: "are studying", short: "are studying" },
+            { start: "He", end: "the walls", verb: "paint", full: "is painting", short: "'s painting" },
+            { start: "You", end: "really fast", verb: "talk", full: "are talking", short: "'re talking" },
+            { start: "The children", end: "outside", verb: "shout", full: "are shouting", short: "are shouting" },
+            { start: "I", end: "a nice photo", verb: "take", full: "am taking", short: "'m taking" },
+            { start: "She", end: "some juice", verb: "drink", full: "is drinking", short: "'s wearing" },
+            { start: "They", end: "on the phone", verb: "chat", full: "are chatting", short: "'re chatting" },
+            { start: "We", end: "the street", verb: "cross", full: "are crossing", short: "'re crossing" },
+            { start: "He", end: "the ladder", verb: "climb", full: "is climbing", short: "'s climbing" },
+            { start: "It", end: "colder now", verb: "get", full: "is getting", short: "'s getting" },
+            { start: "You", end: "the truth", verb: "tell", full: "are telling", short: "'re telling" },
+            { start: "The bus", end: "at the corner", verb: "stop", full: "is stopping", short: "'s stopping" },
+            { start: "I", end: "for my keys", verb: "look", full: "am looking", short: "'m looking" },
+            { start: "She", end: "the dishes", verb: "dry", full: "is drying", short: "'s drying" },
+            { start: "They", end: "a mountain", verb: "climb", full: "are climbing", short: "'re climbing" },
+            { start: "We", end: "at a joke", verb: "laugh", full: "are laughing", short: "'re laughing" },
+            { start: "The wind", end: "hard", verb: "blow", full: "is blowing", short: "'s blowing" },
+            { start: "He", end: "his teeth", verb: "brush", full: "is brushing", short: "'s brushing" },
+            { start: "You", end: "the coffee", verb: "smell", full: "are smelling", short: "'re smelling" },
+            { start: "The leaves", end: "from the tree", verb: "fall", full: "are falling", short: "are falling" },
+            { start: "I", end: "the guitar", verb: "practice", full: "am practicing", short: "'m practicing" },
+            { start: "She", end: "her hair", verb: "comb", full: "is combing", short: "'s combing" },
+            { start: "They", end: "the train", verb: "catch", full: "are catching", short: "'re catching" },
+            { start: "We", end: "some plants", verb: "grow", full: "are growing", short: "'re growing" },
+            { start: "The teacher", end: "the lesson", verb: "explain", full: "is explaining", short: "'s explaining" },
+            { start: "He", end: "the door", verb: "lock", full: "is locking", short: "'s locking" },
+            { start: "You", end: "the game", verb: "win", full: "are winning", short: "'re winning" },
+            { start: "The fire", end: "in the fireplace", verb: "burn", full: "is burning", short: "'s burning" },
+            { start: "I", end: "about the future", verb: "think", full: "am thinking", short: "'m thinking" },
+            { start: "She", end: "the window", verb: "open", full: "is opening", short: "'s opening" },
+            { start: "They", end: "the floor", verb: "sweep", full: "are sweeping", short: "'re sweeping" },
+            { start: "We", end: "the car", verb: "fix", full: "are fixing", short: "'re fixing" },
+            { start: "The chef", end: "the soup", verb: "taste", full: "is tasting", short: "'s tasting" },
+            { start: "He", end: "a story", verb: "tell", full: "is telling", short: "'s telling" },
+            { start: "You", end: "at the map", verb: "look", full: "are looking", short: "'re looking" },
+            { start: "The stars", end: "in the sky", verb: "twinkle", full: "are twinkling", short: "are twinkling" },
+            { start: "I", end: "a sandwich", verb: "buy", full: "am buying", short: "'m buying" },
+            { start: "She", end: "a picture", verb: "draw", full: "is drawing", short: "'s drawing" },
+            { start: "They", end: "very hard", verb: "work", full: "are working", short: "'re working" },
+            { start: "We", end: "a movie", verb: "watch", full: "are watching", short: "'re watching" },
+            { start: "The moon", end: "behind the clouds", verb: "hide", full: "is hiding", short: "'s hiding" },
+            { start: "He", end: "the soup", verb: "stir", full: "is stirring", short: "'s stirring" },
+            { start: "You", end: "the table", verb: "set", full: "are setting", short: "'re setting" },
+            { start: "The clock", end: "loudly", verb: "tick", full: "is ticking", short: "'s ticking" },
+            { start: "I", end: "for the exam", verb: "prepare", full: "am preparing", short: "'m preparing" },
+            { start: "She", end: "the box", verb: "carry", full: "is carrying", short: "'s carrying" },
+            { start: "They", end: "their bike", verb: "ride", full: "are riding", short: "'re riding" },
+            { start: "We", end: "the plants", verb: "water", full: "are watering", short: "'re watering" },
+            { start: "The police", end: "the car", verb: "chase", full: "are chasing", short: "are chasing" },
+            { start: "He", end: "the mail", verb: "check", full: "is checking", short: "'s checking" },
+            { start: "You", end: "a song", verb: "hum", full: "are humming", short: "'re humming" },
+            { start: "The water", end: "in the pot", verb: "boil", full: "is boiling", short: "'s boiling" },
+            { start: "I", end: "my bags", verb: "pack", full: "am packing", short: "'m packing" },
+            { start: "She", end: "the computer", verb: "use", full: "is using", short: "'s using" },
+            { start: "They", end: "the gift", verb: "wrap", full: "are wrapping", short: "'re wrapping" },
+            { start: "We", end: "the bell", verb: "ring", full: "are ringing", short: "'re ringing" },
+            { start: "The actor", end: "on stage", verb: "perform", full: "is performing", short: "'s performing" },
+            { start: "He", end: "the ball", verb: "kick", full: "is kicking", short: "'s kicking" },
+            { start: "You", end: "the questions", verb: "answer", full: "are answering", short: "'re answering" },
+            { start: "The team", end: "their victory", verb: "celebrate", full: "is celebrating", short: "'s celebrating" },
+            { start: "I", end: "the light", verb: "switch", full: "am switching", short: "'m switching" },
+            { start: "She", end: "the fence", verb: "jump", full: "is jumping", short: "'s jumping" },
+            { start: "They", end: "the room", verb: "enter", full: "are entering", short: "'re entering" },
+            { start: "We", end: "a poem", verb: "write", full: "are writing", short: "'re writing" },
+            { start: "The farmer", end: "the seeds", verb: "plant", full: "is planting", short: "'s planting" },
+            { start: "He", end: "the boat", verb: "row", full: "is rowing", short: "'s rowing" },
+            { start: "You", end: "your lunch", verb: "enjoy", full: "are enjoying", short: "'re enjoying" },
+            { start: "The dog", end: "loudly", verb: "bark", full: "is barking", short: "'s barking" },
+            { start: "I", end: "the wall", verb: "touch", full: "am touching", short: "'m touching" },
+            { start: "She", end: "the bird", verb: "feed", full: "is feeding", short: "'s feeding" },
+            { start: "They", end: "their hands", verb: "wash", full: "are washing", short: "'re washing" },
+            { start: "We", end: "the game", verb: "begin", full: "are beginning", short: "'re beginning" },
+            { start: "The sun", end: "right now", verb: "set", full: "is setting", short: "'s setting" },
+            { start: "He", end: "a lot of money", verb: "save", full: "is saving", short: "'s saving" },
+            { start: "You", end: "the music", verb: "feel", full: "are feeling", short: "'re feeling" },
+            { start: "I", end: "this game", verb: "finish", full: "am finishing", short: "'m finishing" }
+        ];
+
+        const App = () => {
+            const [phase, setPhase] = useState('INTRO');
+            const [distance, setDistance] = useState(0);
+            const [correctCount, setCorrectCount] = useState(0);
+            const [wrongCount, setWrongCount] = useState(0);
+            const [remainingWords, setRemainingWords] = useState([]);
+            const [currentQ, setCurrentQ] = useState(null);
+            const [input, setInput] = useState("");
+            const [feedback, setFeedback] = useState(null);
+
+            const totalQuestions = 10;
+
+            const startMission = () => {
+                const shuffled = [...MASTER_LIST].sort(() => Math.random() - 0.5).slice(0, totalQuestions);
+                setDistance(0); setCorrectCount(0); setWrongCount(0);
+                setRemainingWords(shuffled.slice(1));
+                setCurrentQ(shuffled[0]); setInput(""); setFeedback(null);
+                setPhase('GAME');
+            };
+
+            const handleAnswer = () => {
+                if (!input.trim() || feedback) return;
+                const userInput = input.toLowerCase().trim().replace(/’/g, "'");
+                const isCorrect = userInput === currentQ.full.toLowerCase() || userInput === currentQ.short.toLowerCase();
+
+                if (isCorrect) {
+                    setFeedback('SUCCESS');
+                    setDistance(d => d + 12500);
+                    setTimeout(() => {
+                        const nextCount = correctCount + 1;
+                        setCorrectCount(nextCount);
+                        if (nextCount >= totalQuestions) setPhase('SUMMARY');
+                        else {
+                            setCurrentQ(remainingWords[0]);
+                            setRemainingWords(remainingWords.slice(1));
+                            setFeedback(null); setInput("");
+                        }
+                    }, 1000);
+                } else {
+                    setFeedback('FAIL');
+                    setWrongCount(w => w + 1);
+                    setTimeout(() => setFeedback(null), 2500);
+                }
+            };
+
+            return (
+                <div className="h-screen w-full relative flex flex-col">
+                    {[...Array(30)].map((_, i) => (
+                        <div key={i} className="star" style={{
+                            left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%`,
+                            width: '2px', height: '2px', animationDuration: `${Math.random() * 20 + 10}s`
+                        }} />
+                    ))}
+
+                    {/* HEADER NAVIGATION */}
+                    <div className="nav-header flex items-center justify-between px-6 py-4">
+                        <a href="verb_tenses.html" className="border border-cyan-500 px-4 py-1 text-xs hover:bg-cyan-500 hover:text-white transition-all text-cyan-400 no-underline uppercase tracking-widest orbitron rounded-full">
+                            &lt; Back
+                        </a>
+                        <div className="text-xl font-bold tracking-[0.2em] uppercase orbitron text-white">
+                            Present Continuous Space
+                        </div>
+                        <div className="w-20"></div>
+                    </div>
+
+                    <div className="flex-grow flex items-center justify-center relative">
+                        {phase === 'INTRO' && (
+                            <div className="z-10 text-center">
+                                <h1 className="text-7xl font-bold orbitron mb-12 text-white uppercase tracking-tighter">Nebula Navigator</h1>
+                                <button onClick={startMission} className="px-16 py-6 border-4 border-cyan-500 text-cyan-400 orbitron text-2xl hover:bg-cyan-500 hover:text-white rounded-full transition-all uppercase tracking-widest">
+                                    Initiate Warp
+                                </button>
+                            </div>
+                        )}
+
+                        {phase === 'GAME' && (
+                            <div className="z-10 w-full max-w-6xl p-16 rounded-3xl nebula-panel">
+                                <div className="w-full bg-slate-800 h-3 rounded-full mb-12 overflow-hidden border border-slate-700">
+                                    <div 
+                                        className="h-full bg-gradient-to-r from-cyan-600 to-cyan-400 transition-all duration-700"
+                                        style={{ width: `${(correctCount / totalQuestions) * 100}%` }}
+                                    ></div>
+                                </div>
+
+                                <div className="flex justify-between items-center mb-16 orbitron">
+                                    <span className="text-cyan-400 text-sm tracking-widest">SECTOR {correctCount + 1} OF {totalQuestions}</span>
+                                    <span className="text-3xl font-bold text-white tracking-tighter">{distance.toLocaleString()} KM</span>
+                                </div>
+
+                                {!feedback ? (
+                                    <div className="text-center">
+                                        <div className="mb-10">
+                                            <div className="text-xs uppercase text-slate-500 tracking-[0.6em] mb-4">Calibration Target:</div>
+                                            <div className="text-4xl md:text-5xl font-bold orbitron text-cyan-400 border-b-2 border-cyan-900 inline-block pb-2">
+                                                ({currentQ.verb.toUpperCase()})
+                                            </div>
+                                        </div>
+
+                                        <div className="text-4xl md:text-5xl font-bold orbitron text-white mb-16 leading-relaxed opacity-90 italic">
+                                            {currentQ?.start} <span className="text-cyan-700 underline decoration-dotted underline-offset-8">_______</span> {currentQ?.end}
+                                        </div>
+
+                                        <div className="flex justify-center">
+                                            <input 
+                                                className="large-input orbitron"
+                                                value={input}
+                                                onChange={(e) => setInput(e.target.value)}
+                                                onKeyPress={(e) => e.key === 'Enter' && handleAnswer()}
+                                                autoFocus
+                                                spellCheck="false"
+                                                autoComplete="off"
+                                            />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-12">
+                                        <h2 className={`text-6xl font-bold orbitron mb-10 ${feedback === 'SUCCESS' ? 'text-cyan-400' : 'text-red-500'}`}>
+                                            {feedback === 'SUCCESS' ? 'WARP SUCCESS' : 'SYSTEM OVERLOAD'}
+                                        </h2>
+                                        {feedback === 'FAIL' && (
+                                            <div className="bg-red-950/30 p-8 rounded-2xl border border-red-900 inline-block">
+                                                <p className="text-slate-400 text-xs uppercase mb-2">Required Sequence:</p>
+                                                <p className="text-5xl text-white font-bold italic tracking-tighter italic">"{currentQ.full}"</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {phase === 'SUMMARY' && (
+                            <div className="z-10 w-full max-w-4xl p-16 rounded-3xl nebula-panel text-center landed-anim border-b-4 border-b-cyan-500">
+                                <h1 className="text-8xl font-bold text-white orbitron mb-4 uppercase tracking-tighter">Mission Clear</h1>
+                                <p className="text-cyan-400 orbitron text-xl mb-12 tracking-[0.3em]">NAVIGATIONAL DATA SYNCED</p>
+                                
+                                <div className="grid grid-cols-2 gap-8 mb-16">
+                                    <div className="bg-slate-900/80 p-10 rounded-3xl border border-slate-800">
+                                        <div className="text-slate-500 text-xs uppercase tracking-widest mb-4">Final Distance</div>
+                                        <div className="text-5xl text-yellow-400 orbitron tracking-tighter">{distance.toLocaleString()} KM</div>
+                                    </div>
+                                    <div className="bg-slate-900/80 p-10 rounded-3xl border border-slate-800">
+                                        <div className="text-slate-500 text-xs uppercase tracking-widest mb-4">Hull Integrity</div>
+                                        <div className="text-5xl text-white orbitron tracking-tighter">{Math.max(0, 100 - (wrongCount * 10))}%</div>
+                                    </div>
+                                </div>
+
+                                <button onClick={() => setPhase('INTRO')} className="px-24 py-8 bg-white text-black text-2xl font-bold orbitron rounded-full hover:bg-cyan-400 hover:text-black transition-all uppercase tracking-widest shadow-2xl">
+                                    New Mission
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* FOOTER COPYRIGHT */}
+                    <div className="w-full py-4 text-center text-[10px] text-slate-600 orbitron uppercase tracking-[0.5em] bg-black/20">
+                        © Mister Seb's Grammar Apps, 2026
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
