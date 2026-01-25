@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preposition Trials | Mister Seb</title>
+    <style>
+        :root {
+            --jedi-blue: #00d2ff;
+            --sith-red: #ff003c;
+            --lightsaber-color: #39ff14;
+            --legendary-purple: #bc13fe;
+            --accent-color: var(--jedi-blue);
+            --space-black: #020205;
+            --glass: rgba(10, 25, 47, 0.9);
+        }
+
+        body {
+            background: var(--space-black);
+            background-image: radial-gradient(2px 2px at 20px 30px, #eee, rgba(0,0,0,0)), 
+                              radial-gradient(circle at 50% 50%, rgba(0, 210, 255, 0.05), transparent);
+            color: #fff; font-family: 'Segoe UI', sans-serif;
+            display: flex; align-items: center; justify-content: center;
+            min-height: 100vh; margin: 0; overflow: hidden;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translate(0, 0); }
+            10%, 30%, 50%, 70%, 90% { transform: translate(-5px, -5px); }
+            20%, 40%, 60%, 80% { transform: translate(5px, 5px); }
+        }
+        .unlimited-shake { animation: shake 0.6s cubic-bezier(.36,.07,.19,.97) both; }
+
+        .top-nav {
+            position: absolute; top: 20px; left: 20px; right: 20px;
+            display: flex; justify-content: space-between; align-items: center; z-index: 100;
+        }
+
+        .back-btn {
+            background: rgba(255, 255, 255, 0.1); border: 1px solid var(--accent-color);
+            color: var(--accent-color); padding: 8px 15px; border-radius: 5px;
+            text-decoration: none; font-size: 0.9rem; font-weight: bold;
+            transition: 0.3s; display: flex; align-items: center; gap: 5px;
+        }
+        .back-btn:hover { background: var(--accent-color); color: #000; box-shadow: 0 0 15px var(--accent-color); }
+
+        #app-window {
+            width: 90vw; max-width: 850px; background: var(--glass);
+            backdrop-filter: blur(20px); border: 1px solid rgba(0, 210, 255, 0.3);
+            border-radius: 24px; padding: 40px 30px 20px 30px; text-align: center;
+            position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            margin-top: 40px;
+        }
+
+        .app-title {
+            font-size: 1rem; font-weight: 900; letter-spacing: 5px;
+            color: #fff; text-transform: uppercase; margin-bottom: 10px; opacity: 0.6;
+        }
+
+        .nav-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 20px; }
+        .rank-tag { color: var(--lightsaber-color); font-weight: 900; text-shadow: 0 0 10px var(--lightsaber-color); letter-spacing: 1px; }
+
+        .saber-wrapper { display: flex; align-items: center; margin: 25px 0; }
+        .hilt { width: 65px; height: 30px; background: linear-gradient(to bottom, #95a5a6, #2c3e50, #95a5a6); border-radius: 6px 2px 2px 6px; border-right: 8px solid #111; box-shadow: 5px 0 15px rgba(0,0,0,0.7); }
+        .saber-container { flex-grow: 1; height: 18px; background: #000; border-radius: 0 12px 12px 0; overflow: hidden; border: 1px solid #333; }
+        #progress-bar { width: 0%; height: 100%; background: #fff; box-shadow: 0 0 25px var(--lightsaber-color); transition: 1s ease; }
+
+        .stone-container { display: flex; justify-content: center; gap: 20px; margin-top: 30px; }
+        .stone {
+            width: 95px; height: 95px; 
+            background: radial-gradient(circle at 30% 30%, #888, #444 60%, #222);
+            clip-path: polygon(20% 0%, 80% 0%, 100% 30%, 100% 70%, 80% 100%, 20% 100%, 0% 70%, 0% 30%);
+            cursor: pointer; transition: 0.4s; display: flex; align-items: center; justify-content: center;
+            box-shadow: inset -5px -5px 15px rgba(0,0,0,0.5), 5px 10px 20px rgba(0,0,0,0.4);
+            animation: float 4s infinite ease-in-out;
+        }
+
+        .stone.revealed { 
+            background: linear-gradient(135deg, #fff, var(--lightsaber-color) 60%, #004d00);
+            box-shadow: 0 0 40px var(--lightsaber-color); transform: scale(1.2); z-index: 10;
+            clip-path: polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%);
+        }
+        .stone.revealed.legendary {
+            background: linear-gradient(135deg, #fff, var(--legendary-purple) 60%, #3a005c);
+            box-shadow: 0 0 50px var(--legendary-purple);
+        }
+
+        .stone.missed {
+            background: linear-gradient(135deg, #e0e0e0, #a0a0a0);
+            opacity: 0.9; cursor: default; animation: none;
+            clip-path: polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%);
+            box-shadow: inset 2px 2px 5px rgba(255,255,255,0.8);
+        }
+        .stone.missed .val { color: #111 !important; text-shadow: none !important; opacity: 1 !important; }
+
+        .options-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+        button.opt {
+            background: rgba(255,255,255,0.05); border: 2px solid var(--accent-color);
+            color: var(--accent-color); padding: 18px; border-radius: 12px;
+            font-size: 1.3rem; cursor: pointer; transition: 0.3s; font-weight: 900;
+        }
+        button.opt:hover:not(:disabled) { background: var(--accent-color); color: #000; }
+
+        .copyright {
+            margin-top: 40px; font-size: 0.75rem; opacity: 0.3; letter-spacing: 2px;
+            border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;
+        }
+
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div class="top-nav">
+        <a href="basics.html" class="back-btn"><span>◀</span> Back</a>
+    </div>
+
+    <div id="app-window">
+        <div class="app-title">Preposition Trials: In, On, At</div>
+        
+        <div class="nav-header">
+            <div id="rank-tag" class="rank-tag">YOUNGLING</div>
+            <div id="score-label" style="font-weight: 900;">0 KYBER CRYSTALS</div>
+        </div>
+
+        <div id="start-screen">
+            <h1 style="font-size: 2.5rem; color: var(--jedi-blue); margin-top: 0;">THE TRIALS</h1>
+            <p>Master the prepositions of the Galaxy (In, On, At) and forge your destiny.</p>
+            <button onclick="startGame()" style="background:var(--jedi-blue); border:none; color:#000; padding: 18px 50px; border-radius: 40px; font-weight: 900; cursor: pointer; margin-top: 20px; font-size: 1rem;">I AM READY</button>
+        </div>
+
+        <div id="game-screen" class="hidden">
+            <div class="saber-wrapper"><div class="hilt"></div><div class="saber-container"><div id="progress-bar"></div></div></div>
+            <h2 id="question-text" style="min-height: 70px; margin: 0 0 20px 0;"></h2>
+            <div id="options" class="options-grid"></div>
+
+            <div id="stone-zone" class="hidden">
+                <p style="color: var(--jedi-blue); font-weight: 900; letter-spacing: 2px; font-size: 0.8rem;">TRUST YOUR INSTINCTS</p>
+                <div class="stone-container" id="stone-list"></div>
+            </div>
+            <div id="feedback-msg" style="margin-top: 25px; min-height: 60px;">
+                <div id="main-feedback" style="font-weight: 900; font-size: 1.3rem;"></div>
+                <div id="sub-feedback" style="font-style: italic; opacity: 0.8; margin-top: 5px;"></div>
+            </div>
+        </div>
+
+        <div class="copyright">© Mister Seb's Grammar Apps</div>
+    </div>
+
+<script>
+  const database = [
+    // --- TIME (Tijd) ---
+    { q: "I have a meeting ___ 9 AM.", c: "at" },
+    { q: "The shop closes ___ midnight.", c: "at" },
+    { q: "Jane is arriving ___ Monday.", c: "on" },
+    { q: "We're going on holiday ___ July.", c: "in" },
+    { q: "It's very cold ___ winter.", c: "in" },
+    { q: "I'll see you ___ the morning.", c: "in" },
+    { q: "I'm busy ___ the moment.", c: "at" },
+    { q: "They got married ___ 2015.", c: "in" },
+    { q: "The concert is ___ 15th April.", c: "on" },
+    { q: "I love to look at the stars ___ night.", c: "at" },
+    { q: "I’ll see you ___ lunchtime.", c: "at" },
+    { q: "What are you doing ___ the weekend?", c: "at" },
+    { q: "My birthday is ___ June.", c: "in" },
+    { q: "The train leaves ___ 6:30.", c: "at" },
+    { q: "I was born ___ 1998.", c: "in" },
+    { q: "I'll be there ___ five minutes.", c: "in" },
+    { q: "The school starts ___ September.", c: "in" },
+    { q: "I like to read ___ the evening.", c: "in" },
+    { q: "It happened ___ the 19th century.", c: "in" },
+    { q: "I'll see you ___ Friday.", c: "on" },
+    { q: "I have piano lessons ___ Tuesdays.", c: "on" },
+    { q: "We went out ___ my birthday.", c: "on" },
+    { q: "What did you do ___ New Year's Day?", c: "on" },
+    { q: "The birds sing ___ sunrise.", c: "at" },
+    { q: "I'll finish the report ___ the afternoon.", c: "in" },
+    { q: "Humans walked on the moon ___ 1969.", c: "in" },
+    { q: "I feel tired ___ the end of the day.", c: "at" },
+    { q: "We're meeting ___ Thursday morning.", c: "on" },
+    { q: "The pool opens ___ 8 o'clock.", c: "at" },
+    { q: "The flowers bloom ___ spring.", c: "in" },
+    { q: "I'm leaving ___ half past seven.", c: "at" },
+    { q: "She was born ___ Christmas Day.", c: "on" },
+    { q: "The movie starts ___ 20 minutes.", c: "in" },
+    { q: "I don't like driving ___ night.", c: "at" },
+    { q: "See you ___ Saturday!", c: "on" },
+    { q: "We usually visit them ___ Easter.", c: "at" },
+    { q: "The leaves fall ___ autumn.", c: "in" },
+    { q: "I usually wake up ___ dawn.", c: "at" },
+    { q: "I’ll call you ___ an hour.", c: "in" },
+    { q: "It's hard to work ___ such a hot day.", c: "on" },
+    { q: "I was very happy ___ my wedding day.", c: "on" },
+    { q: "The shop is closed ___ Sundays.", c: "on" },
+    { q: "I started working here ___ May.", c: "in" },
+    { q: "The meeting is ___ 10:45.", c: "at" },
+    { q: "What are you doing ___ Friday night?", c: "on" },
+    { q: "I'll be home ___ sunset.", c: "at" },
+    { q: "They met ___ the 80s.", c: "in" },
+    { q: "The exam is ___ next Monday.", c: "on" },
+    { q: "I drink coffee ___ the morning.", c: "in" },
+    { q: "The store opens ___ noon.", c: "at" },
+    { q: "We have a break ___ 3 PM.", c: "at" },
+    { q: "I visited Rome ___ 2012.", c: "in" },
+    { q: "The project ends ___ December.", c: "in" },
+    { q: "We usually have dinner ___ 7 o'clock.", c: "at" },
+    { q: "I'll see you ___ two weeks.", c: "in" },
+    { q: "I’m going home ___ the weekend.", c: "at" },
+    { q: "She’s busy ___ present.", c: "at" },
+    { q: "I graduated ___ 2020.", c: "in" },
+    { q: "We go for a walk ___ the evening.", c: "in" },
+    { q: "I’ll be back ___ a few days.", c: "in" },
+    { q: "We celebrate ___ 31st December.", c: "on" },
+    { q: "He woke up ___ the middle of the night.", c: "in" },
+    { q: "I like to relax ___ Sundays.", c: "on" },
+    { q: "The bus arrives ___ ten minutes.", c: "in" },
+    { q: "I can't sleep ___ night.", c: "at" },
+    { q: "I'll pay you ___ the end of the month.", c: "at" },
+    { q: "The party is ___ Saturday night.", c: "on" },
+    { q: "We had a meeting ___ 2 o'clock.", c: "at" },
+    { q: "It rains a lot ___ April.", c: "in" },
+    { q: "I’m going away ___ a few weeks.", c: "in" },
+    { q: "I’ll see you ___ tomorrow morning.", c: "on" },
+    { q: "The accident happened ___ Monday morning.", c: "on" },
+    { q: "I'll be finished ___ five minutes.", c: "in" },
+    { q: "She left ___ the end of the party.", c: "at" },
+    { q: "The bank opens ___ 9:00.", c: "at" },
+
+    // --- PLACE (Plaats) ---
+    { q: "The book is ___ the table.", c: "on" },
+    { q: "He lives ___ London.", c: "in" },
+    { q: "I'll meet you ___ the bus stop.", c: "at" },
+    { q: "There is a picture ___ the wall.", c: "on" },
+    { q: "The keys are ___ my pocket.", c: "in" },
+    { q: "She is waiting ___ the entrance.", c: "at" },
+    { q: "I saw it ___ TV.", c: "on" },
+    { q: "We sat ___ the floor.", c: "on" },
+    { q: "He is swimming ___ the pool.", c: "in" },
+    { q: "The office is ___ the first floor.", c: "on" },
+    { q: "The cat is sleeping ___ the sofa.", c: "on" },
+    { q: "Let's meet ___ the park.", c: "at" },
+    { q: "She put the money ___ her bag.", c: "in" },
+    { q: "There are many stars ___ the sky.", c: "in" },
+    { q: "I work ___ a bank.", c: "at" },
+    { q: "Wait for me ___ the corner.", c: "at" },
+    { q: "He's sitting ___ the armchair.", c: "in" },
+    { q: "I was ___ the beach yesterday.", c: "at" },
+    { q: "The apple is ___ the bowl.", c: "in" },
+    { q: "We met ___ a party.", c: "at" },
+    { q: "I'm ___ the bus right now.", c: "on" },
+    { q: "Write your name ___ the top.", c: "at" },
+    { q: "He lives ___ a small village.", c: "in" },
+    { q: "The kids are playing ___ the street.", c: "in" },
+    { q: "There is a fly ___ your nose.", c: "on" },
+    { q: "I heard it ___ the radio.", c: "on" },
+    { q: "We are ___ the cinema.", c: "at" },
+    { q: "I'm ___ work until 5.", c: "at" },
+    { q: "The price is ___ the label.", c: "on" },
+    { q: "I live ___ the second floor.", c: "on" },
+    { q: "The milk is ___ the fridge.", c: "in" },
+    { q: "We met ___ the airport.", c: "at" },
+    { q: "Paris is ___ France.", c: "in" },
+    { q: "Turn left ___ the traffic lights.", c: "at" },
+    { q: "The papers are ___ my desk.", c: "on" },
+    { q: "He is standing ___ the door.", c: "at" },
+    { q: "I'm ___ the train to Berlin.", c: "on" },
+    { q: "There is some water ___ the glass.", c: "in" },
+    { q: "We are staying ___ a hotel.", c: "at" },
+    { q: "The mirror is ___ the wall.", c: "on" },
+    { q: "Who is that man ___ the photo?", c: "in" },
+    { q: "I'll wait for you ___ the station.", c: "at" },
+    { q: "Look at the mess ___ the kitchen!", c: "in" },
+    { q: "I'm sitting ___ my desk.", c: "at" },
+    { q: "The boat is ___ the river.", c: "on" },
+    { q: "My house is ___ the end of the street.", c: "at" },
+    { q: "We were ___ a wedding last week.", c: "at" },
+    { q: "I left my phone ___ the car.", c: "in" },
+    { q: "She is ___ university now.", c: "at" },
+    { q: "There is a dark mark ___ the ceiling.", c: "on" },
+    { q: "Let's sit ___ the balcony.", c: "on" },
+    { q: "I'm ___ the dentist's office.", c: "at" },
+    { q: "There is a lot of salt ___ the soup.", c: "in" },
+    { q: "I'll see you ___ school.", c: "at" },
+    { q: "He is ___ the garden.", c: "in" },
+    { q: "Don't walk ___ the grass.", c: "on" },
+    { q: "The remote is ___ the table.", c: "on" },
+    { q: "I have a scar ___ my leg.", c: "on" },
+    { q: "We are ___ the mountains.", c: "in" },
+    { q: "He lives ___ Main Street.", c: "on" },
+    { q: "I'll meet you ___ the library.", c: "at" },
+    { q: "There is a spider ___ the corner.", c: "in" },
+    { q: "I am ___ the supermarket.", c: "at" },
+    { q: "The shoes are ___ the box.", c: "in" },
+    { q: "I'm ___ the elevator.", c: "in" },
+    { q: "There is a clock ___ the wall.", c: "on" },
+    { q: "I found it ___ the internet.", c: "on" },
+    { q: "The kids are ___ school.", c: "at" },
+    { q: "I am ___ the balcony.", c: "on" },
+    { q: "I’m sitting ___ the back of the car.", c: "in" },
+    { q: "Meet me ___ the main entrance.", c: "at" },
+    { q: "There is a bird ___ the roof.", c: "on" },
+    { q: "He is ___ prison.", c: "in" },
+    { q: "I’m ___ the doctor's.", c: "at" },
+    { q: "There is a smudge ___ the window.", c: "on" }
+];
+
+    // Vul aan tot 150 voor een echte database (hier afgekort voor overzicht)
+    while(database.length < 150) {
+        database.push(...database.slice(0, 50)); 
+    }
+
+    let questions = [];
+    let current = 0; let score = 0;
+    const ranks = ["YOUNGLING", "PADAWAN", "JEDI KNIGHT", "JEDI MASTER"];
+
+    function startGame() {
+        // Shuffle en kies 10 vragen
+        questions = database.sort(() => 0.5 - Math.random()).slice(0, 10);
+        current = 0;
+        score = 0;
+        document.getElementById('score-label').innerText = "0 KYBER CRYSTALS";
+        document.getElementById('rank-tag').innerText = "YOUNGLING";
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('game-screen').classList.remove('hidden');
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        if (current >= questions.length) return endGame();
+        document.getElementById('progress-bar').style.width = (current * 10) + "%";
+        document.getElementById('question-text').innerText = questions[current].q;
+        document.getElementById('stone-zone').classList.add('hidden');
+        document.getElementById('main-feedback').innerText = "";
+        document.getElementById('sub-feedback').innerText = "";
+        document.getElementById('options').classList.remove('hidden');
+        
+        const opts = ["in", "on", "at"];
+        document.getElementById('options').innerHTML = opts.map(o => `<button class="opt" onclick="process('${o}')">${o}</button>`).join('');
+    }
+
+    function process(ans) {
+        if (ans === questions[current].c) {
+            document.getElementById('main-feedback').style.color = "var(--lightsaber-color)";
+            document.getElementById('main-feedback').innerText = "CORRECT. CHOOSE YOUR CRYSTAL.";
+            document.getElementById('options').classList.add('hidden');
+            showStones();
+        } else {
+            document.getElementById('main-feedback').style.color = "var(--sith-red)";
+            document.getElementById('main-feedback').innerText = `INCORRECT. IT WAS "${questions[current].c.toUpperCase()}".`;
+            setTimeout(next, 1500);
+        }
+    }
+
+    function showStones() {
+        const zone = document.getElementById('stone-zone');
+        const list = document.getElementById('stone-list');
+        zone.classList.remove('hidden');
+        list.innerHTML = "";
+
+        let pool = [];
+        let available = Array.from({length: 14}, (_, i) => i + 2);
+        for(let i=0; i<5; i++) {
+            let rIdx = Math.floor(Math.random() * available.length);
+            pool.push(available.splice(rIdx, 1)[0]);
+        }
+
+        pool.forEach((val) => {
+            const stone = document.createElement('div');
+            stone.className = 'stone';
+            stone.innerHTML = `<span style="display:none; font-weight:900; color:#000; font-size:1.8rem;" class="val">${val}</span>`;
+            
+            stone.onclick = function() {
+                const all = document.querySelectorAll('.stone');
+                this.classList.add('revealed');
+                this.querySelector('.val').style.display = 'block';
+
+                if(val === 15) {
+                    this.classList.add('legendary');
+                    document.getElementById('app-window').classList.add('unlimited-shake');
+                    setTimeout(() => document.getElementById('app-window').classList.remove('unlimited-shake'), 1000);
+                    document.getElementById('main-feedback').innerText = "UNLIMITED POWER! (+15)";
+                    document.getElementById('main-feedback').style.color = "var(--legendary-purple)";
+                } else {
+                    document.getElementById('main-feedback').innerText = `+${val} KYBER CRYSTALS`;
+                }
+                
+                all.forEach(s => {
+                    s.onclick = null;
+                    if (!s.classList.contains('revealed')) {
+                        s.classList.add('missed');
+                        s.querySelector('.val').style.display = 'block';
+                    }
+                });
+                
+                score += val;
+                document.getElementById('score-label').innerText = `${score} KYBER CRYSTALS`;
+                document.getElementById('rank-tag').innerText = ranks[Math.min(Math.floor(score/40), 3)];
+                setTimeout(next, 3000);
+            };
+            list.appendChild(stone);
+        });
+    }
+
+    function next() { current++; loadQuestion(); }
+
+    function endGame() {
+        document.getElementById('game-screen').innerHTML = `
+            <h1 style="margin-top:0;">TRIALS COMPLETE</h1>
+            <h2>FINAL RANK: ${document.getElementById('rank-tag').innerText}</h2>
+            <div style="font-size:5rem; color:var(--lightsaber-color); text-shadow: 0 0 20px var(--lightsaber-color);">${score}</div>
+            <p>Kyber Crystals secured.</p>
+            <button onclick="location.reload()" style="background:var(--jedi-blue); border:none; padding:15px 40px; border-radius:30px; font-weight:bold; cursor:pointer; margin-top:20px;">RESTART</button>`;
+    }
+</script>
+</body>
+</html>
