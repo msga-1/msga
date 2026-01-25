@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abyssal Plurals: Plural Dive</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@300;600&family=JetBrains+Mono&display=swap');
+        
+        body { 
+            font-family: 'Exo 2', sans-serif; 
+            background-color: #e0f7fa; 
+            color: #003d4d; 
+            overflow: hidden; 
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            transition: background-color 2.5s ease, color 2.5s ease;
+        }
+
+        .submarine-font { font-family: 'JetBrains Mono', monospace; }
+
+        .bubble {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            bottom: -50px;
+            animation: rise 8s infinite ease-in;
+            pointer-events: none;
+        }
+
+        @keyframes rise {
+            0% { transform: translateY(0) translateX(0); opacity: 0; }
+            20% { opacity: 0.4; }
+            100% { transform: translateY(-110vh) translateX(40px); opacity: 0; }
+        }
+
+        .dive-shake {
+            animation: shake 0.6s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(0, 2px, 0); }
+            20%, 80% { transform: translate3d(0, -4px, 0); }
+            30%, 50%, 70% { transform: translate3d(0, 6px, 0); }
+            40%, 60% { transform: translate3d(0, -6px, 0); }
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            z-index: 10;
+        }
+
+        .victory-glow {
+            animation: glow 2s infinite alternate;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 10px #ffd700, 0 0 20px #ffd700; }
+            to { text-shadow: 0 0 20px #ffd700, 0 0 40px #ffae00; }
+        }
+
+        .nav-header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            z-index: 50;
+        }
+    </style>
+</head>
+<body>
+    <div id="root" class="flex-grow flex flex-col"></div>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const MASTER_LIST = [
+            // Irregular
+            { s: "child", p: "children" }, { s: "tooth", p: "teeth" }, { s: "foot", p: "feet" }, { s: "man", p: "men" }, { s: "woman", p: "women" },
+            { s: "mouse", p: "mice" }, { s: "goose", p: "geese" }, { s: "person", p: "people" },
+            // No change
+            { s: "sheep", p: "sheep" }, { s: "fish", p: "fish" }, { s: "deer", p: "deer" }, { s: "hair", p: "hair" }, { s: "trousers", p: "trousers" }, { s: "glasses", p: "glasses" }, { s: "scissors", p: "scissors" },
+            // -f / -fe to -ves
+            { s: "leaf", p: "leaves" }, { s: "wolf", p: "wolves" }, { s: "wife", p: "wives" }, { s: "knife", p: "knives" }, { s: "thief", p: "thieves" },
+            { s: "life", p: "lives" }, { s: "shelf", p: "shelves" }, { s: "loaf", p: "loaves" }, { s: "calf", p: "calves" }, { s: "half", p: "halves" },
+            { s: "elf", p: "elves" }, { s: "self", p: "selves" }, { s: "scarf", p: "scarves" }, { s: "sheaf", p: "sheaves" }, { s: "wharf", p: "wharves" },
+            // -y to -ies
+            { s: "city", p: "cities" }, { s: "baby", p: "babies" }, { s: "story", p: "stories" }, { s: "party", p: "parties" }, { s: "country", p: "countries" },
+            { s: "fly", p: "flies" }, { s: "lady", p: "ladies" }, { s: "reply", p: "replies" }, { s: "berry", p: "berries" }, { s: "cherry", p: "cherries" },
+            { s: "duty", p: "duties" }, { s: "spy", p: "spies" }, { s: "theory", p: "theories" }, { s: "activity", p: "activities" }, { s: "army", p: "armies" },
+            // -o to -oes
+            { s: "hero", p: "heroes" }, { s: "potato", p: "potatoes" }, { s: "tomato", p: "tomatoes" }, { s: "echo", p: "echoes" }, { s: "tornado", p: "tornadoes" },
+            { s: "volcano", p: "volcanoes" }, { s: "torpedo", p: "torpedoes" }, { s: "veto", p: "vetoes" }, { s: "domino", p: "dominoes" }, { s: "mosquito", p: "mosquitoes" },
+            { s: "buffalo", p: "buffaloes" }, { s: "cargo", p: "cargoes" }, { s: "flamingo", p: "flamingoes" }, { s: "motto", p: "mottoes" }, { s: "zero", p: "zeroes" },
+            // -s / -ch / -sh / -x to -es
+            { s: "bus", p: "buses" }, { s: "kiss", p: "kisses" }, { s: "wish", p: "wishes" }, { s: "dish", p: "dishes" }, { s: "box", p: "boxes" },
+            { s: "fox", p: "foxes" }, { s: "church", p: "churches" }, { s: "bench", p: "benches" }, { s: "watch", p: "watches" }, { s: "glass", p: "glasses" },
+            { s: "dress", p: "dresses" }, { s: "brush", p: "brushes" }, { s: "match", p: "matches" }, { s: "tax", p: "taxes" }, { s: "beach", p: "beaches" },
+            // Special
+            { s: "quiz", p: "quizzes" }, 
+        ];
+
+        const App = () => {
+            const [phase, setPhase] = useState('INTRO');
+            const [depth, setDepth] = useState(0);
+            const [correctCount, setCorrectCount] = useState(0);
+            const [remainingWords, setRemainingWords] = useState([]);
+            const [currentQ, setCurrentQ] = useState(null);
+            const [input, setInput] = useState("");
+            const [feedback, setFeedback] = useState(null);
+            const [isDiving, setIsDiving] = useState(false);
+
+            const totalQuestions = 10;
+
+            useEffect(() => {
+                if (phase === 'SUMMARY') {
+                    document.body.style.backgroundColor = "#00050a";
+                    document.body.style.color = "#ffd700";
+                } else {
+                    const lightness = Math.max(92 - (correctCount * 8.5), 5);
+                    const isDark = lightness < 45;
+                    document.body.style.backgroundColor = `hsl(210, 80%, ${lightness}%)`;
+                    document.body.style.color = isDark ? "#92e6ff" : "#003d4d";
+                }
+            }, [correctCount, phase]);
+
+            const startMission = () => {
+                const shuffled = [...MASTER_LIST].sort(() => Math.random() - 0.5).slice(0, totalQuestions);
+                setDepth(0);
+                setCorrectCount(0);
+                setInput("");
+                setFeedback(null);
+                setRemainingWords(shuffled.slice(1));
+                setCurrentQ(shuffled[0]);
+                setPhase('DIVE');
+            };
+
+            const handleAnswer = () => {
+                if (!input.trim() || feedback) return;
+                const isCorrect = input.toLowerCase().trim() === currentQ.p.toLowerCase();
+                if (isCorrect) {
+                    setFeedback('CORRECT');
+                    setIsDiving(true);
+                    setTimeout(() => setDepth(d => d + 1092), 100);
+                    setTimeout(() => {
+                        const nextCount = correctCount + 1;
+                        setCorrectCount(nextCount);
+                        setIsDiving(false);
+                        if (nextCount >= totalQuestions) {
+                            setPhase('SUMMARY');
+                        } else {
+                            const nextWord = remainingWords[0];
+                            setRemainingWords(remainingWords.slice(1));
+                            setCurrentQ(nextWord);
+                            setFeedback(null);
+                            setInput("");
+                        }
+                    }, 1400);
+                } else {
+                    setFeedback('WRONG');
+                    setTimeout(() => {
+                        setFeedback(null);
+                        setInput("");
+                        const nextWord = remainingWords[0];
+                        setRemainingWords(remainingWords.slice(1));
+                        setCurrentQ(nextWord);
+                        if (correctCount + 1 >= totalQuestions || !nextWord) {
+                            setPhase('SUMMARY');
+                        }
+                    }, 1600);
+                }
+            };
+
+            return (
+                <div className="h-screen w-full relative flex flex-col">
+                    {[...Array(20)].map((_, i) => (
+                        <div key={i} className="bubble" style={{
+                            left: `${Math.random() * 100}%`,
+                            width: `${Math.random() * 15 + 5}px`,
+                            height: `${Math.random() * 15 + 5}px`,
+                            animationDelay: `${Math.random() * 10}s`
+                        }} />
+                    ))}
+
+                    {/* HEADER NAVIGATION */}
+                    <div className="nav-header flex items-center justify-between px-6 py-4">
+                        <a href="numbers_counting.html" className="border border-current px-4 py-1 text-xs hover:bg-white/20 transition-all no-underline uppercase tracking-widest submarine-font rounded-full">
+                            &lt; Back
+                        </a>
+                        <div className="text-xl font-bold tracking-[0.2em] uppercase submarine-font">
+                            Plural Dive
+                        </div>
+                        <div className="w-20"></div>
+                    </div>
+
+                    {/* MAIN CONTENT AREA */}
+                    <div className="flex-grow flex flex-col items-center justify-center">
+                        {phase === 'INTRO' && (
+                            <div className="text-center p-6">
+                                <h1 className="text-6xl font-bold mb-4 submarine-font tracking-tighter uppercase">Abyssal Plurals</h1>
+                                <p className="opacity-50 tracking-[0.3em] uppercase text-xs mb-10">100-Word Database Loaded</p>
+                                <button onClick={startMission} className="px-14 py-4 border-2 border-current font-bold hover:bg-white/20 transition-all rounded-full uppercase tracking-widest">
+                                    Start Mission
+                                </button>
+                            </div>
+                        )}
+
+                        {phase === 'DIVE' && (
+                            <div className={`w-full flex flex-col items-center justify-center p-4 ${isDiving ? 'dive-shake' : ''}`}>
+                                <div className="mb-8 text-center submarine-font">
+                                    <div className="text-[10px] uppercase opacity-50 tracking-widest">Sonar Depth</div>
+                                    <div className="text-5xl font-bold tracking-tighter">{depth.toLocaleString()}m</div>
+                                </div>
+
+                                <div className="w-full max-w-lg p-12 rounded-[40px] glass-panel text-center">
+                                    {!feedback ? (
+                                        <div className="space-y-6">
+                                            <div className="text-[10px] uppercase opacity-50 submarine-font">Sample {correctCount + 1}/10:</div>
+                                            <h2 className="text-6xl font-bold">{currentQ?.s}</h2>
+                                            <input 
+                                                className="w-full bg-transparent border-b-2 border-current p-2 text-3xl text-center outline-none submarine-font"
+                                                value={input}
+                                                onChange={(e) => setInput(e.target.value)}
+                                                onKeyPress={(e) => e.key === 'Enter' && handleAnswer()}
+                                                autoFocus
+                                                spellCheck="false"
+                                                autoComplete="off"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="py-8">
+                                            <div className={`text-4xl font-bold submarine-font ${feedback === 'CORRECT' ? 'text-cyan-400' : 'text-red-500'}`}>
+                                                {feedback === 'CORRECT' ? 'DESCENDING...' : 'SYSTEM ERROR'}
+                                            </div>
+                                            {feedback === 'WRONG' && (
+                                                <div className="mt-4 opacity-80 uppercase text-sm font-bold">Correct: {currentQ.p}</div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {phase === 'SUMMARY' && (
+                            <div className="text-center p-6 transition-all duration-1000">
+                                <div className="submarine-font text-yellow-500 text-sm tracking-[0.5em] mb-4 uppercase animate-pulse">
+                                    Mission Accomplished
+                                </div>
+                                <h1 className="text-5xl md:text-7xl font-bold mb-6 victory-glow uppercase">
+                                    Well done!
+                                </h1>
+                                <p className="text-xl md:text-2xl submarine-font mb-2 text-white">
+                                    You have reached the bottom of the ocean.
+                                </p>
+                                <div className="text-4xl font-bold mb-12 submarine-font text-yellow-500">
+                                    FINAL DEPTH: {depth.toLocaleString()}m
+                                </div>
+                                <button 
+                                    onClick={() => setPhase('INTRO')} 
+                                    className="border-2 border-yellow-500 text-yellow-500 px-12 py-3 hover:bg-yellow-500 hover:text-black transition-all text-xs tracking-widest uppercase font-bold rounded-full"
+                                >
+                                    Surface & Reboot
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* FOOTER COPYRIGHT */}
+                    <div className="w-full py-4 text-center text-[10px] opacity-40 submarine-font uppercase tracking-[0.5em]">
+                        © Mister Seb's Grammar Apps, 2026
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
