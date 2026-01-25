@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pizza Dash</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@700&display=swap');
+        
+        body, html { 
+            margin: 0; padding: 0; 
+            font-family: 'Quicksand', sans-serif; 
+            background: #fff7ed; 
+            height: 100dvh; 
+            overflow: hidden; 
+            touch-action: manipulation;
+        }
+        
+        h1, h2, button { font-family: 'Fredoka One', cursive; }
+
+        /* Pizza Styling */
+        .pizza-plate {
+            position: relative;
+            width: min(65vw, 280px);
+            height: min(65vw, 280px);
+            background: #fdfcfb;
+            border-radius: 50%;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: min(3vw, 10px) solid #f1f5f9;
+        }
+
+        .pizza-canvas {
+            position: relative;
+            width: 90%;
+            height: 90%;
+            border-radius: 50%;
+            overflow: hidden;
+        }
+
+        .slice {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: conic-gradient(from var(--start-deg), #fbbf24 0deg, #fbbf24 51.7deg, transparent 51.7deg);
+            transform-origin: center;
+        }
+
+        .topping-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 20;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .toppings-ready .topping-overlay { opacity: 1; transform: scale(1); }
+
+        .topping { position: absolute; transform: translate(-50%, -50%); }
+        .salami { background: #dc2626; width: 9%; height: 9%; border-radius: 50%; border: 1px solid #991b1b; }
+        .pepper { background: #16a34a; width: 2.5%; height: 7%; border-radius: 40%; }
+        .mushroom { background: #e2e8f0; width: 6%; height: 5%; border-radius: 50% 50% 20% 20%; border-bottom: 2px solid #94a3b8; }
+        .onion { width: 10%; height: 10%; border-radius: 50%; border: 2px solid #fca5a5; opacity: 0.6; }
+
+        .crust-ring {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: min(3.5vw, 12px) solid #d97706;
+            z-index: 30;
+            mask: conic-gradient(from 0deg, black var(--progress), transparent 0deg);
+            -webkit-mask: conic-gradient(from 0deg, black var(--progress), transparent 0deg);
+        }
+
+        /* Result Visuals */
+        .pizza-box {
+            width: 60px;
+            height: 12px;
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-bottom: 4px solid #cbd5e1;
+            margin-bottom: 2px;
+            border-radius: 2px;
+            position: relative;
+        }
+        .pizza-box::after {
+            content: "🍕";
+            position: absolute;
+            right: 4px;
+            font-size: 8px;
+            top: 0px;
+        }
+
+        .fly-away {
+            transform: translate(-150%, -50%) scale(0) rotate(-180deg);
+            opacity: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
+
+        const generateToppings = () => {
+            return [...Array(60)].map((_, i) => ({
+                id: i,
+                type: ['salami', 'pepper', 'mushroom', 'onion'][Math.floor(Math.random() * 4)],
+                x: 15 + Math.random() * 70,
+                y: 15 + Math.random() * 70,
+                rotation: Math.random() * 360
+            }));
+        };
+
+        const QUESTIONS = [
+            // EEN LETTERGREEP (Kort: -er / -est)
+            { p: "This car is ___ than that one. (fast)", a: "faster" },
+            { p: "It's the ___ car in the race. (fast)", a: "fastest" },
+            { p: "London is ___ than my village. (big)", a: "bigger" },
+            { p: "Tokyo is the ___ city. (big)", a: "biggest" },
+            { p: "Ice is ___ than water. (cold)", a: "colder" },
+            { p: "Antarctica is the ___ place. (cold)", a: "coldest" },
+            { p: "The sun is ___ than the moon. (hot)", a: "hotter" },
+            { p: "July is the ___ month. (hot)", a: "hottest" },
+            { p: "A giraffe is ___ than a horse. (tall)", a: "taller" },
+            { p: "He is the ___ boy in class. (tall)", a: "tallest" },
+            { p: "This box is ___ than that one. (small)", a: "smaller" },
+            { p: "It's the ___ gift here. (small)", a: "smallest" },
+            { p: "This rope is ___ than yours. (long)", a: "longer" },
+            { p: "This is the ___ movie ever. (long)", a: "longest" },
+            { p: "My dad is ___ than my uncle. (old)", a: "older" },
+            { p: "That is the ___ tree. (old)", a: "oldest" },
+            { p: "This wall is ___ than that one. (low)", a: "lower" },
+            { p: "The price is at its ___ point. (low)", a: "lowest" },
+            { p: "A plane flies ___ than a bird. (high)", a: "higher" },
+            { p: "That is the ___ mountain. (high)", a: "highest" },
+            { p: "Steel is ___ than wood. (hard)", a: "harder" },
+            { p: "This is the ___ test. (hard)", a: "hardest" },
+            { p: "Silk is ___ than cotton. (soft)", a: "softer" },
+            { p: "This is the ___ pillow. (soft)", a: "softest" },
+            { p: "Your bike is ___ than mine. (new)", a: "newer" },
+            { p: "This is the ___ model. (new)", a: "newest" },
+            { p: "The lake is ___ than the pool. (deep)", a: "deeper" },
+            { p: "It's the ___ part of the sea. (deep)", a: "deepest" },
+            { p: "The wind is ___ today. (strong)", a: "stronger" },
+            { p: "He is the ___ man. (strong)", a: "strongest" },
+            { p: "This shirt is ___ than that. (clean)", a: "cleaner" },
+            { p: "It's the ___ kitchen. (clean)", a: "cleanest" },
+            { p: "The street is ___ than ours. (wide)", a: "wider" },
+            { p: "It's the ___ river. (wide)", a: "widest" },
+            { p: "I am ___ than my brother. (young)", a: "younger" },
+            { p: "She is the ___ student. (young)", a: "youngest" },
+            { p: "The night is ___ than the day. (dark)", a: "darker" },
+            { p: "This is the ___ room. (dark)", a: "darkest" },
+            { p: "This pen is ___ than that. (short)", a: "shorter" },
+            { p: "He is the ___ in class. (short)", a: "shortest" },
+            { p: "Today is ___ than yesterday. (warm)", a: "warmer" },
+            { p: "It's the ___ day of spring. (warm)", a: "warmest" },
+            { p: "This bag is ___ than that. (light)", a: "lighter" },
+            { p: "It's the ___ box. (light)", a: "lightest" },
+            { p: "A rock is ___ than a leaf. (hard)", a: "harder" },
+            { p: "The floor is ___ than the rug. (hard)", a: "harder" },
+            { p: "This knife is ___ than that. (sharp)", a: "sharper" },
+            { p: "It is the ___ blade. (sharp)", a: "sharpest" },
+            { p: "That wall is ___ than this. (thick)", a: "thicker" },
+            { p: "It is the ___ book. (thick)", a: "thickest" },
+
+            // DRIE OF MEER LETTERGREPEN (Lang: more / most)
+            { p: "History is ___ than math. (interesting)", a: "more interesting" },
+            { p: "This is the ___ book ever. (interesting)", a: "most interesting" },
+            { p: "Gold is ___ than silver. (expensive)", a: "more expensive" },
+            { p: "This is the ___ watch here. (expensive)", a: "most expensive" },
+            { p: "A Ferrari is ___ than a Fiat. (beautiful)", a: "more beautiful" },
+            { p: "She is the ___ girl. (beautiful)", a: "most beautiful" },
+            { p: "This task is ___ than that. (difficult)", a: "more difficult" },
+            { p: "It's the ___ exam. (difficult)", a: "most difficult" },
+            { p: "Dogs are ___ than fish. (intelligent)", a: "more intelligent" },
+            { p: "He is the ___ boy. (intelligent)", a: "most intelligent" },
+            { p: "Health is ___ than money. (important)", a: "more important" },
+            { p: "This is the ___ rule. (important)", a: "most important" },
+            { p: "This sofa is ___ than that. (comfortable)", a: "more comfortable" },
+            { p: "It's the ___ bed. (comfortable)", a: "most comfortable" },
+            { p: "Lions are ___ than sheep. (dangerous)", a: "more dangerous" },
+            { p: "It's the ___ snake. (dangerous)", a: "most dangerous" },
+            { p: "A city is ___ than a farm. (exciting)", a: "more exciting" },
+            { p: "It was the ___ trip. (exciting)", a: "most exciting" },
+            { p: "Nature is ___ than a room. (wonderful)", a: "more wonderful" },
+            { p: "It's the ___ view. (wonderful)", a: "most wonderful" },
+            { p: "My phone is ___ than yours. (expensive)", a: "more expensive" },
+            { p: "That was the ___ meal. (expensive)", a: "most expensive" },
+            { p: "Science is ___ than art. (complicated)", a: "more complicated" },
+            { p: "This is the ___ puzzle. (complicated)", a: "most complicated" },
+            { p: "He is ___ than his friend. (generous)", a: "more generous" },
+            { p: "She is the ___ person. (generous)", a: "most generous" },
+            { p: "The show was ___ than the last. (spectacular)", a: "more spectacular" },
+            { p: "It was the ___ event. (spectacular)", a: "most spectacular" },
+            { p: "A nurse is ___ than me. (experienced)", a: "more experienced" },
+            { p: "He is the ___ doctor. (experienced)", a: "most experienced" },
+            { p: "This story is ___ than that. (incredible)", a: "more incredible" },
+            { p: "It's the ___ tale. (incredible)", a: "most incredible" },
+            { p: "The food is ___ than before. (delicious)", a: "more delicious" },
+            { p: "This is the ___ pizza. (delicious)", a: "most delicious" },
+            { p: "A storm is ___ than rain. (frightening)", a: "more frightening" },
+            { p: "It's the ___ dream. (frightening)", a: "most frightening" },
+            { p: "The tool is ___ than a knife. (effective)", a: "more effective" },
+            { p: "It's the ___ way. (effective)", a: "most effective" },
+            { p: "Birds are ___ than bears. (colorful)", a: "more colorful" },
+            { p: "It's the ___ bird. (colorful)", a: "most colorful" },
+            { p: "She is ___ than her sister. (ambitious)", a: "more ambitious" },
+            { p: "He is the ___ leader. (ambitious)", a: "most ambitious" },
+            { p: "This chair is ___ than that. (adjustable)", a: "more adjustable" },
+            { p: "It's the ___ seat. (adjustable)", a: "most adjustable" },
+            { p: "The forest is ___ than the park. (mysterious)", a: "more mysterious" },
+            { p: "It's the ___ place. (mysterious)", a: "most mysterious" },
+            { p: "His car is ___ than mine. (economical)", a: "more economical" },
+            { p: "It's the ___ choice. (economical)", a: "most economical" },
+            { p: "This vase is ___ than that. (delicate)", a: "more delicate" },
+            { p: "It's the ___ object. (delicate)", a: "most delicate" }
+        ];
+
+        const App = () => {
+            const [phase, setPhase] = useState('START');
+            const [timeLeft, setTimeLeft] = useState(300);
+            const [slices, setSlices] = useState(0);
+            const [completedPizzas, setCompletedPizzas] = useState(0);
+            const [currentQ, setCurrentQ] = useState(null);
+            const [input, setInput] = useState("");
+            const [isPausing, setIsPausing] = useState(false);
+            const [isFlying, setIsFlying] = useState(false);
+            
+            const toppings = useMemo(() => generateToppings(), [completedPizzas]);
+            const inputRef = useRef(null);
+
+            useEffect(() => {
+                if (phase === 'PLAY') {
+                    const timer = setInterval(() => {
+                        setTimeLeft(p => {
+                            if (p <= 1) { setPhase('END'); return 0; }
+                            return p - 1;
+                        });
+                    }, 1000);
+                    nextQuestion();
+                    return () => clearInterval(timer);
+                }
+            }, [phase]);
+
+            useEffect(() => {
+                if (phase === 'PLAY' && !isPausing) inputRef.current?.focus();
+            }, [currentQ, isPausing, phase]);
+
+            const nextQuestion = () => {
+                setCurrentQ(QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)]);
+                setInput("");
+            };
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (isPausing || isFlying) return;
+                if (input.toLowerCase().trim() === currentQ.a.toLowerCase()) {
+                    const nextSlices = slices + 1;
+                    setSlices(nextSlices);
+                    setIsPausing(true);
+                    if (nextSlices === 7) {
+                        setTimeout(() => {
+                            setIsFlying(true);
+                            setTimeout(() => {
+                                setCompletedPizzas(prev => prev + 1);
+                                setSlices(0);
+                                setIsFlying(false);
+                                setIsPausing(false);
+                                nextQuestion();
+                            }, 800);
+                        }, 1500);
+                    } else {
+                        setTimeout(() => { setIsPausing(false); nextQuestion(); }, 400);
+                    }
+                } else { setInput(""); }
+            };
+
+            return (
+                <div className="flex flex-col items-center justify-between h-full w-full p-4 max-w-4xl mx-auto relative">
+                    {/* Top Bar with Title and Back Button */}
+                    <div className="w-full flex justify-between items-center p-2 mb-2">
+                        <a href="pronouns.html" className="bg-orange-100 hover:bg-orange-200 text-orange-700 px-4 py-2 rounded-xl font-bold transition-colors">
+                            ← Back
+                        </a>
+                        <h1 className="text-2xl md:text-3xl text-orange-600">PIZZA DASH</h1>
+                        <div className="w-16"></div> {/* Spacer */}
+                    </div>
+
+                    {phase === 'PLAY' && (
+                        <>
+                            <div className="bg-orange-500 text-white px-6 py-1 rounded-full font-bold text-xl mb-4">
+                                {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+                            </div>
+                            <div className="flex flex-col items-center w-full flex-1 justify-center gap-8">
+                                <div className="flex items-center justify-around w-full">
+                                    <div className={`pizza-plate ${isFlying ? 'fly-away' : ''} ${slices === 7 ? 'toppings-ready' : ''}`}>
+                                        <div className="pizza-canvas">
+                                            {[...Array(slices)].map((_, i) => (
+                                                <div key={i} className="slice" style={{ '--start-deg': `${i * 51.42}deg` }} />
+                                            ))}
+                                            <div className="topping-overlay">
+                                                {toppings.map(t => (
+                                                    <div key={t.id} className={`topping ${t.type}`} style={{ left: `${t.x}%`, top: `${t.y}%`, transform: `translate(-50%, -50%) rotate(${t.rotation}deg)` }} />
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div className="crust-ring" style={{ '--progress': `${slices * 51.42}deg` }} />
+                                    </div>
+                                </div>
+
+                                <form onSubmit={handleSubmit} className="w-full bg-white p-6 rounded-[30px] shadow-lg border-b-4 border-orange-200">
+                                    <p className="text-xl text-center text-slate-700 font-bold">
+                                        {currentQ?.p.split("___")[0]}
+                                        <input ref={inputRef} className="mx-2 border-b-4 border-orange-500 bg-orange-50 w-full md:w-64 text-center outline-none py-1 text-orange-700 block md:inline-block mt-4 md:mt-0" value={input} onChange={(e) => setInput(e.target.value)} disabled={isPausing} autoComplete="off" />
+                                        {currentQ?.p.split("___")[1]}
+                                    </p>
+                                </form>
+                            </div>
+                        </>
+                    )}
+
+                    {phase === 'START' && (
+                        <div className="bg-white p-10 rounded-[40px] shadow-2xl text-center border-b-8 border-orange-500 my-auto">
+                            <h2 className="text-3xl mb-4 text-orange-600 font-black">START YOUR SHIFT!</h2>
+                            <p className="mb-8 text-slate-500">How many pizzas can you serve in 5 minutes?</p>
+                            <button onClick={() => setPhase('PLAY')} className="bg-orange-500 text-white text-2xl px-16 py-4 rounded-2xl shadow-xl w-full">FIRE THE OVEN</button>
+                        </div>
+                    )}
+
+                    {phase === 'END' && (
+                        <div className="bg-white p-6 md:p-10 rounded-[40px] shadow-2xl w-full max-w-2xl my-auto">
+                            <h2 className="text-2xl font-black text-center mb-6 text-orange-600 uppercase">Shift Result</h2>
+                            
+                            <div className="flex flex-col md:flex-row gap-8 items-center justify-center mb-8">
+                                <div className="flex flex-col items-center">
+                                    <p className="text-xs font-bold text-slate-400 mb-2 uppercase">Served</p>
+                                    <div className="flex flex-col-reverse items-center min-h-[150px] justify-start">
+                                        {[...Array(completedPizzas)].map((_, i) => (
+                                            <div key={i} className="pizza-box" style={{ width: `${60 + i*2}px` }} />
+                                        ))}
+                                        {completedPizzas === 0 && <p className="text-slate-300 italic">No pizzas...</p>}
+                                    </div>
+                                    <p className="mt-2 font-black text-orange-600 text-2xl">{completedPizzas} Boxes</p>
+                                </div>
+
+                                <div className="h-24 w-px bg-slate-100 hidden md:block"></div>
+
+                                <div className="flex flex-col items-center">
+                                    <p className="text-xs font-bold text-slate-400 mb-2 uppercase">BAKING</p>
+                                    <div className="pizza-plate scale-50 origin-center -my-12">
+                                        <div className="pizza-canvas">
+                                            {[...Array(slices)].map((_, i) => (
+                                                <div key={i} className="slice" style={{ '--start-deg': `${i * 51.42}deg` }} />
+                                            ))}
+                                        </div>
+                                        <div className="crust-ring" style={{ '--progress': `${slices * 51.42}deg` }} />
+                                    </div>
+                                    <p className="mt-2 font-black text-orange-400 text-2xl">{slices}/7 Slices</p>
+                                </div>
+                            </div>
+
+                            <button onClick={() => window.location.reload()} className="bg-slate-800 text-white px-10 py-4 rounded-xl font-bold w-full uppercase shadow-lg">NEW SHIFT</button>
+                        </div>
+                    )}
+
+                    <div className="mt-4 text-[11px] text-orange-400 font-bold uppercase tracking-widest text-center">
+                        © Mister Seb's Grammar Apps, 2026
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
