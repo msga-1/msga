@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Have (got) Power Grid</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&display=swap');
+        body { font-family: 'Fira Code', monospace; background-color: #050505; color: #00f2ff; overflow: hidden; height: 100vh; margin: 0; }
+        .grid-bg { background-image: linear-gradient(rgba(0, 242, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 242, 255, 0.05) 1px, transparent 1px); background-size: 50px 50px; }
+        .power-bar { transition: width 0.4s ease; box-shadow: 0 0 20px #00f2ff; }
+        .glitch-text { text-shadow: 2px 0 #ff00ea, -2px 0 #00f2ff; }
+        input:focus { box-shadow: 0 0 15px #00f2ff; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
+
+const GRAMMAR_DATA = [
+    // HAVE / HAS (Positive)
+    { q: "I ___ a new car. (have/positive)", a: "have" },
+    { q: "She ___ a blue bike. (have/positive)", a: "has" },
+    { q: "They ___ a big house. (have/positive)", a: "have" },
+    { q: "He ___ a headache. (have/positive)", a: "has" },
+    { q: "We ___ lunch at 12. (have/positive)", a: "have" },
+    { q: "It ___ a long tail. (have/positive)", a: "has" },
+    { q: "You ___ a lot of work. (have/positive)", a: "have" },
+    { q: "Tom ___ a computer. (have/positive)", a: "has" },
+    { q: "My parents ___ a boat. (have/positive)", a: "have" },
+    { q: "The cat ___ green eyes. (have/positive)", a: "has" },
+    { q: "Emma ___ a gold ring. (have/positive)", a: "has" },
+    { q: "We ___ many friends. (have/positive)", a: "have" },
+    { q: "The dog ___ a bone. (have/positive)", a: "has" },
+    { q: "I ___ a busy day. (have/positive)", a: "have" },
+    { q: "Birds ___ wings. (have/positive)", a: "have" },
+    { q: "The car ___ four doors. (have/positive)", a: "has" },
+    { q: "The baby ___ no teeth. (have/positive)", a: "has" },
+    { q: "Trees ___ leaves. (have/positive)", a: "have" },
+    { q: "He ___ a lot of money. (have/positive)", a: "has" },
+    { q: "You ___ a nice smile. (have/positive)", a: "have" },
+
+    // DON'T / DOESN'T HAVE (Negative)
+    { q: "I ___ any money. (have/negative)", a: ["don't have", "do not have"] },
+    { q: "He ___ a car. (have/negative)", a: ["doesn't have", "does not have"] },
+    { q: "She ___ any pets. (have/negative)", a: ["doesn't have", "does not have"] },
+    { q: "We ___ much time. (have/negative)", a: ["don't have", "do not have"] },
+    { q: "They ___ a garden. (have/negative)", a: ["don't have", "do not have"] },
+    { q: "It ___ any battery. (have/negative)", a: ["doesn't have", "does not have"] },
+    { q: "You ___ a coat. (have/negative)", a: ["don't have", "do not have"] },
+    { q: "Tom ___ a brother. (have/negative)", a: ["doesn't have", "does not have"] },
+    { q: "The house ___ a garage. (have/negative)", a: ["doesn't have", "does not have"] },
+    { q: "My phone ___ a signal. (have/negative)", a: ["doesn't have", "does not have"] },
+    { q: "Sarah ___ her keys. (have/negative)", a: ["doesn't have", "does not have"] },
+    { q: "Cats ___ wings. (have/negative)", a: ["don't have", "do not have"] },
+    { q: "We ___ a map. (have/negative)", a: ["don't have", "do not have"] },
+    { q: "This city ___ a beach. (have/negative)", a: ["doesn't have", "does not have"] },
+    { q: "I ___ a pen. (have/negative)", a: ["don't have", "do not have"] },
+
+    // DO / DOES HAVE (Questions)
+    { q: "___ you ___ a pen? (have/question)", a: "do have" },
+    { q: "___ she ___ a sister? (have/question)", a: "does have" },
+    { q: "___ he ___ a phone? (have/question)", a: "does have" },
+    { q: "___ they ___ kids? (have/question)", a: "do have" },
+    { q: "___ we ___ a meeting? (have/question)", a: "do have" },
+    { q: "___ it ___ a name? (have/question)", a: "does have" },
+    { q: "___ Tom ___ a job? (have/question)", a: "does have" },
+    { q: "___ you ___ time? (have/question)", a: "do have" },
+    { q: "___ the cat ___ food? (have/question)", a: "does have" },
+    { q: "___ they ___ any luck? (have/question)", a: "do have" },
+
+    // HAVE GOT / HAS GOT (Positive)
+    { q: "I ___ a sister. (have got/positive)", a: "have got" },
+    { q: "He ___ a big house. (have got/positive)", a: "has got" },
+    { q: "She ___ a red dress. (have got/positive)", a: "has got" },
+    { q: "We ___ a problem. (have got/positive)", a: "have got" },
+    { q: "They ___ a nice garden. (have got/positive)", a: "have got" },
+    { q: "You ___ a cool jacket. (have got/positive)", a: "have got" },
+    { q: "It ___ a sharp tail. (have got/positive)", a: "has got" },
+    { q: "Tom ___ a laptop. (have got/positive)", a: "has got" },
+    { q: "My dog ___ a new toy. (have got/positive)", a: "has got" },
+    { q: "The girl ___ blonde hair. (have got/positive)", a: "has got" },
+    { q: "I ___ an idea. (have got/positive)", a: "have got" },
+    { q: "We ___ enough food. (have got/positive)", a: "have got" },
+    { q: "You ___ blue eyes. (have got/positive)", a: "have got" },
+    { q: "He ___ a fast bike. (have got/positive)", a: "has got" },
+    { q: "They ___ tickets. (have got/positive)", a: "have got" },
+
+    // HAVEN'T GOT / HASN'T GOT (Negative)
+    { q: "I ___ any milk. (have got/negative)", a: ["haven't got", "have not got"] },
+    { q: "He ___ a car. (have got/negative)", a: ["hasn't got", "has not got"] },
+    { q: "She ___ a pen. (have got/negative)", a: ["hasn't got", "has not got"] },
+    { q: "We ___ any time. (have got/negative)", a: ["haven't got", "have not got"] },
+    { q: "They ___ a map. (have got/negative)", a: ["haven't got", "have not got"] },
+    { q: "It ___ any water. (have got/negative)", a: ["hasn't got", "has not got"] },
+    { q: "Tom ___ any pets. (have got/negative)", a: ["hasn't got", "has not got"] },
+    { q: "You ___ a ticket. (have got/negative)", a: ["haven't got", "have not got"] },
+    { q: "My phone ___ any power. (have got/negative)", a: ["hasn't got", "has not got"] },
+    { q: "We ___ a key. (have got/negative)", a: ["haven't got", "have not got"] },
+    { q: "I ___ my books. (have got/negative)", a: ["haven't got", "have not got"] },
+    { q: "She ___ a coat. (have got/negative)", a: ["hasn't got", "has not got"] },
+    { q: "The baby ___ teeth. (have got/negative)", a: ["hasn't got", "has not got"] },
+    { q: "They ___ any work. (have got/negative)", a: ["haven't got", "have not got"] },
+    { q: "It ___ any legs. (have got/negative)", a: ["hasn't got", "has not got"] },
+
+    // HAVE ... GOT / HAS ... GOT (Questions)
+    { q: "___ you ___ a pen? (have got/question)", a: "have got" },
+    { q: "___ he ___ a phone? (have got/question)", a: "has got" },
+    { q: "___ they ___ a car? (have got/question)", a: "have got" },
+    { q: "___ we ___ a map? (have got/question)", a: "have got" },
+    { q: "___ she ___ a sister? (have got/question)", a: "has got" },
+    { q: "___ it ___ a name? (have got/question)", a: "has got" },
+    { q: "___ Tom ___ a job? (have got/question)", a: "has got" },
+    { q: "___ they ___ luck? (have got/question)", a: "have got" },
+    { q: "___ you ___ time? (have got/question)", a: "have got" },
+    { q: "___ we ___ any milk? (have got/question)", a: "have got" },
+
+    // MIXED SETS 81-150 (Extra variety)
+    { q: "The house ___ big windows. (have/positive)", a: "has" },
+    { q: "The houses ___ big windows. (have/positive)", a: "have" },
+    { q: "___ you ___ an apple? (have got/question)", a: "have got" },
+    { q: "I ___ a fever. (have/positive)", a: "have" },
+    { q: "The chair ___ four legs. (have/positive)", a: "has" },
+    { q: "Lions ___ long manes. (have/positive)", a: "have" },
+    { q: "___ she ___ the answer? (have/question)", a: "does have" },
+    { q: "We ___ a new teacher. (have got/positive)", a: "have got" },
+    { q: "He ___ any brothers. (have/negative)", a: ["doesn't have", "does not have"] },
+    { q: "They ___ a pool. (have got/negative)", a: ["haven't got", "have not got"] },
+    { q: "My watch ___ a battery. (have/negative)", a: ["doesn't have", "does not have"] },
+    { q: "___ you ___ a minute? (have/question)", a: "do have" },
+    { q: "The spider ___ eight legs. (have got/positive)", a: "has got" },
+    { q: "Monkeys ___ tails. (have/positive)", a: "have" },
+    { q: "I ___ a cold. (have got/positive)", a: "have got" },
+    { q: "___ he ___ a passport? (have got/question)", a: "has got" },
+    { q: "She ___ a boyfriend. (have/negative)", a: ["doesn't have", "does not have"] },
+    { q: "We ___ a football. (have got/negative)", a: ["haven't got", "have not got"] },
+    { q: "___ the room ___ a light? (have/question)", a: "does have" },
+    { q: "They ___ a lot of luggage. (have/positive)", a: "have" },
+    { q: "The table ___ a scratch. (have got/positive)", a: "has got" },
+    { q: "I ___ any homework. (have/negative)", a: ["don't have", "do not have"] },
+    { q: "___ she ___ a hobby? (have got/question)", a: "has got" },
+    { q: "The birds ___ a nest. (have/positive)", a: "have" },
+    { q: "He ___ any help. (have got/negative)", a: ["hasn't got", "has not got"] },
+    { q: "___ we ___ a test? (have/question)", a: "do have" },
+    { q: "The store ___ many books. (have/positive)", a: "has" },
+    { q: "I ___ a headache. (have got/positive)", a: "have got" },
+    { q: "They ___ a big TV. (have/negative)", a: ["don't have", "do not have"] },
+    { q: "___ you ___ a bike? (have got/question)", a: "have got" },
+    { q: "It ___ any wheels. (have/negative)", a: ["doesn't have", "does not have"] },
+    { q: "We ___ many options. (have/positive)", a: "have" },
+    { q: "The tree ___ green leaves. (have got/positive)", a: "has got" },
+    { q: "___ your dad ___ a car? (have/question)", a: "does have" },
+    { q: "I ___ a meeting. (have/negative)", a: ["don't have", "do not have"] },
+    { q: "She ___ a cat. (have got/negative)", a: ["hasn't got", "has not got"] },
+    { q: "___ they ___ lunch? (have/question)", a: "do have" },
+    { q: "The bus ___ many seats. (have/positive)", a: "has" },
+    { q: "You ___ a nice house. (have got/positive)", a: "have got" },
+    { q: "We ___ a lot of fun. (have/positive)", a: "have" },
+    { q: "He ___ any kids. (have got/negative)", a: ["hasn't got", "has not got"] },
+    { q: "___ the dog ___ a leash? (have/question)", a: "does have" },
+    { q: "I ___ a question. (have/positive)", a: "have" },
+    { q: "They ___ a uniform. (have got/negative)", a: ["haven't got", "have not got"] },
+    { q: "She ___ a good job. (have/positive)", a: "has" },
+    { q: "___ you ___ a towel? (have got/question)", a: "have got" },
+    { q: "We ___ any plans. (have/negative)", a: ["don't have", "do not have"] },
+    { q: "The snake ___ legs. (have got/negative)", a: ["hasn't got", "has not got"] },
+    { q: "___ he ___ an exam? (have/question)", a: "does have" },
+    { q: "They ___ a party. (have/positive)", a: "have" },
+    { q: "I ___ a dollar. (have got/positive)", a: "have got" },
+    { q: "She ___ any time. (have/negative)", a: ["doesn't have", "does not have"] },
+    { q: "___ we ___ coffee? (have/question)", a: "do have" },
+    { q: "The book ___ 200 pages. (have/positive)", a: "has" },
+    { q: "You ___ a cold. (have/positive)", a: "have" },
+    { q: "___ he ___ a hat? (have got/question)", a: "has got" },
+    { q: "They ___ a boat. (have got/positive)", a: "have got" },
+    { q: "I ___ a guitar. (have/negative)", a: ["don't have", "do not have"] },
+    { q: "We ___ a big office. (have/positive)", a: "have" },
+    { q: "___ she ___ a map? (have got/question)", a: "has got" },
+    { q: "The park ___ a lake. (have/positive)", a: "has" },
+    { q: "You ___ any luck. (have got/negative)", a: ["haven't got", "have not got"] },
+    { q: "___ they ___ a cat? (have/question)", a: "do have" },
+    { q: "I ___ a new phone. (have/positive)", a: "have" },
+    { q: "He ___ a gold watch. (have got/positive)", a: "has got" },
+    { q: "We ___ a problem. (have/negative)", a: ["don't have", "do not have"] },
+    { q: "___ you ___ my number? (have got/question)", a: "have got" },
+    { q: "The city ___ a park. (have got/positive)", a: "has got" },
+    { q: "She ___ a brother. (have/positive)", a: "has" },
+    { q: "They ___ any help. (have/negative)", a: ["don't have", "do not have"] }
+];
+
+
+        const App = () => {
+            const [phase, setPhase] = useState('START');
+            const [power, setPower] = useState(50);
+            const [score, setScore] = useState(0);
+            const [currentQ, setCurrentQ] = useState(null);
+            const [input, setInput] = useState("");
+            const [glitch, setGlitch] = useState(false);
+            const inputRef = useRef(null);
+
+            useEffect(() => {
+                if (phase === 'PLAY') {
+                    const decay = setInterval(() => {
+                        setPower(p => {
+                            if (p <= 1) { setPhase('BLACKOUT'); return 0; }
+                            return p - 0.4;
+                        });
+                    }, 200);
+                    nextTask();
+                    return () => clearInterval(decay);
+                }
+            }, [phase]);
+
+            useEffect(() => {
+                if (phase === 'PLAY') {
+                    inputRef.current?.focus();
+                }
+            }, [phase, currentQ]);
+
+            const nextTask = () => {
+                const random = GRAMMAR_DATA[Math.floor(Math.random() * GRAMMAR_DATA.length)];
+                setCurrentQ(random);
+                setInput("");
+            };
+
+            const checkPower = (e) => {
+                e.preventDefault();
+                const userInput = input.toLowerCase().trim().replace(/\s+/g, ' ');
+                const correctAnswer = currentQ.a;
+                
+                let isCorrect = false;
+                if (Array.isArray(correctAnswer)) {
+                    isCorrect = correctAnswer.some(option => option.toLowerCase() === userInput);
+                } else {
+                    isCorrect = correctAnswer.toLowerCase() === userInput;
+                }
+
+                if (isCorrect) {
+                    setPower(p => Math.min(100, p + 15));
+                    setScore(s => s + 1);
+                    if (score + 1 >= 30) {
+                        setPhase('COMPLETE');
+                    } else {
+                        nextTask();
+                    }
+                } else {
+                    setPower(p => Math.max(0, p - 12));
+                    setGlitch(true);
+                    setTimeout(() => setGlitch(false), 300);
+                    setInput("");
+                }
+            };
+
+            return (
+                <div className={`h-screen w-full grid-bg flex flex-col relative ${glitch ? 'bg-red-900/20' : ''}`}>
+                    <div className="w-full bg-black/80 border-b border-cyan-500/50 p-4 flex justify-between items-center z-10">
+                        <a href="verb_tenses.html" className="border border-cyan-500 px-4 py-1 text-sm hover:bg-cyan-500 hover:text-black transition-all text-cyan-400 no-underline">
+                            &lt; BACK
+                        </a>
+                        <h1 className="text-xl font-bold tracking-widest text-cyan-400 m-0">HAVE (GOT) POWER GRID</h1>
+                        <div className="w-24"></div> 
+                    </div>
+
+                    <div className="flex-grow flex flex-col items-center justify-center p-6">
+                        {phase === 'START' && (
+                            <div className="text-center border-2 border-cyan-500 p-12 bg-black/80 shadow-[0_0_50px_rgba(0,242,255,0.2)]">
+                                <h1 className="text-5xl font-bold mb-6 glitch-text uppercase tracking-tighter">System Offline</h1>
+                                <p className="text-cyan-400 mb-8 max-w-md mx-auto">Maintain core stability. Use either short forms (don't) or full forms (do not).</p>
+                                <button onClick={() => setPhase('PLAY')} className="px-12 py-4 border-2 border-cyan-500 text-cyan-400 text-2xl font-bold hover:bg-cyan-500 hover:text-black transition-all bg-transparent cursor-pointer">INITIALIZE</button>
+                            </div>
+                        )}
+
+                        {phase === 'PLAY' && currentQ && (
+                            <div className="w-full max-w-3xl">
+                                <div className="mb-12">
+                                    <div className="flex justify-between mb-2 text-xs font-bold uppercase tracking-widest">
+                                        <span>Grid_Stability</span>
+                                        <span>{Math.round(power)}%</span>
+                                    </div>
+                                    <div className="w-full h-8 bg-gray-900 border border-cyan-500/30 p-1">
+                                        <div className={`h-full power-bar ${power < 30 ? 'bg-red-600' : 'bg-cyan-400'}`} style={{ width: `${power}%` }}></div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-black/80 border-2 border-cyan-500 p-10 shadow-[0_0_30px_rgba(0,242,255,0.1)] relative">
+                                    <div className="text-center mb-8">
+                                        <p className="text-cyan-700 text-xs mb-2 tracking-[0.3em]">INPUT_REQUIRED</p>
+                                        <h2 className="text-2xl font-bold text-white">{currentQ.q}</h2>
+                                    </div>
+                                    <form onSubmit={checkPower}>
+                                        <input 
+                                            ref={inputRef}
+                                            autoFocus
+                                            className="w-full bg-transparent border-b-2 border-cyan-500 text-center text-4xl py-4 outline-none text-white font-bold"
+                                            value={input}
+                                            onChange={(e) => setInput(e.target.value)}
+                                            autoComplete="off"
+                                        />
+                                    </form>
+                                    <div className="mt-8 flex justify-between text-[10px] text-cyan-800 font-bold uppercase">
+                                        <span>Sync_Status: {score}/30</span>
+                                        <span>Type answer + Enter</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {phase === 'BLACKOUT' && (
+                            <div className="text-center p-20 border-4 border-red-600 bg-black">
+                                <h1 className="text-7xl font-bold text-red-600 mb-8 tracking-tighter uppercase">Failed</h1>
+                                <button onClick={() => window.location.reload()} className="px-12 py-6 bg-red-600 text-white text-2xl font-bold uppercase transition-all hover:bg-white hover:text-red-600 border-none cursor-pointer">Retry</button>
+                            </div>
+                        )}
+
+                        {phase === 'COMPLETE' && (
+                            <div className="text-center p-20 border-4 border-cyan-500 bg-black">
+                                <h1 className="text-7xl font-bold text-cyan-400 mb-4 tracking-tighter italic">MASTERED</h1>
+                                <p className="text-xl text-cyan-700 mb-8 uppercase tracking-widest">Grid fully powered up.</p>
+                                <button onClick={() => window.location.reload()} className="px-12 py-6 bg-cyan-500 text-black text-2xl font-bold uppercase cursor-pointer border-none">New Run</button>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="w-full py-3 bg-black/90 text-center text-[10px] text-cyan-900 tracking-[0.5em] border-t border-cyan-900/30 mt-auto">
+                        &copy; MISTER SEB'S GRAMMAR APPS, 2026
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
