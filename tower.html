@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dates Tower Builder</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap');
+        body { font-family: 'Fredoka One', cursive; background: #e0f2fe; overflow: hidden; height: 100vh; }
+        
+        .block-anim {
+            animation: dropBlock 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes dropBlock {
+            0% { transform: translateY(-500px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+
+        .brick {
+            width: 380px;
+            height: 38px;
+            border-radius: 6px;
+            margin-bottom: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.8rem;
+            padding: 0 10px;
+            transition: all 0.3s ease;
+        }
+
+        .shake { animation: shake 0.4s ease-in-out; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-8px); }
+            60% { transform: translateX(8px); }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useMemo } = React;
+
+        const DATE_TASKS_MASTER = [
+            { q: "maandag 12 mei", br: "Monday the twelfth of May", us: "Monday, May twelfth" },
+            { q: "dinsdag 1 januari", br: "Tuesday the first of January", us: "Tuesday, January first" },
+            { q: "woensdag 22 maart", br: "Wednesday the twenty-second of March", us: "Wednesday, March twenty-second" },
+            { q: "donderdag 3 juli", br: "Thursday the third of July", us: "Thursday, July third" },
+            { q: "vrijdag 21 november", br: "Friday the twenty-first of November", us: "Friday, November twenty-first" },
+            { q: "zaterdag 31 augustus", br: "Saturday the thirty-first of August", us: "Saturday, August thirty-first" },
+            { q: "zondag 2 februari", br: "Sunday the second of February", us: "Sunday, February second" },
+            { q: "maandag 11 november", br: "Monday the eleventh of November", us: "Monday, November eleventh" },
+            { q: "vrijdag 13 december", br: "Friday the thirteenth of December", us: "Friday, December thirteenth" },
+            { q: "woensdag 20 september", br: "Wednesday the twentieth of September", us: "Wednesday, September twentieth" },
+            { q: "donderdag 4 juli", br: "Thursday the fourth of July", us: "Thursday, July fourth" },
+            { q: "zaterdag 10 juni", br: "Saturday the tenth of June", us: "Saturday, June tenth" },
+            { q: "dinsdag 23 april", br: "Tuesday the twenty-third of April", us: "Tuesday, April twenty-third" },
+            { q: "zondag 9 mei", br: "Sunday the ninth of May", us: "Sunday, May ninth" },
+            { q: "maandag 15 augustus", br: "Monday the fifteenth of August", us: "Monday, August fifteenth" },
+            { q: "woensdag 30 oktober", br: "Wednesday the thirtieth of October", us: "Wednesday, October thirtieth" },
+            { q: "vrijdag 5 januari", br: "Friday the fifth of January", us: "Friday, January fifth" },
+            { q: "zaterdag 14 februari", br: "Saturday the fourteenth of February", us: "Saturday, February fourteenth" },
+            { q: "zondag 25 december", br: "Sunday the twenty-fifth of December", us: "Sunday, December twenty-fifth" },
+            { q: "maandag 8 april", br: "Monday the eighth of April", us: "Monday, April eighth" },
+            { q: "dinsdag 17 juli", br: "Tuesday the seventeenth of July", us: "Tuesday, July seventeenth" },
+            { q: "woensdag 28 september", br: "Wednesday the twenty-eighth of September", us: "Wednesday, September twenty-eighth" },
+            { q: "donderdag 19 maart", br: "Thursday the nineteenth of March", us: "Thursday, March nineteenth" },
+            { q: "vrijdag 6 juni", br: "Friday the sixth of June", us: "Friday, June sixth" },
+            { q: "zaterdag 24 mei", br: "Saturday the twenty-fourth of May", us: "Saturday, May twenty-fourth" },
+            { q: "zondag 7 oktober", br: "Sunday the seventh of October", us: "Sunday, October seventh" },
+            { q: "maandag 29 januari", br: "Monday the twenty-ninth of January", us: "Monday, January twenty-ninth" },
+            { q: "dinsdag 18 december", br: "Tuesday the eighteenth of December", us: "Tuesday, December eighteenth" },
+            { q: "woensdag 26 augustus", br: "Wednesday the twenty-sixth of August", us: "Wednesday, August twenty-sixth" },
+            { q: "donderdag 16 februari", br: "Thursday the sixteenth of February", us: "Thursday, February sixteenth" },
+            { q: "vrijdag 27 november", br: "Friday the twenty-seventh of November", us: "Friday, November twenty-seventh" },
+            { q: "zaterdag 2 maart", br: "Saturday the second of March", us: "Saturday, March second" },
+            { q: "zondag 12 april", br: "Sunday the twelfth of April", us: "Sunday, April twelfth" },
+            { q: "maandag 3 september", br: "Monday the third of September", us: "Monday, September third" },
+            { q: "dinsdag 21 mei", br: "Tuesday the twenty-first of May", us: "Tuesday, May twenty-first" },
+            { q: "woensdag 10 januari", br: "Wednesday the tenth of January", us: "Wednesday, January tenth" },
+            { q: "donderdag 31 oktober", br: "Thursday the thirty-first of October", us: "Thursday, October thirty-first" },
+            { q: "vrijdag 1 juni", br: "Friday the first of June", us: "Friday, June first" },
+            { q: "zaterdag 15 juli", br: "Saturday the fifteenth of July", us: "Saturday, July fifteenth" },
+            { q: "zondag 20 maart", br: "Sunday the twentieth of March", us: "Sunday, March twentieth" },
+            { q: "maandag 22 juni", br: "Monday the twenty-second of June", us: "Monday, June twenty-second" },
+            { q: "dinsdag 4 september", br: "Tuesday the fourth of September", us: "Tuesday, September fourth" },
+            { q: "woensdag 13 mei", br: "Wednesday the thirteenth of May", us: "Wednesday, May thirteenth" },
+            { q: "donderdag 23 november", br: "Thursday the twenty-third of November", us: "Thursday, November twenty-third" },
+            { q: "vrijdag 9 augustus", br: "Friday the ninth of August", us: "Friday, August ninth" },
+            { q: "zaterdag 18 oktober", br: "Saturday the eighteenth of October", us: "Saturday, October eighteenth" },
+            { q: "zondag 11 februari", br: "Sunday the eleventh of February", us: "Sunday, February eleventh" },
+            { q: "maandag 27 april", br: "Monday the twenty-seventh of April", us: "Monday, April twenty-seventh" },
+            { q: "dinsdag 30 juni", br: "Tuesday the thirtieth of June", us: "Tuesday, June thirtieth" },
+            { q: "woensdag 8 december", br: "Wednesday the eighth of December", us: "Wednesday, December eighth" }
+        ];
+
+        const BRICK_COLORS = [
+            { bg: "#f87171", border: "#b91c1c", shadow: "#991b1b" }, 
+            { bg: "#fbbf24", border: "#d97706", shadow: "#b45309" }, 
+            { bg: "#34d399", border: "#059669", shadow: "#047857" }, 
+            { bg: "#60a5fa", border: "#2563eb", shadow: "#1d4ed8" }, 
+            { bg: "#a78bfa", border: "#7c3aed", shadow: "#6d28d9" }  
+        ];
+
+        const App = () => {
+            const dateTasks = useMemo(() => {
+                return [...DATE_TASKS_MASTER].sort(() => Math.random() - 0.5);
+            }, []);
+
+            const [blocks, setBlocks] = useState([]);
+            const [currentIdx, setCurrentIdx] = useState(0);
+            const [input, setInput] = useState("");
+            const [phase, setPhase] = useState('START');
+            const [isShaking, setIsShaking] = useState(false);
+            const [lastError, setLastError] = useState("");
+
+            const checkAnswer = (e) => {
+                e.preventDefault();
+                const task = dateTasks[currentIdx];
+                const userVal = input.trim();
+                
+                if (userVal === task.br || userVal === task.us) {
+                    setBlocks([...blocks, { id: Date.now(), text: input }]);
+                    setLastError("");
+                    if (blocks.length + 1 >= 15) {
+                        setPhase('WIN');
+                    } else {
+                        setCurrentIdx(prev => prev + 1);
+                        setInput("");
+                    }
+                } else {
+                    setIsShaking(true);
+                    setLastError(`Correct: "${task.br}" of "${task.us}"`);
+                    if (blocks.length > 0) {
+                        setBlocks(prev => prev.slice(0, -1));
+                    }
+                    setTimeout(() => setIsShaking(false), 500);
+                    setInput("");
+                }
+            };
+
+            const getBrickStyle = (index) => {
+                const colorSet = BRICK_COLORS[Math.floor(index / 3) % BRICK_COLORS.length];
+                return {
+                    backgroundColor: colorSet.bg,
+                    borderColor: colorSet.border,
+                    boxShadow: `0 3px 0 ${colorSet.shadow}`,
+                    borderWidth: '2px'
+                };
+            };
+
+            return (
+                <div className="h-screen w-full flex flex-col bg-sky-100 overflow-hidden relative">
+                    {/* Header bar met Titel en Back Button */}
+                    <div className="w-full bg-blue-800 p-4 flex justify-between items-center shadow-lg z-10">
+                        <a href="numbers_counting.html" className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
+                            <span>←</span> Back
+                        </a>
+                        <h1 className="text-2xl text-white">Dates Tower Builder</h1>
+                        <div className="w-20"></div> {/* Spacer for symmetry */}
+                    </div>
+
+                    <div className="flex-grow flex w-full relative">
+                        <div className="w-1/2 flex flex-col items-center justify-end pb-10 border-r-4 border-white/30 bg-gradient-to-t from-green-200 to-sky-100">
+                            <div className={`flex flex-col-reverse items-center ${isShaking ? 'shake' : ''}`}>
+                                <div className="w-96 h-10 bg-green-700 rounded-t-xl border-b-4 border-green-900 flex items-center justify-center text-white text-xs uppercase tracking-tighter">Foundation Ground</div>
+                                {blocks.map((block, index) => (
+                                    <div 
+                                        key={block.id} 
+                                        className="brick block-anim"
+                                        style={getBrickStyle(index)}
+                                    >
+                                        {block.text}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="w-1/2 flex flex-col items-center justify-center p-8 bg-white/40">
+                            <div className="text-center mb-6">
+                                <h2 className="text-4xl text-blue-900">Dual-Format Architect</h2>
+                                <p className="text-xs text-red-600 font-bold uppercase mt-2 tracking-widest">⚠️ UK & US Approved • Case Sensitive</p>
+                            </div>
+
+                            {phase === 'START' && (
+                                <button onClick={() => setPhase('PLAY')} className="px-12 py-6 bg-blue-600 text-white text-3xl rounded-2xl shadow-xl hover:bg-blue-700 transition-transform active:scale-95">START SESSION</button>
+                            )}
+
+                            {phase === 'PLAY' && (
+                                <div className="w-full max-w-xl bg-white p-8 rounded-[2rem] shadow-2xl border-4 border-blue-200">
+                                    <div className="text-center mb-6">
+                                        <h3 className="text-3xl text-gray-800">{dateTasks[currentIdx].q}</h3>
+                                    </div>
+                                    <form onSubmit={checkAnswer}>
+                                        <input 
+                                            autoFocus
+                                            className="w-full p-4 text-lg border-2 border-gray-100 rounded-xl outline-none focus:border-red-400 text-center mb-2 font-mono"
+                                            placeholder="Typ de Engelse datum..."
+                                            value={input}
+                                            onChange={(e) => setInput(e.target.value)}
+                                        />
+                                        {lastError && <p className="text-red-500 text-[10px] text-center mb-4 font-bold leading-tight animate-pulse">{lastError}</p>}
+                                    </form>
+                                    <div className="mt-6 text-center text-blue-900 font-bold">HOOGTE: {blocks.length} / 15</div>
+                                </div>
+                            )}
+
+                            {phase === 'WIN' && (
+                                <div className="text-center bg-white p-10 rounded-[2rem] shadow-2xl border-4 border-yellow-400 animate-bounce">
+                                    <h2 className="text-5xl text-yellow-500">GLOBAL BUILDER! 🌍</h2>
+                                    <p className="text-xl text-blue-800 mt-4 italic">You mastered both styles perfectly.</p>
+                                    <button onClick={() => window.location.reload()} className="mt-8 px-10 py-4 bg-blue-600 text-white rounded-full text-xl hover:bg-blue-700 shadow-lg">Opnieuw</button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Footer met Copyright */}
+                    <div className="w-full bg-white/50 py-2 text-center text-blue-900 text-sm border-t border-white/30">
+                        &copy; Mister Seb's Grammar Apps, 2026
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
