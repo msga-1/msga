@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bomb Squad: Much or Many - 150 Questions</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+        
+        body { 
+            font-family: 'Share Tech Mono', monospace; 
+            background-color: #0a0a0a; 
+            color: #ff3333; 
+            overflow: hidden; 
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .lcd-text { text-shadow: 0 0 15px rgba(255, 51, 51, 0.7); }
+        
+        .shake {
+            animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) infinite;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-4px, 0, 0); }
+            20%, 80% { transform: translate3d(8px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-12px, 0, 0); }
+            40%, 60% { transform: translate3d(12px, 0, 0); }
+        }
+
+        .flash-red {
+            animation: flash 0.5s ease-out;
+        }
+
+        @keyframes flash {
+            0% { background-color: rgba(255, 0, 0, 0.5); }
+            100% { background-color: transparent; }
+        }
+
+        .bomb-panel {
+            background: linear-gradient(145deg, #1a1a1a, #0a0a0a);
+            border: 4px solid #333;
+            box-shadow: inset 0 0 30px #000;
+        }
+
+        .wire-input {
+            background: rgba(255, 255, 255, 0.05);
+            border-bottom: 4px solid #ff3333;
+            outline: none;
+            width: 200px;
+            text-align: center;
+            color: #fff;
+            font-size: 2.5rem;
+            transition: all 0.2s;
+        }
+
+        .penalty-text {
+            animation: slideUp 1s forwards;
+            color: #ff0000;
+            font-weight: bold;
+            position: absolute;
+        }
+
+        @keyframes slideUp {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-50px); opacity: 0; }
+        }
+
+        .nav-header {
+            background: rgba(0, 0, 0, 0.9);
+            border-bottom: 2px solid #333;
+            z-index: 50;
+        }
+    </style>
+</head>
+<body>
+    <div id="root" class="flex-grow flex flex-col"></div>
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const QUESTIONS = [
+            { start: "How", end: "water is in the bottle?", ans: "much" },
+            { start: "How", end: "people are at the party?", ans: "many" },
+            { start: "There isn't", end: "sugar in my tea.", ans: "much" },
+            { start: "I don't have", end: "friends in London.", ans: "many" },
+            { start: "How", end: "money do you need?", ans: "much" },
+            { start: "Are there", end: "cars on the road?", ans: "many" },
+            { start: "Too", end: "salt is bad for you.", ans: "much" },
+            { start: "How", end: "times do I have to tell you?", ans: "many" },
+            { start: "We don't have", end: "time left!", ans: "much" },
+            { start: "How", end: "apples do you want?", ans: "many" },
+            { start: "There are too", end: "mistakes here.", ans: "many" },
+            { start: "How", end: "coffee do you drink?", ans: "much" },
+            { start: "Not", end: "children like vegetables.", ans: "many" },
+            { start: "How", end: "milk is in the fridge?", ans: "much" },
+            { start: "I have too", end: "homework tonight.", ans: "much" },
+            { start: "How", end: "books did you read?", ans: "many" },
+            { start: "There isn't", end: "info about the trip.", ans: "much" },
+            { start: "How", end: "days until Christmas?", ans: "many" },
+            { start: "We saw", end: "animals at the zoo.", ans: "many" },
+            { start: "Is there", end: "butter on the bread?", ans: "much" },
+            { start: "How", end: "questions are left?", ans: "many" },
+            { start: "There is too", end: "noise in here!", ans: "much" },
+            { start: "How", end: "countries are in Europe?", ans: "many" },
+            { start: "I don't put", end: "oil in the pan.", ans: "much" },
+            { start: "How", end: "stars can you see?", ans: "many" },
+            { start: "There isn't", end: "hope left.", ans: "much" },
+            { start: "How", end: "players are in a team?", ans: "many" },
+            { start: "We didn't take", end: "luggage with us.", ans: "much" },
+            { start: "How", end: "cups of tea do you want?", ans: "many" },
+            { start: "There is so", end: "dust on the table.", ans: "much" },
+            { start: "How", end: "pages is this book?", ans: "many" },
+            { start: "I don't eat", end: "meat.", ans: "much" },
+            { start: "How", end: "seats are available?", ans: "many" },
+            { start: "There wasn't", end: "traffic this morning.", ans: "much" },
+            { start: "How", end: "languages do you speak?", ans: "many" },
+            { start: "Is there", end: "soup in the pot?", ans: "much" },
+            { start: "How", end: "hours do you sleep?", ans: "many" },
+            { start: "There is too", end: "rain today.", ans: "much" },
+            { start: "How", end: "bottles of wine?", ans: "many" },
+            { start: "I don't spend", end: "time online.", ans: "much" },
+            { start: "How", end: "emails did you send?", ans: "many" },
+            { start: "There isn't", end: "bread in the bin.", ans: "much" },
+            { start: "How", end: "students are in class?", ans: "many" },
+            { start: "Do you have", end: "furniture?", ans: "much" },
+            { start: "How", end: "cows are in the field?", ans: "many" },
+            { start: "There isn't", end: "snow in Africa.", ans: "much" },
+            { start: "How", end: "photos did you take?", ans: "many" },
+            { start: "We don't need", end: "help right now.", ans: "much" },
+            { start: "How", end: "windows are in the room?", ans: "many" },
+            { start: "There is too", end: "furniture in here.", ans: "much" },
+            { start: "How", end: "kilometers did you walk?", ans: "many" },
+            { start: "I don't have", end: "patience.", ans: "much" },
+            { start: "How", end: "chairs are in the hall?", ans: "many" },
+            { start: "There isn't", end: "cheese left.", ans: "much" },
+            { start: "How", end: "cousins do you have?", ans: "many" },
+            { start: "There is so", end: "traffic in Paris.", ans: "much" },
+            { start: "How", end: "eggs do we need?", ans: "many" },
+            { start: "I don't see", end: "progress.", ans: "much" },
+            { start: "How", end: "movies did you watch?", ans: "many" },
+            { start: "There isn't", end: "space in the car.", ans: "much" },
+            { start: "How", end: "cities did you visit?", ans: "many" },
+            { start: "Is there", end: "shampoo left?", ans: "much" },
+            { start: "How", end: "lessons did you have?", ans: "many" },
+            { start: "There is so", end: "energy in the room.", ans: "much" },
+            { start: "How", end: "problems did you solve?", ans: "many" },
+            { start: "I didn't drink", end: "juice today.", ans: "much" },
+            { start: "How", end: "teachers do you have?", ans: "many" },
+            { start: "There isn't", end: "pollution here.", ans: "much" },
+            { start: "How", end: "presents did you get?", ans: "many" },
+            { start: "We don't buy", end: "clothing.", ans: "much" },
+            { start: "How", end: "songs are on the CD?", ans: "many" },
+            { start: "There isn't", end: "ice in my drink.", ans: "much" },
+            { start: "How", end: "words are in the list?", ans: "many" },
+            { start: "I didn't make", end: "money last year.", ans: "much" },
+            { start: "How", end: "birds are in the sky?", ans: "many" },
+            { start: "There is too", end: "garbage here.", ans: "much" },
+            { start: "How", end: "phones do you have?", ans: "many" },
+            { start: "I don't eat", end: "fruit.", ans: "much" },
+            { start: "How", end: "spoons of sugar?", ans: "many" },
+            { start: "There isn't", end: "petrol in the car.", ans: "much" },
+            { start: "How", end: "bags are you carrying?", ans: "many" },
+            { start: "I don't have", end: "luck.", ans: "much" },
+            { start: "How", end: "trees are in the park?", ans: "many" },
+            { start: "There is too", end: "stress in my life.", ans: "much" },
+            { start: "How", end: "orders did you take?", ans: "many" },
+            { start: "There isn't", end: "rain in summer.", ans: "much" },
+            { start: "How", end: "glasses of water?", ans: "many" },
+            { start: "I don't have", end: "confidence.", ans: "much" },
+            { start: "How", end: "coins are in the box?", ans: "many" },
+            { start: "There isn't", end: "sunlight today.", ans: "much" },
+            { start: "How", end: "keys are on the ring?", ans: "many" },
+            { start: "I don't need", end: "advice.", ans: "much" },
+            { start: "How", end: "miles to go?", ans: "many" },
+            { start: "There isn't", end: "evidence.", ans: "much" },
+            { start: "How", end: "islands are in Hawaii?", ans: "many" },
+            { start: "I don't feel", end: "pain.", ans: "much" },
+            { start: "How", end: "guests are coming?", ans: "many" },
+            { start: "There isn't", end: "news today.", ans: "much" },
+            { start: "How", end: "tickets did you buy?", ans: "many" },
+            { start: "You have too", end: "courage.", ans: "much" },
+            // Nieuwe vragen tot 150
+            { start: "How", end: "electricity do we use?", ans: "much" },
+            { start: "How", end: "cats live in this house?", ans: "many" },
+            { start: "There isn't", end: "soup left for you.", ans: "much" },
+            { start: "How", end: "seconds are in a minute?", ans: "many" },
+            { start: "I don't have", end: "work to do.", ans: "much" },
+            { start: "How", end: "computers are in the lab?", ans: "many" },
+            { start: "There is too", end: "salt in the soup.", ans: "much" },
+            { start: "How", end: "shoes do you own?", ans: "many" },
+            { start: "We didn't find", end: "gold in the mine.", ans: "much" },
+            { start: "How", end: "planes are in the sky?", ans: "many" },
+            { start: "There isn't", end: "rice in the bowl.", ans: "much" },
+            { start: "How", end: "sentences did you write?", ans: "many" },
+            { start: "Is there", end: "traffic on the bridge?", ans: "much" },
+            { start: "How", end: "bottles are on the shelf?", ans: "many" },
+            { start: "I don't see", end: "danger here.", ans: "much" },
+            { start: "How", end: "buttons are on your shirt?", ans: "many" },
+            { start: "There isn't", end: "space for a desk.", ans: "much" },
+            { start: "How", end: "stairs did you climb?", ans: "many" },
+            { start: "He doesn't have", end: "experience.", ans: "much" },
+            { start: "How", end: "members are in the club?", ans: "many" },
+            { start: "Is there", end: "beef in this stew?", ans: "much" },
+            { start: "How", end: "cookies did you bake?", ans: "many" },
+            { start: "There isn't", end: "fun in this game.", ans: "much" },
+            { start: "How", end: "players are on the field?", ans: "many" },
+            { start: "How", end: "advice did he give you?", ans: "much" },
+            { start: "How", end: "lamps are in the room?", ans: "many" },
+            { start: "There is too", end: "fear in his eyes.", ans: "much" },
+            { start: "How", end: "bus stops are there?", ans: "many" },
+            { start: "I don't need", end: "more luggage.", ans: "much" },
+            { start: "How", end: "insects are in the garden?", ans: "many" },
+            { start: "Is there", end: "pork in the sandwich?", ans: "much" },
+            { start: "How", end: "folders are on the desk?", ans: "many" },
+            { start: "There isn't", end: "room for another chair.", ans: "much" },
+            { start: "How", end: "customers are waiting?", ans: "many" },
+            { start: "He spends too", end: "cash on games.", ans: "much" },
+            { start: "How", end: "bikes are in the rack?", ans: "many" },
+            { start: "Is there", end: "coke in the glass?", ans: "much" },
+            { start: "How", end: "mirrors are in the house?", ans: "many" },
+            { start: "There isn't", end: "ink in the printer.", ans: "much" },
+            { start: "How", end: "ships are in the harbor?", ans: "many" },
+            { start: "I don't have", end: "information.", ans: "much" },
+            { start: "How", end: "pens are in the drawer?", ans: "many" },
+            { start: "There is so", end: "light in this room.", ans: "much" },
+            { start: "How", end: "mountains are in the UK?", ans: "many" },
+            { start: "Is there", end: "tea in the pot?", ans: "much" },
+            { start: "How", end: "pills did you take?", ans: "many" },
+            { start: "There isn't", end: "yogurt in the fridge.", ans: "much" },
+            { start: "How", end: "cloudy days were there?", ans: "many" },
+            { start: "We don't have", end: "cereal left.", ans: "much" },
+            { start: "How", end: "pigeons are on the roof?", ans: "many" }
+        ].sort(() => Math.random() - 0.5);
+
+        const App = () => {
+            const [phase, setPhase] = useState('START');
+            const [timeLeft, setTimeLeft] = useState(180); 
+            const [correctCount, setCorrectCount] = useState(0);
+            const [currentIdx, setCurrentIdx] = useState(0);
+            const [input, setInput] = useState("");
+            const [status, setStatus] = useState("ACTIVE"); 
+            const [showPenalty, setShowPenalty] = useState(false);
+
+            const timerRef = useRef(null);
+
+            useEffect(() => {
+                if (phase === 'GAME' && status === 'ACTIVE') {
+                    timerRef.current = setInterval(() => {
+                        setTimeLeft(prev => {
+                            if (prev <= 1) {
+                                setStatus("EXPLODED");
+                                return 0;
+                            }
+                            return prev - 1;
+                        });
+                    }, 1000);
+                }
+                return () => clearInterval(timerRef.current);
+            }, [phase, status]);
+
+            const handleCheck = (e) => {
+                if (e.key === 'Enter') {
+                    const val = input.toLowerCase().trim();
+                    if (val === QUESTIONS[currentIdx].ans) {
+                        const nextCorrect = correctCount + 1;
+                        setCorrectCount(nextCorrect);
+                        if (nextCorrect >= 10) { // Je moet er nog steeds 10 goed hebben om te winnen
+                            setStatus("DEFUSED");
+                        } else {
+                            setCurrentIdx(prev => (prev + 1) % QUESTIONS.length);
+                            setInput("");
+                        }
+                    } else {
+                        setTimeLeft(prev => {
+                            const newTime = prev - 60;
+                            if (newTime <= 0) {
+                                setStatus("EXPLODED");
+                                return 0;
+                            }
+                            return newTime;
+                        });
+                        setShowPenalty(true);
+                        setTimeout(() => setShowPenalty(false), 1000);
+                        setInput("");
+                    }
+                }
+            };
+
+            const formatTime = (seconds) => {
+                const m = Math.floor(seconds / 60);
+                const s = seconds % 60;
+                return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            };
+
+            return (
+                <div className={`flex flex-col h-screen w-full transition-all duration-500 ${status === 'EXPLODED' ? 'bg-red-900 shake' : status === 'DEFUSED' ? 'bg-green-900' : 'bg-zinc-950'}`}>
+                    
+                    <div className="nav-header flex items-center justify-between px-6 py-4">
+                        <a href="numbers_counting.html" className="border border-red-500 px-4 py-1 text-sm hover:bg-red-500 hover:text-black transition-all text-red-500 no-underline uppercase tracking-widest">
+                            &lt; Back
+                        </a>
+                        <div className="text-xl font-bold tracking-[0.2em] text-red-500 uppercase lcd-text">
+                            Much/Many Time Bomb
+                        </div>
+                        <div className="w-24"></div> 
+                    </div>
+
+                    <div className="flex-grow flex items-center justify-center p-6">
+                        {phase === 'START' && (
+                            <div className="text-center p-12 bomb-panel rounded-2xl border-red-900 max-w-2xl w-full">
+                                <h1 className="text-7xl font-bold mb-6 lcd-text tracking-tighter uppercase">BOMB SQUAD</h1>
+                                <p className="text-xl mb-10 text-zinc-400 uppercase tracking-[0.3em]">Protocol: Much vs Many</p>
+                                <p className="text-zinc-500 mb-6 text-sm uppercase">Database loaded: 150 Encryption Keys</p>
+                                <div className="bg-red-950/20 p-4 mb-10 border border-red-900/50 text-red-500 text-sm">
+                                    WARNING: INCORRECT INPUT TRIGGERS -60s PENALTY
+                                </div>
+                                <button onClick={() => setPhase('GAME')} className="px-12 py-5 border-2 border-red-600 text-red-500 hover:bg-red-600 hover:text-white transition-all text-2xl font-bold">START DISPOSAL</button>
+                            </div>
+                        )}
+
+                        {phase === 'GAME' && status === 'ACTIVE' && (
+                            <div className={`w-full max-w-5xl p-16 bomb-panel rounded-3xl relative ${showPenalty ? 'flash-red' : ''}`}>
+                                <div className="flex justify-between items-center mb-16">
+                                    <div className="relative">
+                                        <div className="text-xs text-zinc-500 uppercase tracking-widest mb-2">Detonation Clock</div>
+                                        <div className="text-8xl font-bold lcd-text tabular-nums">
+                                            {formatTime(timeLeft)}
+                                        </div>
+                                        {showPenalty && <span className="penalty-text text-4xl ml-4">-1:00</span>}
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-xs text-zinc-500 uppercase tracking-widest mb-2">Stability Progress</div>
+                                        <div className="text-6xl font-bold text-blue-500">{correctCount}<span className="text-zinc-700 text-3xl">/10</span></div>
+                                    </div>
+                                </div>
+
+                                <div className="h-2 w-full bg-zinc-900 rounded-full mb-20 overflow-hidden border border-zinc-800">
+                                    <div className="h-full bg-red-600 shadow-[0_0_15px_rgba(220,38,38,0.5)] transition-all duration-1000" style={{width: `${(timeLeft/180)*100}%`}}></div>
+                                </div>
+
+                                <div className="text-center">
+                                    <div className="text-4xl md:text-5xl font-bold text-white mb-10 leading-snug">
+                                        {QUESTIONS[currentIdx].start} 
+                                        <input 
+                                            className="wire-input mx-6"
+                                            value={input}
+                                            onChange={(e) => setInput(e.target.value)}
+                                            onKeyPress={handleCheck}
+                                            autoFocus
+                                            spellCheck="false"
+                                            autoComplete="off"
+                                        /> 
+                                        {QUESTIONS[currentIdx].end}
+                                    </div>
+                                    <div className="text-zinc-600 text-sm uppercase tracking-[0.5em]">Input authorized command only</div>
+                                </div>
+                            </div>
+                        )}
+
+                        {status === 'EXPLODED' && (
+                            <div className="text-center">
+                                <h1 className="text-[8rem] md:text-[12rem] font-bold text-white leading-none mb-4 uppercase tracking-tighter">DETONATED</h1>
+                                <p className="text-4xl text-black font-black uppercase bg-white px-4 inline-block">Casualties: High</p>
+                                <br/>
+                                <button onClick={() => window.location.reload()} className="mt-16 px-12 py-5 bg-black text-red-500 border-4 border-red-500 text-3xl font-bold hover:bg-red-500 hover:text-black transition-all uppercase">REDEPLOY SQUAD</button>
+                            </div>
+                        )}
+
+                        {status === 'DEFUSED' && (
+                            <div className="text-center">
+                                <h1 className="text-9xl font-bold text-white mb-6 uppercase tracking-tighter">Secure</h1>
+                                <p className="text-3xl text-green-200 uppercase tracking-[0.4em] mb-12">Bomb Defused with {formatTime(timeLeft)} remaining</p>
+                                <button onClick={() => window.location.reload()} className="px-16 py-6 bg-white text-green-900 text-3xl font-bold rounded-full hover:scale-110 transition-transform uppercase">NEXT MISSION</button>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="w-full py-4 text-center text-xs text-zinc-700 tracking-[0.5em] uppercase bg-black/50">
+                        © MISTER SEB'S GRAMMAR APPS, 2026
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
