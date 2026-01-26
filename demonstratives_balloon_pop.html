@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demonstratives Balloon Pop</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap');
+        body { font-family: 'Fredoka One', cursive; background: #f0f9ff; overflow: hidden; height: 100vh; }
+        
+        .balloon {
+            transition: width 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275), height 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.2));
+            background-color: #ef4444;
+            position: relative;
+        }
+        
+        .deflate { animation: deflate 0.5s ease-out; }
+        @keyframes deflate {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.8) rotate(-5deg); }
+            100% { transform: scale(1); }
+        }
+        .bg-sky { background: linear-gradient(to bottom, #87CEEB, #E0F7FA); }
+
+        .intro-card {
+            background: white;
+            padding: 3rem;
+            border-radius: 2.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.2);
+            max-width: 600px;
+            text-align: center;
+            border: 6px solid #3b82f6;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useCallback } = React;
+
+       const QUESTIONS = [
+    { q: "Is ___ your book over there?", a: "that" },
+    { q: "___ cookies here are delicious!", a: "these" },
+    { q: "Look at ___ birds high in the sky.", a: "those" },
+    { q: "I love ___ shirt I am wearing.", a: "this" },
+    { q: "Are ___ your shoes under the chair over there?", a: "those" },
+    { q: "___ is my best friend, Sam, standing next to me.", a: "this" },
+    { q: "Can you see ___ mountains in the distance?", a: "those" },
+    { q: "___ pens on my desk are all blue.", a: "these" },
+    { q: "Was ___ your phone that rang just now?", a: "that" },
+    { q: "___ apples in this basket look fresh.", a: "these" },
+    { q: "Who is ___ girl standing by the door?", a: "that" },
+    { q: "___ questions are very easy to answer.", a: "these" },
+    { q: "___ stars are so bright tonight.", a: "those" },
+    { q: "I find ___ ring on the floor here.", a: "this" },
+    { q: "___ trees across the river are very old.", a: "those" },
+    { q: "___ cake on my plate smells wonderful.", a: "this" },
+    { q: "Do you remember ___ house we saw yesterday?", a: "that" },
+    { q: "___ clouds way up there look like sheep.", a: "those" },
+    { q: "Please take ___ papers from my hand.", a: "these" },
+    { q: "I can't reach ___ box on the top shelf.", a: "that" },
+    { q: "___ kittens in my lap are so soft.", a: "these" },
+    { q: "Did you hear ___ noise outside just now?", a: "that" },
+    { q: "___ sunglasses I'm wearing are new.", a: "these" },
+    { q: "___ students in the other classroom are loud.", a: "those" },
+    { q: "Is ___ my coffee cup right here?", a: "this" },
+    { q: "___ stars in the galaxy are far away.", a: "those" },
+    { q: "I want to buy ___ shoes in the window over there.", a: "those" },
+    { q: "___ keys in my pocket are jangling.", a: "these" },
+    { q: "Who left ___ umbrella by the entrance?", a: "that" },
+    { q: "___ coffee in my hand is too hot.", a: "this" },
+    { q: "___ towers in the city look tiny from here.", a: "those" },
+    { q: "Look at ___ drawing I just finished.", a: "this" },
+    { q: "___ boxes in the attic are full of old clothes.", a: "those" },
+    { q: "___ flowers in my garden are blooming nicely.", a: "these" },
+    { q: "___ man across the street is waving.", a: "that" },
+    { q: "I don't like ___ weather we are having today.", a: "this" },
+    { q: "___ earrings you are wearing look great.", a: "these" },
+    { q: "Did you see ___ shooting star just then?", a: "that" },
+    { q: "___ people waiting for the bus look cold.", a: "those" },
+    { q: "___ sandwich I'm eating is very salty.", a: "this" },
+    { q: "___ paintings on that wall are expensive.", a: "those" },
+    { q: "Can you pass me ___ magazine on the table near you?", a: "that" },
+    { q: "___ socks on my feet are mismatched.", a: "these" },
+    { q: "___ planes flying above us are very loud.", a: "those" },
+    { q: "___ soup in this bowl is delicious.", a: "this" },
+    { q: "___ children playing in the park are happy.", a: "those" },
+    { q: "___ computer I am using is quite slow.", a: "this" },
+    { q: "___ stars way out in space are beautiful.", a: "those" },
+    { q: "___ muffins in the oven smell good.", a: "those" },
+    { q: "___ bus we are on is very crowded.", a: "this" },
+    { q: "___ buildings in London are very old.", a: "those" },
+    { q: "Listen to ___ song playing on my phone.", a: "this" },
+    { q: "___ chairs in the hallway need to be moved.", a: "those" },
+    { q: "___ dog right here is very friendly.", a: "this" },
+    { q: "___ grapes you brought me are sweet.", a: "these" },
+    { q: "Did you buy ___ hat you were looking at earlier?", a: "that" },
+    { q: "___ berries in my hand are ripe.", a: "these" },
+    { q: "___ cows in the field are sleeping.", a: "those" },
+    { q: "Is ___ seat next to me taken?", a: "this" },
+    { q: "___ pictures in my photo album are special.", a: "these" },
+    { q: "___ ship on the horizon is huge.", a: "that" },
+    { q: "I love ___ watch on my wrist.", a: "this" },
+    { q: "___ dishes in the sink are dirty.", a: "these" },
+    { q: "___ lights in the valley look like jewels.", a: "those" },
+    { q: "___ backpack I'm carrying is heavy.", a: "this" },
+    { q: "___ cats on the roof are fighting.", a: "those" },
+    { q: "Can you help me with ___ bags here?", a: "these" },
+    { q: "___ moon tonight is very bright.", a: "that" },
+    { q: "___ car here in the driveway is mine.", a: "this" },
+    { q: "___ boys at the back of the bus are laughing.", a: "those" },
+    { q: "___ jeans I'm wearing are too tight.", a: "these" },
+    { q: "___ mountain peak is covered in snow.", a: "that" },
+    { q: "___ pizza in the box here is for you.", a: "this" },
+    { q: "___ flags across the bridge are colorful.", a: "those" },
+    { q: "___ pen in my hand has no ink.", a: "this" },
+    { q: "___ birds on the fence are singing.", a: "those" },
+    { q: "___ carrots in my basket are from the market.", a: "these" },
+    { q: "Who owns ___ red bike over there?", a: "that" },
+    { q: "___ ring on my finger was a gift.", a: "this" },
+    { q: "___ wolves in the forest are howling.", a: "those" },
+    { q: "___ tomatoes in this salad are fresh.", a: "these" },
+    { q: "___ bridge in the distance is very long.", a: "that" },
+    { q: "___ phone in my pocket is vibrating.", a: "this" },
+    { q: "___ shells I found on the beach are pretty.", a: "these" },
+    { q: "___ airplane high up is leaving a trail.", a: "that" },
+    { q: "___ shoes I've got on are comfortable.", a: "these" },
+    { q: "___ clouds on the horizon mean rain.", a: "those" },
+    { q: "___ juice in my glass is cold.", a: "this" },
+    { q: "___ stars you see through the telescope are far.", a: "those" },
+    { q: "___ tools in my shed are rusty.", a: "these" },
+    { q: "___ spider on the ceiling is scary.", a: "that" },
+    { q: "___ game we are playing is fun.", a: "this" },
+    { q: "___ boats on the lake look peaceful.", a: "those" },
+    { q: "___ keys in my hand are for the office.", a: "these" },
+    { q: "Look at ___ rainbow over the hills.", a: "that" },
+    { q: "___ story I am reading is exciting.", a: "this" },
+    { q: "___ students over there are on a trip.", a: "those" },
+    { q: "___ oranges here are very juicy.", a: "these" },
+    { q: "___ park we visited last week was nice.", a: "that" },
+    { q: "___ chair I'm sitting on is hard.", a: "this" },
+    { q: "___ lamps in the store window are beautiful.", a: "those" },
+    { q: "___ gloves on my hands are warm.", a: "these" },
+    { q: "___ windmill on the hill is turning.", a: "that" },
+    { q: "___ water in my bottle is nearly gone.", a: "this" },
+    { q: "___ guys playing football over there are fast.", a: "those" },
+    { q: "___ headphones I'm using are noise-canceling.", a: "these" },
+    { q: "___ tower in the distance is a clock tower.", a: "that" },
+    { q: "___ apple I'm eating is crunchy.", a: "this" },
+    { q: "___ boxes in the garage need moving.", a: "those" },
+    { q: "___ pencils in my drawer are sharp.", a: "these" },
+    { q: "___ statue in the square is famous.", a: "that" },
+    { q: "___ shirt I'm holding is too big.", a: "this" },
+    { q: "___ horses in the field are galloping.", a: "those" },
+    { q: "___ coins in my palm are from Spain.", a: "these" },
+    { q: "___ lighthouse on the coast is tall.", a: "that" },
+    { q: "___ idea I have right now is brilliant.", a: "this" },
+    { q: "___ islands in the ocean are tropical.", a: "those" },
+    { q: "___ flowers in my vase are wilting.", a: "these" },
+    { q: "___ bird on that branch is a robin.", a: "that" },
+    { q: "___ desk I'm working at is messy.", a: "this" },
+    { q: "___ stars in the night sky are twinkling.", a: "those" },
+    { q: "___ papers in my folder are important.", a: "these" },
+    { q: "___ car at the end of the street is speeding.", a: "that" },
+    { q: "___ tea in my cup is peppermint.", a: "this" },
+    { q: "___ houses on the hill have a great view.", a: "those" },
+    { q: "___ rings I'm wearing are silver.", a: "these" },
+    { q: "___ kite in the sky is flying high.", a: "that" },
+    { q: "___ movie we are watching is boring.", a: "this" },
+    { q: "___ trees in the forest are very tall.", a: "those" },
+    { q: "___ books in my bag are heavy.", a: "these" },
+    { q: "___ plane landing over there is from Paris.", a: "that" },
+    { q: "___ necklace I'm wearing is an antique.", a: "this" },
+    { q: "___ people in the stadium are cheering.", a: "those" },
+    { q: "___ photos in my hand are from the wedding.", a: "these" },
+    { q: "___ sign on the highway was hard to read.", a: "that" },
+    { q: "___ bed I'm lying in is comfortable.", a: "this" },
+    { q: "___ waves in the ocean are huge.", a: "those" },
+    { q: "___ strawberries in my bowl are sweet.", a: "these" },
+    { q: "___ skyscraper in the city is the tallest.", a: "that" },
+    { q: "___ bracelet on my arm is gold.", a: "this" },
+    { q: "___ sheep on the hillside are white.", a: "those" },
+    { q: "___ markers in my box are permanent.", a: "these" },
+    { q: "___ balloon floating away is red.", a: "that" },
+    { q: "___ exercise I'm doing is difficult.", a: "this" },
+    { q: "___ mountains in the distance are purple.", a: "those" },
+    { q: "___ eggs in the carton are organic.", a: "these" },
+    { q: "___ bus stop over there is where we wait.", a: "that" },
+    { q: "___ hat on my head is a bit small.", a: "this" },
+    { q: "___ stars way above us are ancient.", a: "those" },
+    { q: "___ notes in my notebook are confusing.", a: "these" },
+    { q: "___ shop across the road is closed.", a: "that" },
+    { q: "___ coffee I'm drinking is perfect.", a: "this" }
+].sort(() => Math.random() - 0.5);
+
+        const App = () => {
+            const [score, setScore] = useState(0);
+            const [currentIdx, setCurrentIdx] = useState(0);
+            const [input, setInput] = useState("");
+            const [phase, setPhase] = useState('START'); 
+            const [isDeflating, setIsDeflating] = useState(false);
+
+            const playSound = useCallback((type) => {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                if (type === 'pop') {
+                    oscillator.type = 'sawtooth';
+                    oscillator.frequency.setValueAtTime(150, audioCtx.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                    gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                } else {
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.3);
+                    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                }
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.5);
+            }, []);
+
+            const checkAnswer = (e) => {
+                e.preventDefault();
+                const correct = QUESTIONS[currentIdx].a.toLowerCase();
+                const user = input.toLowerCase().trim();
+
+                if (user === correct) {
+                    const nextScore = score + 1;
+                    setScore(nextScore);
+                    if (nextScore >= 15) {
+                        playSound('pop');
+                        setPhase('POP');
+                    } else {
+                        setCurrentIdx((prev) => (prev + 1) % QUESTIONS.length);
+                        setInput("");
+                    }
+                } else {
+                    playSound('hiss');
+                    setIsDeflating(true);
+                    setScore(prev => Math.max(0, prev - 1));
+                    setTimeout(() => setIsDeflating(false), 500);
+                    setInput("");
+                }
+            };
+
+            const balloonSize = 100 + (score * 25); 
+
+            return (
+                <div className="h-screen w-full flex flex-col bg-sky overflow-hidden relative">
+                    {/* Back Button */}
+                    <button 
+                        onClick={() => window.location.href='pronouns.html'}
+                        className="absolute top-6 left-6 z-50 bg-white border-4 border-blue-500 text-blue-500 px-6 py-2 rounded-2xl hover:bg-blue-50 transition-colors shadow-lg"
+                    >
+                        ← BACK
+                    </button>
+
+                    <div className="w-full text-center py-8 h-32">
+                        <h1 className="text-5xl text-blue-800 tracking-wide">Demonstratives Balloon Pop</h1>
+                        <div className="text-2xl bg-white/60 px-8 py-2 rounded-full inline-block mt-4 shadow-sm border-2 border-white/50">
+                            Score: <span className="text-red-600">{score}</span> / 15
+                        </div>
+                    </div>
+
+                    <div className="flex flex-1 items-center justify-center px-20">
+                        {phase === 'START' ? (
+                            <div className="intro-card z-10">
+                                <h2 className="text-4xl text-blue-800 mb-6">Ready to Pop?</h2>
+                                <p className="text-xl text-gray-700 mb-8 leading-relaxed">
+                                    Fill in the correct demonstrative pronoun (this, that, these, those). 
+                                    Every correct answer makes the balloon bigger. 
+                                    Reach 15 points to pop the balloon! 🎈
+                                </p>
+                                <button 
+                                    onClick={() => setPhase('PLAY')}
+                                    className="px-12 py-6 bg-green-500 text-white text-3xl rounded-2xl shadow-xl hover:bg-green-600 transition-all transform hover:scale-105"
+                                >
+                                    START GAME
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="flex items-center justify-center w-full max-w-7xl gap-20">
+                                <div className="w-[500px] flex flex-col justify-center shrink-0">
+                                    {phase === 'PLAY' && (
+                                        <div className="bg-white p-10 rounded-[2rem] shadow-2xl border-4 border-blue-100 min-h-[400px] flex flex-col justify-between">
+                                            <div className="flex-1 flex items-center justify-center text-center">
+                                                <p className="text-3xl leading-relaxed text-gray-800">
+                                                    {QUESTIONS[currentIdx].q.split('___')[0]}
+                                                    <span className="text-red-500 font-bold border-b-4 border-red-200 px-2 mx-1">
+                                                        {input || "___"}
+                                                    </span>
+                                                    {QUESTIONS[currentIdx].q.split('___')[1]}
+                                                </p>
+                                            </div>
+                                            <form onSubmit={checkAnswer} className="mt-8">
+                                                <input 
+                                                    autoFocus
+                                                    className="w-full p-5 text-2xl border-2 border-gray-100 rounded-2xl outline-none focus:border-red-400 text-center bg-gray-50 shadow-inner"
+                                                    placeholder="Type here..."
+                                                    value={input}
+                                                    onChange={(e) => setInput(e.target.value)}
+                                                />
+                                                <p className="text-center text-gray-400 text-xs mt-4 uppercase tracking-widest italic">Press Enter</p>
+                                            </form>
+                                        </div>
+                                    )}
+
+                                    {phase === 'POP' && (
+                                        <div className="text-center bg-white p-10 rounded-[2rem] shadow-2xl border-4 border-yellow-400 animate-bounce">
+                                            <h2 className="text-6xl text-red-600">POP! 💥</h2>
+                                            <p className="text-2xl text-blue-800 mt-4 italic">Excellent Job!</p>
+                                            <button onClick={() => window.location.reload()} className="mt-8 px-10 py-4 bg-blue-600 text-white rounded-full text-2xl hover:bg-blue-700 transition-all shadow-lg">
+                                                Play Again
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="w-[500px] flex flex-col items-center justify-center shrink-0">
+                                    {phase !== 'POP' ? (
+                                        <div className="relative flex flex-col items-center justify-center h-[500px] w-full">
+                                            <div 
+                                                className={`balloon rounded-full ${isDeflating ? 'deflate' : ''}`}
+                                                style={{ 
+                                                    width: `${balloonSize}px`, 
+                                                    height: `${balloonSize * 1.25}px`
+                                                }}
+                                            >
+                                                <div className="absolute top-1/4 left-1/4 w-1/4 h-1/6 bg-white/30 rounded-full blur-[2px]"></div>
+                                                <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-8 h-5 bg-red-700 rounded-sm" style={{clipPath: 'polygon(20% 0%, 80% 0%, 100% 100%, 0% 100%)'}}></div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="text-[12rem] animate-ping opacity-50">💥</div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Copyright Footer */}
+                    <div className="absolute bottom-4 w-full text-center text-blue-900/60 text-sm">
+                        &copy; Mister Seb's Grammar Apps
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
