@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Master UK - Challenge</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Lexend:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #FFD93D;
+            --secondary: #6BCB77;
+            --accent: #4D96FF;
+            --error: #FF6B6B;
+            --dark: #2C3333;
+            --neon-clock: #00FFD1;
+        }
+
+        body {
+            font-family: 'Lexend', sans-serif;
+            background: linear-gradient(135deg, #4D96FF 0%, #6BCB77 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            color: var(--dark);
+        }
+
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: white;
+            color: var(--accent);
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 15px;
+            font-weight: bold;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+        }
+
+        .game-card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 50px 40px;
+            border-radius: 40px;
+            box-shadow: 0 20px 0 rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 420px;
+            text-align: center;
+            border: 4px solid white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #start-screen { display: flex; flex-direction: column; align-items: center; }
+        #game-screen { display: none; flex-direction: column; align-items: center; width: 100%; }
+
+        h1 {
+            font-family: 'Fredoka One', cursive;
+            color: #FF6B6B;
+            font-size: 2.8rem;
+            margin: 0 0 20px 0;
+            text-shadow: 2px 2px 0px white;
+        }
+
+        .instructions {
+            text-align: left;
+            background: #f0f7ff;
+            padding: 20px;
+            border-radius: 20px;
+            margin-bottom: 25px;
+            border: 2px dashed var(--accent);
+        }
+
+        .start-btn {
+            background: var(--secondary);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            font-family: 'Fredoka One', cursive;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #4a9e54;
+        }
+
+        #clock-display {
+            background: var(--dark);
+            color: var(--neon-clock);
+            font-family: 'monospace';
+            font-size: 4.5rem;
+            padding: 20px;
+            border-radius: 25px;
+            margin-bottom: 30px;
+            border: 8px solid #444;
+            box-shadow: inset 0 0 15px rgba(0,255,209,0.5);
+            width: 100%;
+            max-width: 320px;
+            box-sizing: border-box;
+        }
+
+        #clock-display.error-state { color: var(--error); border-color: #633; }
+
+        input {
+            width: 100%;
+            max-width: 320px;
+            padding: 18px;
+            font-size: 1.2rem;
+            border: 3px solid var(--accent);
+            border-radius: 20px;
+            text-align: center;
+            font-family: inherit;
+        }
+
+        #feedback { margin-top: 25px; font-weight: 700; font-size: 1.1rem; min-height: 30px; }
+        .copyright { margin-top: 30px; font-size: 0.8rem; color: white; font-weight: bold; }
+        .success-text { color: var(--secondary); }
+        .error-text { color: var(--error); }
+
+        @keyframes clock-shake {
+            0%, 100% { transform: rotate(0deg); }
+            20%, 60% { transform: rotate(8deg); }
+            40%, 80% { transform: rotate(-8deg); }
+        }
+        .shake-clock { animation: clock-shake 0.6s both; }
+    </style>
+</head>
+<body>
+
+<a href="numbers_counting.html" class="back-btn">← Back</a>
+
+<div class="game-card">
+    <div id="start-screen">
+        <h1>TIME MASTER</h1>
+        <div class="instructions">
+            <p><b>Instructions:</b></p>
+            <ul style="padding-left: 20px; font-size: 0.9rem;">
+                <li>Read the digital clock.</li>
+                <li>Write the time in <b>British English</b>.</li>
+                <li>Examples:<br><i>"five past ten"</i><br><i>"twelve minutes to three"</i></li>
+                <li>Press <b>Enter</b> to submit.</li>
+            </ul>
+        </div>
+        <button class="start-btn" onclick="startGame()">START GAME</button>
+    </div>
+
+    <div id="game-screen">
+        <h1>TIME MASTER</h1>
+        <div id="clock-display">00:00</div>
+        <p><b>What's the time?</b></p>
+        <input type="text" id="answer-input" placeholder="Type here..." autocomplete="off">
+        <div id="feedback"></div>
+    </div>
+</div>
+
+<div class="copyright">
+    &copy; Mister Seb's Grammar Apps
+</div>
+
+<script>
+    const clock = document.getElementById('clock-display');
+    const input = document.getElementById('answer-input');
+    const feedback = document.getElementById('feedback');
+    const startScreen = document.getElementById('start-screen');
+    const gameScreen = document.getElementById('game-screen');
+
+    let h, m;
+
+    const words = {
+        1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight", 9: "nine", 10: "ten",
+        11: "eleven", 12: "twelve", 13: "thirteen", 14: "fourteen", 15: "fifteen", 16: "sixteen", 17: "seventeen", 18: "eighteen", 19: "nineteen",
+        20: "twenty", 21: "twenty-one", 22: "twenty-two", 23: "twenty-three", 24: "twenty-four", 25: "twenty-five", 26: "twenty-six", 27: "twenty-seven", 28: "twenty-eight", 29: "twenty-nine"
+    };
+
+    function startGame() {
+        startScreen.style.display = 'none';
+        gameScreen.style.display = 'flex';
+        newRound();
+        input.focus();
+    }
+
+    function updateClockDisplay() {
+        clock.textContent = `${h < 10 ? '0'+h : h}:${m < 10 ? '0'+m : m}`;
+        clock.classList.remove('error-state');
+    }
+
+    function newRound() {
+        h = Math.floor(Math.random() * 12) + 1;
+        m = Math.floor(Math.random() * 60); 
+        updateClockDisplay();
+        clock.classList.remove('shake-clock');
+        input.value = "";
+        feedback.textContent = "";
+    }
+
+    function checkAnswer() {
+        let correctOptions = [];
+        let nextH = h === 12 ? 1 : h + 1;
+
+        if (m === 0) {
+            correctOptions.push(`${words[h]} o'clock`);
+        } else if (m === 15) {
+            correctOptions.push(`quarter past ${words[h]}`);
+        } else if (m === 30) {
+            correctOptions.push(`half past ${words[h]}`);
+        } else if (m === 45) {
+            correctOptions.push(`quarter to ${words[nextH]}`);
+        } else if (m < 30) {
+            let minWord = m === 1 ? "minute" : "minutes";
+            correctOptions.push(`${words[m]} past ${words[h]}`);
+            correctOptions.push(`${words[m]} ${minWord} past ${words[h]}`);
+        } else {
+            let diff = 60 - m;
+            let minWord = diff === 1 ? "minute" : "minutes";
+            correctOptions.push(`${words[diff]} to ${words[nextH]}`);
+            correctOptions.push(`${words[diff]} ${minWord} to ${words[nextH]}`);
+        }
+
+        const userVal = input.value.toLowerCase().trim().replace("it is ", "");
+        
+        if (correctOptions.includes(userVal)) {
+            feedback.innerHTML = "<span>✨ CORRECT!</span>";
+            feedback.className = "success-text";
+            clock.classList.add('shake-clock');
+            setTimeout(newRound, 1200);
+        } else {
+            clock.textContent = "ERROR";
+            clock.classList.add('error-state');
+            feedback.innerHTML = `<span class="error-text">Try again! ❌<br><small>Tip: it was "${correctOptions[0]}"</small></span>`;
+            setTimeout(updateClockDisplay, 2000);
+        }
+    }
+
+    input.addEventListener('keypress', (e) => { if (e.key === 'Enter') checkAnswer(); });
+</script>
+
+</body>
+</html>
