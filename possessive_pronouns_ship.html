@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Possessive Cargo Ship</title>
+    <title>Possessive Ship</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -36,7 +36,6 @@
         .bobbing { animation: bob 4s ease-in-out infinite; }
         @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 
-        /* CORRECTED POINTY BOW: Point is at the top, slanted towards the water */
         .ship-bow {
             position: absolute;
             left: -59px;
@@ -44,7 +43,6 @@
             width: 60px;
             height: 48px;
             background: #1e293b;
-            /* Slants from top-left to bottom-right */
             clip-path: polygon(0 0, 100% 0, 100% 100%);
         }
 
@@ -66,6 +64,15 @@
             padding: 0 5px;
             border-radius: 4px;
             font-weight: 800;
+        }
+
+        .intro-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            max-width: 500px;
+            border: 4px solid #1e3a8a;
         }
     </style>
 </head>
@@ -159,32 +166,49 @@
             };
 
             const q = currentQuestions[currentIdx];
-            const parts = q.prompt.split("___");
+            const parts = q ? q.prompt.split("___") : ["", ""];
 
             return (
                 <div className="relative h-screen w-full overflow-hidden">
-                    <div className="ocean">
+                    {/* Back Button */}
+                    <button 
+                        onClick={() => window.location.href='pronouns.html'}
+                        className="absolute top-4 left-4 z-[100] bg-slate-800 text-white px-4 py-2 rounded-lg border-2 border-white hover:bg-slate-700 transition-colors"
+                    >
+                        ← BACK
+                    </button>
+
+                    <div className="ocean flex items-center justify-center">
+                        {phase === 'START' && (
+                            <div className="intro-card z-[60] text-center">
+                                <h1 className="text-4xl text-blue-900 mb-4">Possessive Ship</h1>
+                                <p className="text-slate-600 mb-6 leading-relaxed">
+                                    Welcome Captain! Your mission is to load the cargo ship with the correct <strong>possessive adjectives and pronouns</strong>. 
+                                    Fill in the blanks to drop each container onto the deck. Load 10 containers to set sail!
+                                </p>
+                                <button 
+                                    onClick={() => setPhase('PLAY')} 
+                                    className="bg-blue-600 hover:bg-blue-700 text-white px-10 py-4 rounded-xl text-2xl shadow-xl uppercase tracking-wider transition-transform active:scale-95"
+                                >
+                                    Start Loading
+                                </button>
+                            </div>
+                        )}
+
                         <div className={`ship-wrapper ${phase === 'SAILING' || phase === 'WIN' ? 'sailing-away' : ''}`}>
                             <div className="bobbing flex flex-col items-start w-[400px] relative">
-                                
-                                {/* Containers - Stacked behind the bridge */}
                                 <div className="flex flex-wrap-reverse gap-0.5 ml-28 mb-[-2px] w-[220px] z-30">
                                     {containers.map((c, i) => (
                                         <div key={i} style={{ backgroundColor: c.color }} className="container-box w-12 h-9 flex items-center justify-center text-[10px] text-white font-bold shadow-inner rounded-sm">{c.text}</div>
                                     ))}
                                 </div>
 
-                                {/* Ship Hull */}
                                 <div className="w-[400px] h-12 bg-slate-800 rounded-br-[10px] shadow-2xl relative border-t-4 border-slate-700">
                                     <div className="ship-bow"></div>
-                                    
-                                    {/* Bridge (Stuurhut) - Positioned in the Front area */}
                                     <div className="absolute -top-10 left-4 w-20 h-10 bg-slate-700 rounded-t-lg border-t-2 border-slate-500 flex p-1.5 gap-2 z-40">
                                         <div className="w-3 h-2 bg-cyan-200 opacity-50 rounded-sm"></div>
                                         <div className="w-3 h-2 bg-cyan-200 opacity-50 rounded-sm"></div>
                                     </div>
-                                    
-                                    {/* Mast / Antenna */}
                                     <div className="absolute -top-16 left-8 w-1 h-16 bg-slate-800 z-10">
                                         <div className="h-2 w-4 bg-red-600 -ml-1.5 mt-2"></div>
                                     </div>
@@ -195,8 +219,6 @@
 
                     <div className="ui-panel">
                         <div className="w-full max-w-4xl text-center">
-                            {phase === 'START' && <button onClick={() => setPhase('PLAY')} className="bg-blue-600 text-white px-8 py-3 rounded-xl text-2xl shadow-xl uppercase tracking-wider">Start Loading</button>}
-                            
                             {(phase === 'PLAY' || phase === 'SAILING') && (
                                 <form onSubmit={handleSubmit} className={`px-4 ${phase === 'SAILING' ? 'opacity-0' : ''}`}>
                                     <div className="sentence-container text-lg md:text-xl lg:text-2xl text-slate-800 font-bold bg-white p-4 rounded-xl shadow-lg border-2 border-slate-200">
