@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Star Hunter - Double Star Edition</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #d4ff00; 
+            --secondary: #00f2ff; 
+            --star-yellow: #ffff00; 
+            --danger: #ff0055;
+            --double: #ffaa00;
+            --bg: #0a0a0f;
+            --panel: rgba(255, 255, 255, 0.05); 
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        body { 
+            font-family: 'Outfit', sans-serif; 
+            background: var(--bg); 
+            color: white; 
+            margin: 0; 
+            display: flex; 
+            height: 100vh; 
+            overflow: hidden;
+            transition: background 0.5s;
+        }
+
+        body.double-active {
+            background: radial-gradient(circle at 50% 50%, #2e1a05 0%, #0a0a0f 100%);
+        }
+
+        /* Language Switcher */
+        .lang-switcher { display: flex; gap: 5px; margin-bottom: 15px; }
+        .lang-btn { 
+            flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+            color: #fff; cursor: pointer; padding: 5px; border-radius: 5px;
+            font-size: 0.7rem; font-weight: bold; transition: 0.3s;
+        }
+        .lang-btn.active { background: var(--secondary); color: #000; border-color: var(--secondary); }
+
+        .sidebar { 
+            width: 300px; 
+            background: var(--panel); 
+            backdrop-filter: blur(20px); 
+            padding: 25px; 
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .sidebar.collapsed { transform: translateX(-100%); position: absolute; }
+
+        #menu-toggle-btn {
+            position: fixed; bottom: 20px; left: 20px; z-index: 100;
+            background: var(--panel); border: 1px solid var(--border);
+            color: var(--secondary); padding: 10px 15px; border-radius: 50%;
+            cursor: pointer; font-size: 1.2rem;
+        }
+
+        #event-banner {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: var(--double); color: #000;
+            padding: 10px 30px; border-radius: 50px;
+            font-family: 'Bebas Neue', sans-serif; font-size: 2rem;
+            box-shadow: 0 0 30px rgba(255, 170, 0, 0.5);
+            display: none; z-index: 50;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.05); }
+            100% { transform: translateX(-50%) scale(1); }
+        }
+
+        .hidden { display: none !important; }
+        h1, h2 { font-family: 'Bebas Neue', sans-serif; letter-spacing: 2px; margin: 0; }
+        h1 { color: var(--primary); font-size: 4rem; }
+        h2 { color: var(--primary); font-size: 2.5rem; }
+
+        textarea { 
+            height: 100px; width: 100%; background: rgba(0,0,0,0.5); 
+            color: #fff; border: 1px solid var(--border); border-radius: 8px; 
+            padding: 12px; font-family: 'Outfit'; resize: none; margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+
+        .btn {
+            width: 100%; height: 50px; border-radius: 8px; border: none;
+            font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem;
+            cursor: pointer; margin-top: 10px; transition: 0.3s;
+        }
+
+        .btn-start { background: var(--primary); color: #000; }
+        .btn-double { background: var(--double); color: #000; display: none; }
+        .btn-double:disabled { opacity: 0.3; cursor: not-allowed; }
+        .btn-stop { background: var(--danger); color: #fff; }
+        .btn-hide { background: rgba(255,255,255,0.1); color: #fff; height: 35px; }
+
+        .main-content { flex-grow: 1; padding: 40px; overflow-y: auto; position: relative; }
+        .student-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
+
+        .student-card {
+            background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border);
+            border-radius: 15px; padding: 20px; text-align: center; position: relative;
+            transition: all 0.5s;
+        }
+
+        .student-card.double-boost { border-color: var(--double); box-shadow: 0 0 15px rgba(255, 170, 0, 0.2); }
+        .student-card.active-star { border-color: var(--star-yellow); transform: scale(1.05); }
+
+        .star-count { font-size: 2.5rem; font-weight: 800; color: var(--secondary); text-shadow: 0 0 15px rgba(0, 242, 255, 0.5); }
+        .star-symbol { color: var(--star-yellow); margin-right: 5px; }
+
+        .floating-star {
+            position: absolute; top: 20%; left: 45%; color: var(--star-yellow);
+            font-size: 2.5rem; animation: floatStar 1s forwards; z-index: 100;
+        }
+
+        @keyframes floatStar {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-80px) scale(1.5); opacity: 0; }
+        }
+
+        .footer {
+            position: absolute; bottom: 20px; right: 20px;
+            font-size: 0.7rem; color: rgba(255,255,255,0.15);
+            letter-spacing: 1px; text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+
+<div id="event-banner"><span id="banner-text">DOUBLE STAR EVENT</span>: <span id="timer">0:00</span></div>
+
+<button id="menu-toggle-btn" onclick="toggleSidebar()">⚙️</button>
+
+<div class="sidebar" id="sidebar">
+    <div class="lang-switcher">
+        <button class="lang-btn active" onclick="setLanguage('en')">EN</button>
+        <button class="lang-btn" onclick="setLanguage('nl')">NL</button>
+        <button class="lang-btn" onclick="setLanguage('fr')">FR</button>
+        <button class="lang-btn" onclick="setLanguage('de')">DE</button>
+    </div>
+
+    <h2 id="ui-title">STAR HUNTER</h2>
+    <button class="btn btn-hide" id="ui-btn-hide" onclick="toggleSidebar()">HIDE MENU [H]</button>
+    <hr style="width:100%; border:0; border-top:1px solid var(--border); margin:15px 0;">
+    
+    <textarea id="studentInput" placeholder="Namen per regel..."></textarea>
+    <button class="btn btn-start" id="startBtn" onclick="initGame()">START LESSON</button>
+    <button class="btn btn-double" id="doubleBtn" onclick="activateDoubleStars()">⚡ ACTIVATE DOUBLE STARS</button>
+    <button class="btn btn-stop hidden" id="stopBtn" onclick="endGame()">FINISH SESSION</button>
+</div>
+
+<div class="main-content">
+    <div id="grid" class="student-grid">
+        <div style="grid-column: 1/-1; text-align: center; opacity: 0.1; margin-top: 100px;">
+            <h1 id="ui-standby" style="font-size: 6rem;">SYSTEM STANDBY</h1>
+        </div>
+    </div>
+    <div class="footer">© Mister Seb's Teacher Apps</div>
+</div>
+
+<script>
+    const i18n = {
+        en: {
+            title: "STAR HUNTER", hide: "HIDE MENU [H]", placeholder: "Names per line...",
+            start: "START LESSON", double: "⚡ ACTIVATE DOUBLE STARS", finish: "FINISH SESSION",
+            standby: "SYSTEM STANDBY", banner: "DOUBLE STAR EVENT", offline: "OFFLINE",
+            winner: "STAR PUPIL", reset: "RESET", stars: "Stars"
+        },
+        nl: {
+            title: "STERRENJAGER", hide: "VERBERG MENU [H]", placeholder: "Namen per regel...",
+            start: "START LES", double: "⚡ ACTIVEER DUBBELE STERREN", finish: "SESSIE BEËINDIGEN",
+            standby: "SYSTEEM STANDBY", banner: "DUBBELE STERRENEVENT", offline: "OFFLINE",
+            winner: "STER VAN DE LES", reset: "RESET", stars: "Sterren"
+        },
+        fr: {
+            title: "CHASSEUR D'ÉTOILES", hide: "CACHER MENU [H]", placeholder: "Noms par ligne...",
+            start: "COMMENCER LE COURS", double: "⚡ ACTIVER DOUBLE ÉTOILES", finish: "TERMINER LA SESSION",
+            standby: "SYSTÈME EN ATTENTE", banner: "ÉVÉNEMENT DOUBLE ÉTOILE", offline: "HORS LIGNE",
+            winner: "ÉLÈVE ÉTOILÉ", reset: "RÉINITIALISER", stars: "Étoiles"
+        },
+        de: {
+            title: "STERNENJÄGER", hide: "MENÜ AUSBLENDEN [H]", placeholder: "Namen pro Zeile...",
+            start: "UNTERRICHT STARTEN", double: "⚡ DOPPELTE STERNE AKTIVIEREN", finish: "SITZUNG BEENDEN",
+            standby: "SYSTEM STANDBY", banner: "DOPPELSTERN EVENT", offline: "OFFLINE",
+            winner: "STERNENSCHÜLER", reset: "ZURÜCKSETZEN", stars: "Sterne"
+        }
+    };
+
+    let currentLang = 'en';
+    let students = [];
+    let gameActive = false;
+    let isDoubleActive = false;
+    let doubleTimer = null;
+
+    function setLanguage(lang) {
+        currentLang = lang;
+        const t = i18n[lang];
+        document.getElementById('ui-title').innerText = t.title;
+        document.getElementById('ui-btn-hide').innerText = t.hide;
+        document.getElementById('studentInput').placeholder = t.placeholder;
+        document.getElementById('startBtn').innerText = t.start;
+        document.getElementById('doubleBtn').innerText = t.double;
+        document.getElementById('stopBtn').innerText = t.finish;
+        document.getElementById('banner-text').innerText = t.banner;
+        if(document.getElementById('ui-standby')) document.getElementById('ui-standby').innerText = t.standby;
+
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.innerText.toLowerCase() === lang);
+        });
+        if(gameActive) renderGrid();
+    }
+
+    function toggleSidebar() { document.getElementById('sidebar').classList.toggle('collapsed'); }
+
+    function initGame() {
+        const names = document.getElementById('studentInput').value.split('\n').filter(n => n.trim() !== "");
+        if (names.length === 0) return;
+        students = names.map(name => ({ name: name.trim(), stars: 0, timeoutUntil: null }));
+        gameActive = true;
+        document.getElementById('startBtn').classList.add('hidden');
+        document.getElementById('doubleBtn').style.display = 'block';
+        document.getElementById('stopBtn').classList.remove('hidden');
+        renderGrid();
+        startGameLoop();
+    }
+
+    function activateDoubleStars() {
+        if (isDoubleActive) return;
+        isDoubleActive = true;
+        document.getElementById('doubleBtn').disabled = true;
+        document.getElementById('event-banner').style.display = 'block';
+        document.body.classList.add('double-active');
+
+        let timeLeft = Math.floor(Math.random() * (300 - 120 + 1)) + 120;
+        const updateTimer = () => {
+            const mins = Math.floor(timeLeft / 60);
+            const secs = timeLeft % 60;
+            document.getElementById('timer').innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+            if (timeLeft <= 0) {
+                clearInterval(doubleTimer);
+                isDoubleActive = false;
+                document.getElementById('event-banner').style.display = 'none';
+                document.body.classList.remove('double-active');
+                document.getElementById('doubleBtn').disabled = false;
+                renderGrid();
+            }
+            timeLeft--;
+        };
+        updateTimer();
+        doubleTimer = setInterval(updateTimer, 1000);
+        renderGrid();
+    }
+
+    function renderGrid() {
+        const grid = document.getElementById('grid');
+        grid.innerHTML = '';
+        students.forEach((s, index) => {
+            const isTimeout = s.timeoutUntil && s.timeoutUntil > Date.now();
+            const card = document.createElement('div');
+            card.className = `student-card ${isTimeout ? 'in-timeout' : ''} ${isDoubleActive ? 'double-boost' : ''}`;
+            card.id = `card-${index}`;
+            card.innerHTML = `
+                <div class="student-name">${s.name}</div>
+                <div class="star-count"><span class="star-symbol">★</span>${s.stars}</div>
+                ${!isTimeout ? `<button style="background:none;border:1px solid #ff0055;color:#ff0055;cursor:pointer;font-size:0.6rem;padding:3px;border-radius:4px;margin-top:5px;" onclick="startTimeout(${index})">TIMEOUT</button>` : `<div style="color:#ff0055;font-size:0.6rem;margin-top:5px;">${i18n[currentLang].offline}</div>`}
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    function startGameLoop() {
+        const nextTick = () => {
+            if (!gameActive) return;
+            const available = students.filter(s => !s.timeoutUntil || s.timeoutUntil < Date.now());
+            if (available.length > 0) {
+                let pool = [];
+                const maxStars = Math.max(...available.map(s => s.stars));
+                available.forEach(s => {
+                    let weight = Math.max(1, (maxStars - s.stars) * 5 + 1);
+                    for(let i=0; i<weight; i++) pool.push(s);
+                });
+                const luckyIdx = students.indexOf(pool[Math.floor(Math.random() * pool.length)]);
+                addStar(luckyIdx, isDoubleActive ? 2 : 1);
+            }
+            setTimeout(nextTick, Math.random() * 5000 + 4000);
+        };
+        nextTick();
+    }
+
+    function addStar(index, amount) {
+        students[index].stars += amount;
+        const card = document.getElementById(`card-${index}`);
+        if(card) {
+            card.classList.add('active-star');
+            for(let i=0; i<amount; i++) {
+                setTimeout(() => {
+                    const star = document.createElement('div');
+                    star.className = 'floating-star';
+                    star.innerText = '★';
+                    star.style.left = (40 + (i*10)) + '%';
+                    card.appendChild(star);
+                    setTimeout(() => star.remove(), 1000);
+                }, i * 200);
+            }
+            setTimeout(() => {
+                card.classList.remove('active-star');
+                renderGrid(); 
+            }, 1200);
+        }
+    }
+
+    function startTimeout(index) {
+        students[index].timeoutUntil = Date.now() + 120000;
+        renderGrid();
+    }
+
+    function endGame() {
+        gameActive = false;
+        clearInterval(doubleTimer);
+        const winner = [...students].sort((a, b) => b.stars - a.stars)[0];
+        const t = i18n[currentLang];
+        document.getElementById('grid').innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center;">
+                <h1>${t.winner}: ${winner.name}</h1>
+                <p style="font-size: 2rem; color: var(--secondary);">${winner.stars} ${t.stars}</p>
+                <button class="btn" onclick="location.reload()" style="width:auto; padding:0 30px;">${t.reset}</button>
+            </div>`;
+        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+    }
+
+    document.addEventListener('keydown', (e) => { if (e.key.toLowerCase() === 'h' && e.target.tagName !== 'TEXTAREA') toggleSidebar(); });
+</script>
+</body>
+</html>

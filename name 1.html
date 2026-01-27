@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English Class - Random Picker</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #d4ff00; 
+            --secondary: #00f2ff; 
+            --bg: #0a0a0f;
+            --panel: rgba(255, 255, 255, 0.04); 
+            --border: rgba(255, 255, 255, 0.1);
+            --glow: 0 0 30px rgba(212, 255, 0, 0.4);
+        }
+        body { 
+            font-family: 'Outfit', sans-serif; 
+            background: var(--bg); 
+            color: white; 
+            margin: 0; 
+            display: flex; 
+            height: 100vh; 
+            overflow: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 10%, #1a1a2e 0%, transparent 40%), 
+                radial-gradient(circle at 90% 90%, #0d1a1a 0%, transparent 40%);
+        }
+        body::before {
+            content: " ";
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
+            z-index: 100;
+            background-size: 100% 4px;
+            pointer-events: none;
+        }
+        .sidebar { 
+            width: 350px; 
+            background: var(--panel); 
+            backdrop-filter: blur(25px); 
+            padding: 30px; 
+            display: flex; 
+            flex-direction: column; 
+            border-right: 1px solid var(--border); 
+            z-index: 101; 
+            transition: transform 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+        }
+        .sidebar.hidden { transform: translateX(-100%); position: absolute; }
+        .main-display { 
+            flex-grow: 1; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            padding: 40px; 
+            overflow-y: auto; 
+            position: relative;
+        }
+        
+        /* Language Switcher */
+        .lang-switcher { display: flex; gap: 8px; margin-bottom: 20px; }
+        .lang-btn { 
+            flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+            color: #fff; cursor: pointer; padding: 5px; border-radius: 5px;
+            font-size: 0.7rem; font-weight: bold; transition: 0.3s;
+        }
+        .lang-btn.active { background: var(--secondary); color: #000; border-color: var(--secondary); }
+
+        h2 { font-family: 'Bebas Neue', sans-serif; font-size: 2.8rem; letter-spacing: 2px; margin: 0; color: var(--primary); }
+        .sub-h { font-size: 0.8rem; color: #888; margin-bottom: 15px; letter-spacing: 1px; }
+        
+        textarea { 
+            height: 150px; width: 100%; 
+            background: rgba(0,0,0,0.5); 
+            color: #fff; 
+            border: 1px solid var(--border); 
+            border-radius: 12px; 
+            padding: 15px; 
+            font-size: 1rem; 
+            font-family: 'Outfit', sans-serif;
+            resize: none; 
+            outline: none;
+            transition: 0.3s;
+            box-sizing: border-box;
+        }
+        textarea:focus { border-color: var(--primary); }
+        
+        .control-group { margin-top: 20px; display: flex; flex-direction: column; gap: 12px; }
+        select, input, .btn-action { 
+            width: 100%; height: 55px; border-radius: 10px; 
+            border: 1px solid var(--border); font-weight: 700; 
+            box-sizing: border-box; font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.4rem;
+            letter-spacing: 1px;
+        }
+        input, select { background: rgba(255,255,255,0.05); color: white; padding: 0 15px; }
+        .btn-action { 
+            cursor: pointer; text-transform: uppercase; border: none; 
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+        }
+        .btn-pick { background: var(--primary); color: #000; box-shadow: var(--glow); }
+        .btn-group { background: transparent; color: var(--secondary); border: 2px solid var(--secondary); }
+        .btn-action:hover { transform: scale(1.03) translateY(-2px); filter: brightness(1.2); }
+
+        .selected-text { 
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 13rem; 
+            color: var(--primary); 
+            text-shadow: 0 0 40px rgba(212, 255, 0, 0.7);
+            text-align: center; 
+            animation: luckyReveal 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes luckyReveal {
+            0% { transform: scale(0.3) rotate(-15deg); opacity: 0; filter: blur(20px); }
+            100% { transform: scale(1) rotate(0); opacity: 1; filter: blur(0); }
+        }
+
+        .group-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; width: 100%; }
+        .group-box { 
+            background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border);
+            padding: 30px; border-radius: 20px; border-top: 6px solid var(--secondary);
+            backdrop-filter: blur(10px); animation: popIn 0.5s ease backwards;
+        }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.9) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .group-title { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; color: var(--secondary); margin-bottom: 10px; }
+        .group-names { font-size: 2rem; line-height: 1.1; color: #fff; font-weight: 700; }
+        
+        .spinning { 
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 8rem; 
+            opacity: 0.15; 
+            filter: blur(3px);
+            animation: rattle 0.1s infinite;
+        }
+
+        @keyframes rattle {
+            0% { transform: translate(2px, -2px); }
+            50% { transform: translate(-2px, 2px); }
+            100% { transform: translate(2px, 2px); }
+        }
+
+        .footer {
+            position: absolute; bottom: 20px; right: 20px;
+            font-size: 0.7rem; color: rgba(255,255,255,0.2);
+            letter-spacing: 1px; text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+
+<div class="sidebar" id="sidebar">
+    <div class="lang-switcher">
+        <button class="lang-btn active" onclick="setLanguage('en')">EN</button>
+        <button class="lang-btn" onclick="setLanguage('nl')">NL</button>
+        <button class="lang-btn" onclick="setLanguage('fr')">FR</button>
+        <button class="lang-btn" onclick="setLanguage('de')">DE</button>
+    </div>
+
+    <h2 id="ui-title">ENGLISH CLASS</h2>
+    <p class="sub-h" id="ui-subtitle">RANDOM PICKER // GENERATOR</p>
+    
+    <textarea id="nameInput" placeholder="Enter student names..."></textarea>
+    
+    <div class="control-group">
+        <button class="btn-action btn-pick" id="ui-btn-pick" onclick="pickRandom()">LUCKY PICK 🎲</button>
+    </div>
+    
+    <div class="control-group">
+        <label id="ui-label-teams" style="font-size: 0.75rem; color: #888; font-weight: bold; letter-spacing: 1px;">TEAM UP SETTINGS</label>
+        <select id="mode">
+            <option value="perGroup" id="ui-opt-per">Students per team</option>
+            <option value="totalGroups" id="ui-opt-total">Total number of teams</option>
+        </select>
+        <input type="number" id="groupValue" value="3">
+        <button class="btn-action btn-group" id="ui-btn-teams" onclick="makeGroups()">DEPLOY TEAMS 👥</button>
+    </div>
+    <p id="ui-hide-hint" style="margin-top: auto; font-size: 0.65rem; color: #444;">PRESS 'H' TO HIDE SIDEBAR</p>
+</div>
+
+<div class="main-display">
+    <div id="result-container" style="width: 100%; text-align: center;">
+        <div id="ui-ready" style="font-family: 'Bebas Neue'; font-size: 3rem; opacity: 0.1; letter-spacing: 10px;">READY FOR CLASS</div>
+    </div>
+    <div class="footer">© Mister Seb's Teacher Apps</div>
+</div>
+
+<script>
+    const i18n = {
+        en: {
+            title: "ENGLISH CLASS", subtitle: "RANDOM PICKER // GENERATOR",
+            placeholder: "Enter student names...", btnPick: "LUCKY PICK 🎲",
+            labelTeams: "TEAM UP SETTINGS", optPer: "Students per team",
+            optTotal: "Total number of teams", btnTeams: "DEPLOY TEAMS 👥",
+            hideHint: "PRESS 'H' TO HIDE SIDEBAR", ready: "READY FOR CLASS", team: "TEAM"
+        },
+        nl: {
+            title: "KLAS MANAGER", subtitle: "NAAM KIEZER // GROEPEN",
+            placeholder: "Voer namen in...", btnPick: "START KEUZE 🎲",
+            labelTeams: "TEAM INSTELLINGEN", optPer: "Leerlingen per team",
+            optTotal: "Totaal aantal teams", btnTeams: "TEAMS MAKEN 👥",
+            hideHint: "DRUK OP 'H' OM MENU TE VERBERGEN", ready: "KLAAR VOOR DE LES", team: "TEAM"
+        },
+        fr: {
+            title: "SALLE DE CLASSE", subtitle: "SÉLECTEUR // GROUPES",
+            placeholder: "Entrez les noms...", btnPick: "CHOIX CHANCEUX 🎲",
+            labelTeams: "PARAMÈTRES D'ÉQUIPE", optPer: "Élèves par équipe",
+            optTotal: "Nombre total d'équipes", btnTeams: "CRÉER ÉQUIPES 👥",
+            hideHint: "APPUYEZ SUR 'H' POUR CACHER", ready: "PRÊT POUR LE COURS", team: "ÉQUIPE"
+        },
+        de: {
+            title: "KLASSENZIMMER", subtitle: "ZUFALLSAUSWAHL // GRUPPEN",
+            placeholder: "Namen eingeben...", btnPick: "GLÜCKSTREFFER 🎲",
+            labelTeams: "TEAM-EINSTELLUNGEN", optPer: "Schüler pro Team",
+            optTotal: "Gesamtzahl der Teams", btnTeams: "TEAMS ERSTELLEN 👥",
+            hideHint: "DRÜCKE 'H' ZUM AUSBLENDEN", ready: "BEREIT FÜR DEN UNTERRICHT", team: "TEAM"
+        }
+    };
+
+    let currentLang = 'en';
+
+    function setLanguage(lang) {
+        currentLang = lang;
+        const t = i18n[lang];
+        document.getElementById('ui-title').innerText = t.title;
+        document.getElementById('ui-subtitle').innerText = t.subtitle;
+        document.getElementById('nameInput').placeholder = t.placeholder;
+        document.getElementById('ui-btn-pick').innerText = t.btnPick;
+        document.getElementById('ui-label-teams').innerText = t.labelTeams;
+        document.getElementById('ui-opt-per').innerText = t.optPer;
+        document.getElementById('ui-opt-total').innerText = t.optTotal;
+        document.getElementById('ui-btn-teams').innerText = t.btnTeams;
+        document.getElementById('ui-hide-hint').innerText = t.hideHint;
+        if(document.getElementById('ui-ready')) document.getElementById('ui-ready').innerText = t.ready;
+
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.innerText.toLowerCase() === lang);
+        });
+    }
+
+    function getCleanNames() {
+        return document.getElementById('nameInput').value
+            .split('\n')
+            .map(n => n.trim())
+            .filter(n => n.length > 0);
+    }
+
+    function fireConfetti() {
+        const duration = 2.5 * 1000;
+        const end = Date.now() + duration;
+        (function frame() {
+            confetti({ particleCount: 4, angle: 60, spread: 55, origin: { x: 0, y: 0.7 }, colors: ['#d4ff00', '#00f2ff'] });
+            confetti({ particleCount: 4, angle: 120, spread: 55, origin: { x: 1, y: 0.7 }, colors: ['#d4ff00', '#00f2ff'] });
+            if (Date.now() < end) requestAnimationFrame(frame);
+        }());
+    }
+
+    function pickRandom() {
+        const names = getCleanNames();
+        if (names.length < 1) return;
+        const container = document.getElementById('result-container');
+        let iterations = 0;
+        const maxIterations = 25;
+        const spin = setInterval(() => {
+            const randomName = names[Math.floor(Math.random() * names.length)];
+            container.innerHTML = `<div class="spinning">${randomName}</div>`;
+            iterations++;
+            if (iterations > maxIterations) {
+                clearInterval(spin);
+                const finalName = names[Math.floor(Math.random() * names.length)];
+                container.innerHTML = `<div class="selected-text">${finalName}</div>`;
+                fireConfetti();
+            }
+        }, 70);
+    }
+
+    function makeGroups() {
+        const names = getCleanNames().sort(() => Math.random() - 0.5);
+        if (names.length === 0) return;
+        const mode = document.getElementById('mode').value;
+        const val = Math.max(1, parseInt(document.getElementById('groupValue').value));
+        const container = document.getElementById('result-container');
+        let groups = [];
+        if (mode === "perGroup") {
+            for (let i = 0; i < names.length; i += val) groups.push(names.slice(i, i + val));
+        } else {
+            for (let i = 0; i < val; i++) groups[i] = [];
+            names.forEach((name, index) => groups[index % val].push(name));
+        }
+        container.innerHTML = '<div class="group-grid" id="grid"></div>';
+        const grid = document.getElementById('grid');
+        groups.forEach((group, index) => {
+            if (group.length > 0) {
+                setTimeout(() => {
+                    const box = document.createElement('div');
+                    box.className = 'group-box';
+                    box.innerHTML = `
+                        <div class="group-title">${i18n[currentLang].team} ${index + 1}</div>
+                        <div class="group-names">${group.join('<br>')}</div>
+                    `;
+                    grid.appendChild(box);
+                }, index * 120);
+            }
+        });
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key.toLowerCase() === 'h' && e.target.tagName !== 'TEXTAREA') {
+            document.getElementById('sidebar').classList.toggle('hidden');
+        }
+    });
+</script>
+</body>
+</html>

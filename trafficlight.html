@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multilingual Classroom Monitor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@400;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #050508;
+            --red: #ff3b3b;
+            --orange: #ff9f0a;
+            --green: #32d74b;
+            --off: #1c1c1e;
+        }
+
+        body, html {
+            margin: 0; padding: 0; height: 100%; width: 100%;
+            background-color: var(--bg); color: white;
+            font-family: 'Outfit', sans-serif; overflow: hidden;
+            transition: background-color 0.8s ease;
+        }
+
+        .lang-switcher {
+            position: fixed; top: 20px; right: 30px;
+            display: flex; gap: 10px; z-index: 100;
+        }
+
+        .lang-btn {
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            color: white; padding: 8px 15px; border-radius: 5px; cursor: pointer;
+            font-family: 'Bebas Neue'; letter-spacing: 1px; transition: 0.3s;
+        }
+
+        .lang-btn:hover, .lang-btn.active {
+            background: white; color: black;
+        }
+
+        .wrapper {
+            display: grid; grid-template-columns: 40% 60%;
+            height: 100vh; width: 100vw;
+        }
+
+        .container-left {
+            display: flex; align-items: center; justify-content: flex-end;
+            padding-right: 50px;
+        }
+
+        .container-right {
+            display: flex; align-items: center; justify-content: flex-start;
+            padding-left: 50px;
+        }
+
+        .traffic-light {
+            background: #111; width: 180px; padding: 40px 0;
+            border-radius: 90px; border: 8px solid #2c2c2e;
+            display: flex; flex-direction: column; align-items: center; gap: 30px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.8);
+        }
+
+        .light {
+            width: 120px; height: 120px; border-radius: 50%;
+            background: var(--off); cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 5px solid rgba(0,0,0,0.4);
+        }
+
+        .light.red.active { background: var(--red); box-shadow: 0 0 60px var(--red), 0 0 100px var(--red); }
+        .light.orange.active { background: var(--orange); box-shadow: 0 0 60px var(--orange), 0 0 100px var(--orange); }
+        .light.green.active { background: var(--green); box-shadow: 0 0 60px var(--green), 0 0 100px var(--green); }
+
+        .text-content { text-align: left; max-width: 900px; }
+
+        #status-title {
+            font-family: 'Bebas Neue', sans-serif; font-size: 13rem; 
+            line-height: 0.8; margin: 0; letter-spacing: 5px;
+            text-shadow: 0 10px 40px rgba(0,0,0,0.6);
+        }
+
+        #status-desc {
+            font-size: 3rem; font-weight: 400; color: rgba(255, 255, 255, 0.7);
+            margin-top: 30px; line-height: 1.1;
+        }
+
+        /* De nieuwe footer */
+        .footer {
+            position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%);
+            font-family: 'Outfit', sans-serif; font-size: 0.9rem;
+            color: rgba(255,255,255,0.25); letter-spacing: 1px;
+            pointer-events: none; text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="lang-switcher">
+        <button class="lang-btn active" onclick="setLanguage('en')">EN</button>
+        <button class="lang-btn" onclick="setLanguage('nl')">NL</button>
+        <button class="lang-btn" onclick="setLanguage('fr')">FR</button>
+        <button class="lang-btn" onclick="setLanguage('de')">DE</button>
+    </div>
+
+    <div class="wrapper">
+        <div class="container-left">
+            <div class="traffic-light">
+                <div class="light red" id="red" onclick="updateStatus('red')"></div>
+                <div class="light orange" id="orange" onclick="updateStatus('orange')"></div>
+                <div class="light green active" id="green" onclick="updateStatus('green')"></div>
+            </div>
+        </div>
+
+        <div class="container-right">
+            <div class="text-content">
+                <h1 id="status-title">WORKING</h1>
+                <p id="status-desc">Whisper only. Collaboration is authorised.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">© Mister Seb's Teacher Apps</div>
+
+    <audio id="click-sound" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
+
+    <script>
+        let currentLang = 'en';
+        let currentColor = 'green';
+
+        const translations = {
+            en: {
+                red: { title: "SILENCE", desc: "No talking. Stay locked in on your task.", bgColor: "#2a0505" },
+                orange: { title: "ASK HELP", desc: "Quietly ask your neighbour or the teacher.", bgColor: "#2a1d05" },
+                green: { title: "WORKING", desc: "Whisper only. Collaboration is authorised.", bgColor: "#051a0a" }
+            },
+            nl: {
+                red: { title: "STILTE", desc: "Niet praten. Blijf gefocust op je taak.", bgColor: "#2a0505" },
+                orange: { title: "HULP VRAGEN", desc: "Vraag het zachtjes aan je buur of de docent.", bgColor: "#2a1d05" },
+                green: { title: "WERKEN", desc: "Fluisterend overleggen is toegestaan.", bgColor: "#051a0a" }
+            },
+            fr: {
+                red: { title: "SILENCE", desc: "Interdiction de parler. Restez concentré.", bgColor: "#2a0505" },
+                orange: { title: "AIDE", desc: "Chuchotez pour demander l'aide d'un voisin.", bgColor: "#2a1d05" },
+                green: { title: "TRAVAIL", desc: "Murmures autorisés. Travaillez ensemble.", bgColor: "#051a0a" }
+            },
+            de: {
+                red: { title: "RUHE", desc: "Nicht sprechen. Bleib konzentriert.", bgColor: "#2a0505" },
+                orange: { title: "HILFE", desc: "Frage leise deinen Nachbarn oder Lehrer.", bgColor: "#2a1d05" },
+                green: { title: "ARBEITEN", desc: "Flüstern erlaubt. Zusammenarbeit gestattet.", bgColor: "#051a0a" }
+            }
+        };
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.innerText.toLowerCase() === lang);
+            });
+            updateStatus(currentColor);
+        }
+
+        function updateStatus(color) {
+            currentColor = color;
+            const audio = document.getElementById('click-sound');
+            audio.currentTime = 0; audio.play().catch(() => {});
+
+            document.querySelectorAll('.light').forEach(l => l.classList.remove('active'));
+            document.getElementById(color).classList.add('active');
+
+            const data = translations[currentLang][color];
+            const title = document.getElementById('status-title');
+            const desc = document.getElementById('status-desc');
+            
+            title.innerText = data.title;
+            title.style.color = `var(--${color})`;
+            desc.innerText = data.desc;
+
+            document.body.style.backgroundColor = data.bgColor;
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === '1') updateStatus('red');
+            if (e.key === '2') updateStatus('orange');
+            if (e.key === '3') updateStatus('green');
+        });
+
+        window.onload = () => updateStatus('green');
+    </script>
+</body>
+</html>
