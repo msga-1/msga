@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultieme Klas Timer - No Overlap</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #ffffff;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --bg-start: #064e3b; 
+            --text: #f8fafc;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-start);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            transition: background-color 0.8s ease;
+            overflow: hidden;
+            padding-top: 5vh; /* Verplaatst de hele boel omhoog */
+        }
+
+        .container {
+            background: rgba(30, 41, 59, 0.75);
+            backdrop-filter: blur(20px);
+            padding: 30px;
+            border-radius: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            z-index: 10;
+        }
+
+        /* Motiverende Melding - Nu ONDER de container */
+        #motivational-alert {
+            margin-top: 40px;
+            font-size: 3rem;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 4px 25px rgba(0,0,0,0.7);
+            opacity: 0;
+            transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-align: center;
+            width: 90%;
+            max-width: 800px;
+            min-height: 150px; /* Gereserveerde ruimte zodat layout niet springt */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        #motivational-alert.show {
+            opacity: 1;
+            transform: translateY(20px);
+        }
+
+        .timer-chart {
+            position: relative;
+            width: 220px;
+            height: 220px;
+            margin: 0 auto 20px;
+        }
+
+        .timer-chart svg {
+            transform: rotate(-90deg);
+            width: 100%;
+            height: 100%;
+        }
+
+        .circle-bg {
+            fill: none;
+            stroke: rgba(15, 23, 42, 0.4);
+            stroke-width: 10;
+        }
+
+        .circle-progress {
+            fill: none;
+            stroke: var(--primary);
+            stroke-width: 10;
+            stroke-linecap: round;
+            stroke-dasharray: 628;
+            stroke-dashoffset: 0;
+            transition: stroke-dashoffset 0.1s linear;
+        }
+
+        .display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3.5rem;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .mode-switch {
+            display: flex;
+            background: rgba(15, 23, 42, 0.6);
+            padding: 5px;
+            border-radius: 18px;
+            margin-bottom: 20px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: transparent;
+            color: rgba(255,255,255,0.6);
+            cursor: pointer;
+            border-radius: 14px;
+            font-weight: 600;
+        }
+
+        .mode-btn.active {
+            background: #6366f1;
+            color: white;
+        }
+
+        .inputs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .inputs input {
+            width: 75px;
+            background: rgba(15, 23, 42, 0.8);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            padding: 12px;
+            border-radius: 15px;
+            color: white;
+            text-align: center;
+            font-size: 1.2rem;
+            outline: none;
+        }
+
+        .controls { display: flex; gap: 10px; }
+
+        .main-btn {
+            flex: 2;
+            padding: 15px;
+            border: none;
+            border-radius: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .start { background: var(--accent); color: white; }
+        .stop { background: #64748b; color: white; }
+        .reset { background: rgba(255,255,255,0.1); color: white; flex: 1; }
+
+        @keyframes flashRed {
+            0% { background-color: #ff0000; }
+            50% { background-color: #7f0000; }
+            100% { background-color: #ff0000; }
+        }
+
+        .alarm-active { animation: flashRed 0.6s infinite; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="mode-switch">
+            <button class="mode-btn active" id="btn-down" onclick="setMode('down')">Timer</button>
+            <button class="mode-btn" id="btn-up" onclick="setMode('up')">Stopwatch</button>
+        </div>
+
+        <div class="timer-chart">
+            <svg viewBox="0 0 240 240">
+                <circle class="circle-bg" cx="120" cy="120" r="100"></circle>
+                <circle id="progress" class="circle-progress" cx="120" cy="120" r="100"></circle>
+            </svg>
+            <div class="display" id="display">00:00</div>
+        </div>
+
+        <div id="input-area" class="inputs">
+            <input type="number" id="min" placeholder="Min" min="0" value="5">
+            <input type="number" id="sec" placeholder="Sec" min="0" max="59" value="0">
+        </div>
+
+        <div class="controls">
+            <button class="main-btn reset" onclick="reset()">Reset</button>
+            <button id="start-btn" class="main-btn start" onclick="toggle()">Start</button>
+        </div>
+    </div>
+
+    <div id="motivational-alert"></div>
+
+    <audio id="gongSound" src="https://actions.google.com/sounds/v1/tools_and_resources/gong.ogg"></audio>
+    <audio id="pingSound" src="https://actions.google.com/sounds/v1/foley/beeps_glitches_low_hi.ogg"></audio>
+
+    <script>
+        let mode = 'down';
+        let timer = null;
+        let totalSeconds = 0;
+        let initialSeconds = 0;
+        let isRunning = false;
+        let nextMinuteToNotify = -1;
+
+        const motivationalQuotes = [
+            "Lekker bezig, zet door!",
+            "Focus, jullie kunnen dit!",
+            "Nog even knallen!",
+            "Blijf geconcentreerd!",
+            "Tijd vliegt, werk hard!",
+            "Toppers! Ga zo door.",
+            "Blijf rustig doorwerken!",
+            "Kijk naar je eigen werk!"
+        ];
+
+        const progressBar = document.getElementById('progress');
+        const gong = document.getElementById('gongSound');
+        const ping = document.getElementById('pingSound');
+        const alertBox = document.getElementById('motivational-alert');
+        const circumference = 2 * Math.PI * 100;
+
+        function setMode(m) {
+            mode = m;
+            reset();
+            document.getElementById('btn-down').classList.toggle('active', mode === 'down');
+            document.getElementById('btn-up').classList.toggle('active', mode === 'up');
+            document.getElementById('input-area').style.display = (mode === 'down') ? 'flex' : 'none';
+        }
+
+        function toggle() {
+            [gong, ping].forEach(s => { s.play().then(() => { s.pause(); s.currentTime = 0; }).catch(() => {}); });
+            isRunning ? stop() : start();
+        }
+
+        function start() {
+            if (!isRunning && mode === 'down' && totalSeconds === 0) {
+                const m = parseInt(document.getElementById('min').value) || 0;
+                const s = parseInt(document.getElementById('sec').value) || 0;
+                totalSeconds = (m * 60) + s;
+                initialSeconds = totalSeconds;
+                nextMinuteToNotify = Math.floor((totalSeconds - 0.5) / 60);
+            }
+            if (mode === 'down' && totalSeconds <= 0) return;
+            isRunning = true;
+            document.getElementById('start-btn').innerText = 'STOP';
+            document.getElementById('start-btn').className = 'main-btn stop';
+            timer = setInterval(update, 100);
+        }
+
+        function stop() {
+            isRunning = false;
+            document.getElementById('start-btn').innerText = 'START';
+            document.getElementById('start-btn').className = 'main-btn start';
+            clearInterval(timer);
+        }
+
+        function reset() {
+            stop();
+            totalSeconds = 0;
+            initialSeconds = 0;
+            nextMinuteToNotify = -1;
+            document.body.className = '';
+            document.body.style.backgroundColor = '';
+            alertBox.classList.remove('show');
+            updateDisplay();
+        }
+
+        function update() {
+            if (mode === 'up') {
+                totalSeconds += 0.1;
+                updateProgress(totalSeconds % 60 / 60);
+            } else {
+                totalSeconds -= 0.1;
+                let percent = totalSeconds / initialSeconds;
+                updateProgress(percent);
+                updateBackground(percent);
+                
+                if (nextMinuteToNotify >= 1 && totalSeconds <= nextMinuteToNotify * 60) {
+                    showMotivationalAlert(nextMinuteToNotify);
+                    nextMinuteToNotify--;
+                }
+
+                if (totalSeconds <= 0) {
+                    stop();
+                    totalSeconds = 0;
+                    document.body.className = 'alarm-active';
+                    gong.play();
+                }
+            }
+            updateDisplay();
+        }
+
+        function showMotivationalAlert(minutes) {
+            const randomQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
+            alertBox.innerHTML = `<div>${randomQuote}</div><div style="font-size: 1.8rem; opacity: 0.8; margin-top: 10px;">Nog ${minutes} ${minutes === 1 ? 'minuut' : 'minuten'}</div>`;
+            alertBox.classList.add('show');
+            ping.play();
+            setTimeout(() => { alertBox.classList.remove('show'); }, 7000);
+        }
+
+        function updateBackground(percent) {
+            if (mode !== 'down') return;
+            const hue = Math.max(0, percent * 130); 
+            const lightness = 45 - (percent * 30);
+            document.body.style.backgroundColor = `hsl(${hue}, 90%, ${lightness}%)`;
+        }
+
+        function updateProgress(percent) {
+            const offset = circumference - (percent * circumference);
+            progressBar.style.strokeDashoffset = offset;
+        }
+
+        function updateDisplay() {
+            const display = document.getElementById('display');
+            const m = Math.max(0, Math.floor(totalSeconds / 60));
+            const s = Math.max(0, Math.floor(totalSeconds % 60));
+            display.innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+    </script>
+</body>
+</html>

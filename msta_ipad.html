@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iPad Dashboard - Klasmanager</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@800&display=swap" rel="stylesheet">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            font-family: 'Poppins', sans-serif;
+            overflow: hidden;
+            user-select: none; /* Voorkomt tekstselectie bij veel klikken */
+        }
+
+        #app-container {
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.4s ease;
+            cursor: pointer;
+        }
+
+        .status-icon {
+            font-size: 18rem;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.2));
+        }
+
+        .status-text {
+            font-size: 6rem;
+            text-transform: uppercase;
+            text-align: center;
+            color: white;
+            text-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        /* Status: iPads Dicht (Rood) */
+        .mode-closed {
+            background-color: #ef4444;
+            animation: pulse-bg 2s infinite;
+        }
+
+        /* Status: iPads Open (Groen) */
+        .mode-open {
+            background-color: #10b981;
+        }
+
+        @keyframes pulse-bg {
+            0% { background-color: #ef4444; }
+            50% { background-color: #dc2626; }
+            100% { background-color: #ef4444; }
+        }
+
+        .instruction {
+            position: absolute;
+            bottom: 30px;
+            color: rgba(255,255,255,0.7);
+            font-size: 1.2rem;
+            font-weight: 400;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-container" class="mode-open" onclick="toggleStatus()">
+        <div id="icon" class="status-icon">📱</div>
+        <div id="text" class="status-text">IPADS OPEN</div>
+        <div class="instruction">Klik op het scherm om de status te wijzigen</div>
+    </div>
+
+    <audio id="toggleSound" src="https://actions.google.com/sounds/v1/foley/electronic_chime_short.ogg"></audio>
+
+    <script>
+        let isOpen = true;
+        const container = document.getElementById('app-container');
+        const icon = document.getElementById('icon');
+        const text = document.getElementById('text');
+        const sound = document.getElementById('toggleSound');
+
+        function toggleStatus() {
+            isOpen = !isOpen;
+
+            // Speel geluid af
+            sound.currentTime = 0;
+            sound.play().catch(e => console.log("Audio play blocked by browser"));
+
+            if (isOpen) {
+                container.className = 'mode-open';
+                icon.innerText = '📱';
+                text.innerText = 'IPADS OPEN';
+            } else {
+                container.className = 'mode-closed';
+                icon.innerText = '🚫';
+                text.innerText = 'IPADS DICHT';
+            }
+        }
+    </script>
+</body>
+</html>

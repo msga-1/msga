@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Multi-Viewer Ultra (Inclusief Workaround)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f172a;
+            --panel: #1e293b;
+            --accent: #6366f1;
+        }
+
+        body, html {
+            margin: 0; padding: 0; height: 100%; width: 100%;
+            background-color: var(--bg); font-family: 'Poppins', sans-serif;
+            color: white; overflow: hidden;
+        }
+
+        #setup-screen {
+            display: flex; flex-direction: column; justify-content: center;
+            align-items: center; height: 100%; padding: 20px;
+        }
+
+        .config-card {
+            background: var(--panel); padding: 30px; border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5); text-align: center;
+            width: 100%; max-width: 450px;
+        }
+
+        input, button {
+            width: 100%; padding: 12px; margin: 8px 0;
+            border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
+            font-family: inherit; box-sizing: border-box;
+        }
+
+        input { background: #0f172a; color: white; }
+        button { background: var(--accent); color: white; font-weight: 600; cursor: pointer; border: none; transition: 0.2s; }
+        button:hover { background: #4f46e5; transform: translateY(-2px); }
+
+        .url-input-list { max-height: 40vh; overflow-y: auto; margin: 20px 0; padding-right: 10px; }
+
+        #grid-container {
+            display: grid; width: 100vw; height: 100vh; gap: 10px;
+            padding: 10px; box-sizing: border-box; background: #000; display: none;
+        }
+
+        .frame-wrapper {
+            position: relative; width: 100%; height: 100%;
+            background: #fff; border-radius: 8px; overflow: hidden;
+        }
+
+        /* De knop om direct te openen als iframe faalt */
+        .external-link {
+            position: absolute; bottom: 10px; right: 10px;
+            z-index: 20; background: rgba(0,0,0,0.6);
+            color: white; padding: 5px 10px; border-radius: 5px;
+            font-size: 0.8rem; text-decoration: none; opacity: 0;
+            transition: opacity 0.3s; pointer-events: auto;
+        }
+
+        .frame-wrapper:hover .external-link { opacity: 1; }
+
+        .click-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 10; cursor: pointer; background: rgba(0,0,0,0);
+        }
+
+        iframe { width: 100%; height: 100%; border: none; pointer-events: none; background: white; }
+
+        .fullscreen {
+            position: fixed !important; top: 0 !important; left: 0 !important;
+            width: 100vw !important; height: 100vh !important;
+            z-index: 100 !important; border-radius: 0 !important;
+        }
+
+        .fullscreen iframe { pointer-events: auto; }
+        .fullscreen .click-overlay, .fullscreen .external-link { display: none; }
+
+        #back-btn {
+            position: fixed; top: 20px; right: 20px; z-index: 9999; 
+            width: auto; padding: 12px 25px; display: none;
+            background: #ef4444; color: white; font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5); border: none; border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="setup-screen">
+        <div class="config-card">
+            <h2>Web Multi-Viewer</h2>
+            <p>Vul je websites in:</p>
+            <input type="number" id="num-screens" min="2" max="10" value="4" oninput="generateInputs()">
+            
+            <div id="url-inputs" class="url-input-list"></div>
+            
+            <button onclick="launchDashboard()">Start Multi-View</button>
+        </div>
+    </div>
+
+    <button id="back-btn" onclick="exitFullscreen()">✖ Terug naar Grid (Esc)</button>
+    <div id="grid-container"></div>
+
+    <script>
+        function generateInputs() {
+            const num = Math.min(Math.max(document.getElementById('num-screens').value, 2), 10);
+            const container = document.getElementById('url-inputs');
+            const savedUrls = JSON.parse(localStorage.getItem('savedViewerUrls') || '[]');
+            
+            container.innerHTML = '';
+            for (let i = 0; i < num; i++) {
+                const input = document.createElement('input');
+                input.type = "text";
+                input.placeholder = `Website ${i + 1}`;
+                input.className = 'url-field';
+                input.value = savedUrls[i] || "";
+                container.appendChild(input);
+            }
+        }
+
+        function formatUrl(url) {
+            url = url.trim();
+            if (!url) return "about:blank";
+            if (!/^https?:\/\//i.test(url)) {
+                url = 'https://' + url;
+            }
+            return url;
+        }
+
+        function launchDashboard() {
+            const fields = document.querySelectorAll('.url-field');
+            const urls = Array.from(fields).map(i => i.value);
+            localStorage.setItem('savedViewerUrls', JSON.stringify(urls));
+
+            const grid = document.getElementById('grid-container');
+            grid.style.display = 'grid';
+            document.getElementById('setup-screen').style.display = 'none';
+
+            let cols = urls.length <= 2 ? 2 : (urls.length <= 4 ? 2 : (urls.length <= 6 ? 3 : 4));
+            grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+            grid.style.gridTemplateRows = `repeat(${Math.ceil(urls.length/cols)}, 1fr)`;
+
+            grid.innerHTML = '';
+            urls.forEach(url => {
+                const finalUrl = formatUrl(url);
+                const wrapper = document.createElement('div');
+                wrapper.className = 'frame-wrapper';
+                wrapper.innerHTML = `
+                    <div class="click-overlay" onclick="makeFullscreen(this.parentElement)"></div>
+                    <a href="${finalUrl}" target="_blank" class="external-link">Open extern ↗</a>
+                    <iframe src="${finalUrl}"></iframe>
+                `;
+                grid.appendChild(wrapper);
+            });
+        }
+
+        function makeFullscreen(element) {
+            element.classList.add('fullscreen');
+            document.getElementById('back-btn').style.display = 'block';
+        }
+
+        function exitFullscreen() {
+            const fs = document.querySelector('.fullscreen');
+            if (fs) fs.classList.remove('fullscreen');
+            document.getElementById('back-btn').style.display = 'none';
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === "Escape") exitFullscreen();
+        });
+
+        generateInputs();
+    </script>
+</body>
+</html>
