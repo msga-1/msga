@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>WebSwitcher Hub - MSGA Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --bg: #0f172a;
+            --panel: #1e293b;
+            --text: #f8fafc;
+        }
+
+        body, html {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            touch-action: none; /* Nodig voor eigen swipe-registratie */
+        }
+
+        /* Setup Scherm */
+        #setup-screen {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: radial-gradient(circle at top right, #1e1b4b, #0f172a);
+        }
+
+        .config-card {
+            background: var(--panel);
+            padding: 30px;
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            color: white;
+        }
+
+        input[type="number"], input[type="url"] {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 10px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: white;
+            box-sizing: border-box;
+        }
+
+        .btn-main {
+            background: var(--primary);
+            color: white;
+            padding: 15px;
+            width: 100%;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 20px;
+            font-size: 1rem;
+        }
+
+        /* App Scherm */
+        #app-screen {
+            display: none;
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        #iframe-master {
+            width: 100%;
+            height: 100%;
+        }
+
+        iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: none;
+        }
+
+        iframe.active {
+            display: block;
+        }
+
+        /* Zijnavigatie */
+        .side-nav {
+            position: fixed;
+            top: 0;
+            height: 100vh;
+            width: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            cursor: pointer;
+            background: transparent;
+            transition: background 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .side-nav:active { background: rgba(255, 255, 255, 0.05); }
+        .side-nav.left { left: 0; }
+        .side-nav.right { right: 0; }
+
+        .nav-arrow {
+            font-size: 2rem;
+            color: white;
+            opacity: 0.05;
+            pointer-events: none;
+        }
+
+        /* UI onderaan */
+        .bottom-ui {
+            position: fixed;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 10000;
+            pointer-events: none;
+        }
+
+        .pill {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(8px);
+            padding: 4px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: white;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .btn-small {
+            background: #475569;
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="setup-screen">
+        <div class="config-card">
+            <h1 style="margin-top:0;">MSGA Hub 🚀</h1>
+            <p>Aantal pagina's:</p>
+            <input type="number" id="page-count" min="1" max="10" value="3">
+            <div id="url-inputs" style="max-height: 300px; overflow-y: auto; margin-top: 10px;"></div>
+            <button class="btn-main" onclick="startApp()">Start Websites</button>
+        </div>
+    </div>
+
+    <div id="app-screen">
+        <div class="side-nav left" onclick="prevPage()">
+            <div class="nav-arrow">❮</div>
+        </div>
+        <div class="side-nav right" onclick="nextPage()">
+            <div class="nav-arrow">❯</div>
+        </div>
+
+        <div id="iframe-master"></div>
+
+        <div class="bottom-ui">
+            <div class="pill"><span id="current-num">1</span> / <span id="total-num">1</span></div>
+            <button class="btn-small" onclick="location.reload()">Instellingen</button>
+        </div>
+    </div>
+
+    <script>
+        let currentPage = 0;
+        let totalPages = 0;
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        const defaultUrls = [
+            "https://msga-1.github.io/msga/msta_starcount.html",
+            "https://msga-1.github.io/msga/msta_picker.html",
+            "https://msga-1.github.io/msga/msta_trafficlight.html"
+        ];
+
+        // Genereer input velden
+        document.getElementById('page-count').addEventListener('input', function(e) {
+            let count = Math.min(Math.max(e.target.value, 1), 10);
+            const container = document.getElementById('url-inputs');
+            container.innerHTML = '';
+            for(let i = 0; i < count; i++) {
+                const input = document.createElement('input');
+                input.type = 'url';
+                input.placeholder = `Website URL ${i + 1}`;
+                input.className = 'url-field';
+                input.value = defaultUrls[i] || "";
+                container.appendChild(input);
+            }
+        });
+        document.getElementById('page-count').dispatchEvent(new Event('input'));
+
+        function startApp() {
+            const urls = Array.from(document.querySelectorAll('.url-field')).map(i => i.value).filter(u => u !== "");
+            totalPages = urls.length;
+            if(totalPages === 0) return alert("Voer minimaal één URL in.");
+
+            const master = document.getElementById('iframe-master');
+            master.innerHTML = '';
+
+            urls.forEach((url, index) => {
+                const ifr = document.createElement('iframe');
+                ifr.src = url;
+                ifr.id = `frame-${index}`;
+                if(index === 0) ifr.classList.add('active');
+                master.appendChild(ifr);
+            });
+
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('app-screen').style.display = 'block';
+            document.getElementById('total-num').innerText = totalPages;
+        }
+
+        function updateUI() {
+            document.querySelectorAll('iframe').forEach(f => f.classList.remove('active'));
+            document.getElementById(`frame-${currentPage}`).classList.add('active');
+            document.getElementById('current-num').innerText = currentPage + 1;
+        }
+
+        function nextPage() { currentPage = (currentPage + 1) % totalPages; updateUI(); }
+        function prevPage() { currentPage = (currentPage - 1 + totalPages) % totalPages; updateUI(); }
+
+        // Sneltoetsen
+        document.addEventListener('keydown', (e) => {
+            if (e.key === "ArrowRight") nextPage();
+            if (e.key === "ArrowLeft") prevPage();
+        });
+
+        // SWIPE LOGICA
+        document.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, false);
+
+        document.addEventListener('touchend', e => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, false);
+
+        function handleSwipe() {
+            const swipeThreshold = 100; // Minimale afstand in pixels
+            if (touchEndX < touchStartX - swipeThreshold) nextPage(); // Swipe links
+            if (touchEndX > touchStartX + swipeThreshold) prevPage(); // Swipe rechts
+        }
+    </script>
+</body>
+</html>
