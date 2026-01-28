@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultieme Klas Timer - No Overlap</title>
+    <title>Ultieme Klas Timer | Mister Seb</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -13,7 +13,6 @@
             --bg-start: #064e3b; 
             --text: #f8fafc;
         }
-
         body {
             font-family: 'Poppins', sans-serif;
             background-color: var(--bg-start);
@@ -25,160 +24,99 @@
             height: 100vh;
             transition: background-color 0.8s ease;
             overflow: hidden;
-            padding-top: 5vh; /* Verplaatst de hele boel omhoog */
+            padding-top: 2vh;
         }
+        
+        /* Taalkeuze */
+        .lang-switch {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+            z-index: 20;
+        }
+        .lang-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: transform 0.2s;
+        }
+        .lang-btn:hover { transform: scale(1.1); }
+        .lang-btn.active { background: rgba(255,255,255,0.3); border-color: white; }
 
         .container {
             background: rgba(30, 41, 59, 0.75);
             backdrop-filter: blur(20px);
-            padding: 30px;
+            padding: 25px;
             border-radius: 40px;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
             text-align: center;
             width: 90%;
-            max-width: 400px;
+            max-width: 380px;
             border: 1px solid rgba(255, 255, 255, 0.15);
             z-index: 10;
         }
-
-        /* Motiverende Melding - Nu ONDER de container */
         #motivational-alert {
-            margin-top: 40px;
-            font-size: 3rem;
+            margin-top: 20px;
+            font-size: 2.5rem;
             font-weight: 700;
             color: white;
-            text-shadow: 0 4px 25px rgba(0,0,0,0.7);
+            text-shadow: 0 4px 20px rgba(0,0,0,0.7);
             opacity: 0;
             transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             text-align: center;
             width: 90%;
             max-width: 800px;
-            min-height: 150px; /* Gereserveerde ruimte zodat layout niet springt */
+            min-height: 120px;
             display: flex;
             flex-direction: column;
             justify-content: center;
         }
-
-        #motivational-alert.show {
-            opacity: 1;
-            transform: translateY(20px);
-        }
-
-        .timer-chart {
-            position: relative;
-            width: 220px;
-            height: 220px;
-            margin: 0 auto 20px;
-        }
-
-        .timer-chart svg {
-            transform: rotate(-90deg);
-            width: 100%;
-            height: 100%;
-        }
-
-        .circle-bg {
-            fill: none;
-            stroke: rgba(15, 23, 42, 0.4);
-            stroke-width: 10;
-        }
-
-        .circle-progress {
-            fill: none;
-            stroke: var(--primary);
-            stroke-width: 10;
-            stroke-linecap: round;
-            stroke-dasharray: 628;
-            stroke-dashoffset: 0;
-            transition: stroke-dashoffset 0.1s linear;
-        }
-
-        .display {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 3.5rem;
-            font-weight: 700;
-            font-variant-numeric: tabular-nums;
-        }
-
-        .mode-switch {
-            display: flex;
-            background: rgba(15, 23, 42, 0.6);
-            padding: 5px;
-            border-radius: 18px;
-            margin-bottom: 20px;
-        }
-
-        .mode-btn {
-            flex: 1;
-            padding: 10px;
-            border: none;
-            background: transparent;
-            color: rgba(255,255,255,0.6);
-            cursor: pointer;
-            border-radius: 14px;
-            font-weight: 600;
-        }
-
-        .mode-btn.active {
-            background: #6366f1;
-            color: white;
-        }
-
-        .inputs {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .inputs input {
-            width: 75px;
-            background: rgba(15, 23, 42, 0.8);
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            padding: 12px;
-            border-radius: 15px;
-            color: white;
-            text-align: center;
-            font-size: 1.2rem;
-            outline: none;
-        }
-
+        #motivational-alert.show { opacity: 1; transform: translateY(10px); }
+        .timer-chart { position: relative; width: 200px; height: 200px; margin: 0 auto 15px; }
+        .timer-chart svg { transform: rotate(-90deg); width: 100%; height: 100%; }
+        .circle-bg { fill: none; stroke: rgba(15, 23, 42, 0.4); stroke-width: 10; }
+        .circle-progress { fill: none; stroke: var(--primary); stroke-width: 10; stroke-linecap: round; stroke-dasharray: 628; stroke-dashoffset: 0; transition: stroke-dashoffset 0.1s linear; }
+        .display { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 3.2rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+        .mode-switch { display: flex; background: rgba(15, 23, 42, 0.6); padding: 5px; border-radius: 18px; margin-bottom: 15px; }
+        .mode-btn { flex: 1; padding: 10px; border: none; background: transparent; color: rgba(255,255,255,0.6); cursor: pointer; border-radius: 14px; font-weight: 600; }
+        .mode-btn.active { background: #6366f1; color: white; }
+        .inputs { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
+        .inputs input { width: 70px; background: rgba(15, 23, 42, 0.8); border: 2px solid rgba(255, 255, 255, 0.1); padding: 10px; border-radius: 12px; color: white; text-align: center; font-size: 1.1rem; outline: none; }
         .controls { display: flex; gap: 10px; }
-
-        .main-btn {
-            flex: 2;
-            padding: 15px;
-            border: none;
-            border-radius: 15px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .start { background: var(--accent); color: white; }
-        .stop { background: #64748b; color: white; }
+        .main-btn { flex: 2; padding: 12px; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; text-transform: uppercase; }
+        .start { background: var(--accent); color: white; } 
+        .stop { background: #64748b; color: white; } 
         .reset { background: rgba(255,255,255,0.1); color: white; flex: 1; }
-
-        @keyframes flashRed {
-            0% { background-color: #ff0000; }
-            50% { background-color: #7f0000; }
-            100% { background-color: #ff0000; }
+        
+        footer {
+            position: absolute;
+            bottom: 15px;
+            font-size: 0.8rem;
+            opacity: 0.6;
+            letter-spacing: 1px;
         }
 
+        @keyframes flashRed { 0% { background-color: #ff0000; } 50% { background-color: #7f0000; } 100% { background-color: #ff0000; } }
         .alarm-active { animation: flashRed 0.6s infinite; }
     </style>
 </head>
 <body>
+    <div class="lang-switch">
+        <button class="lang-btn active" onclick="setLang('nl')">🇳🇱</button>
+        <button class="lang-btn" onclick="setLang('en')">🇬🇧</button>
+        <button class="lang-btn" onclick="setLang('de')">🇩🇪</button>
+        <button class="lang-btn" onclick="setLang('fr')">🇫🇷</button>
+    </div>
 
     <div class="container">
         <div class="mode-switch">
             <button class="mode-btn active" id="btn-down" onclick="setMode('down')">Timer</button>
             <button class="mode-btn" id="btn-up" onclick="setMode('up')">Stopwatch</button>
         </div>
-
         <div class="timer-chart">
             <svg viewBox="0 0 240 240">
                 <circle class="circle-bg" cx="120" cy="120" r="100"></circle>
@@ -186,24 +124,25 @@
             </svg>
             <div class="display" id="display">00:00</div>
         </div>
-
         <div id="input-area" class="inputs">
             <input type="number" id="min" placeholder="Min" min="0" value="5">
             <input type="number" id="sec" placeholder="Sec" min="0" max="59" value="0">
         </div>
-
         <div class="controls">
-            <button class="main-btn reset" onclick="reset()">Reset</button>
+            <button class="main-btn reset" id="lbl-reset" onclick="reset()">Reset</button>
             <button id="start-btn" class="main-btn start" onclick="toggle()">Start</button>
         </div>
     </div>
 
     <div id="motivational-alert"></div>
 
+    <footer>© Mister Seb's Grammar Apps</footer>
+
     <audio id="gongSound" src="https://actions.google.com/sounds/v1/tools_and_resources/gong.ogg"></audio>
     <audio id="pingSound" src="https://actions.google.com/sounds/v1/foley/beeps_glitches_low_hi.ogg"></audio>
 
     <script>
+        let currentLang = 'nl';
         let mode = 'down';
         let timer = null;
         let totalSeconds = 0;
@@ -211,22 +150,45 @@
         let isRunning = false;
         let nextMinuteToNotify = -1;
 
-        const motivationalQuotes = [
-            "Lekker bezig, zet door!",
-            "Focus, jullie kunnen dit!",
-            "Nog even knallen!",
-            "Blijf geconcentreerd!",
-            "Tijd vliegt, werk hard!",
-            "Toppers! Ga zo door.",
-            "Blijf rustig doorwerken!",
-            "Kijk naar je eigen werk!"
-        ];
+        const langData = {
+            nl: {
+                timer: "Timer", stopwatch: "Stopwatch", start: "Start", stop: "Stop", reset: "Reset",
+                remain: "Nog", min: "minuut", mins: "minuten",
+                quotes: ["Lekker bezig, zet door!", "Focus, jullie kunnen dit!", "Nog even knallen!", "Blijf geconcentreerd!", "Tijd vliegt, werk hard!", "Toppers! Ga zo door.", "Blijf rustig doorwerken!"]
+            },
+            en: {
+                timer: "Timer", stopwatch: "Stopwatch", start: "Start", stop: "Stop", reset: "Reset",
+                remain: "Only", min: "minute", mins: "minutes",
+                quotes: ["Great job, keep going!", "Focus, you can do this!", "Keep it up!", "Stay concentrated!", "Time flies, work hard!", "Keep working quietly!"]
+            },
+            de: {
+                timer: "Timer", stopwatch: "Stoppuhr", start: "Start", stop: "Stopp", reset: "Reset",
+                remain: "Noch", min: "Minute", mins: "Minuten",
+                quotes: ["Gut gemacht!", "Konzentration, bitte!", "Weiter so!", "Bleibt fokussiert!", "Die Zeit läuft!", "Arbeitet ruhig weiter!"]
+            },
+            fr: {
+                timer: "Minuteur", stopwatch: "Chrono", start: "Démarrer", stop: "Arrêter", reset: "Reset",
+                remain: "Encore", min: "minute", mins: "minutes",
+                quotes: ["Bon travail !", "Concentrez-vous !", "Continuez comme ça !", "Le temps file !", "Travaillez en silence !"]
+            }
+        };
 
-        const progressBar = document.getElementById('progress');
-        const gong = document.getElementById('gongSound');
-        const ping = document.getElementById('pingSound');
-        const alertBox = document.getElementById('motivational-alert');
-        const circumference = 2 * Math.PI * 100;
+        function setLang(lang) {
+            currentLang = lang;
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            const d = langData[lang];
+            document.getElementById('btn-down').innerText = d.timer;
+            document.getElementById('btn-up').innerText = d.stopwatch;
+            document.getElementById('lbl-reset').innerText = d.reset;
+            updateBtnLabel();
+        }
+
+        function updateBtnLabel() {
+            const btn = document.getElementById('start-btn');
+            btn.innerText = isRunning ? langData[currentLang].stop : langData[currentLang].start;
+        }
 
         function setMode(m) {
             mode = m;
@@ -237,7 +199,6 @@
         }
 
         function toggle() {
-            [gong, ping].forEach(s => { s.play().then(() => { s.pause(); s.currentTime = 0; }).catch(() => {}); });
             isRunning ? stop() : start();
         }
 
@@ -251,14 +212,14 @@
             }
             if (mode === 'down' && totalSeconds <= 0) return;
             isRunning = true;
-            document.getElementById('start-btn').innerText = 'STOP';
+            updateBtnLabel();
             document.getElementById('start-btn').className = 'main-btn stop';
             timer = setInterval(update, 100);
         }
 
         function stop() {
             isRunning = false;
-            document.getElementById('start-btn').innerText = 'START';
+            updateBtnLabel();
             document.getElementById('start-btn').className = 'main-btn start';
             clearInterval(timer);
         }
@@ -270,7 +231,7 @@
             nextMinuteToNotify = -1;
             document.body.className = '';
             document.body.style.backgroundColor = '';
-            alertBox.classList.remove('show');
+            document.getElementById('motivational-alert').classList.remove('show');
             updateDisplay();
         }
 
@@ -283,7 +244,7 @@
                 let percent = totalSeconds / initialSeconds;
                 updateProgress(percent);
                 updateBackground(percent);
-                
+
                 if (nextMinuteToNotify >= 1 && totalSeconds <= nextMinuteToNotify * 60) {
                     showMotivationalAlert(nextMinuteToNotify);
                     nextMinuteToNotify--;
@@ -293,18 +254,22 @@
                     stop();
                     totalSeconds = 0;
                     document.body.className = 'alarm-active';
-                    gong.play();
+                    document.getElementById('gongSound').play();
                 }
             }
             updateDisplay();
         }
 
         function showMotivationalAlert(minutes) {
-            const randomQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
-            alertBox.innerHTML = `<div>${randomQuote}</div><div style="font-size: 1.8rem; opacity: 0.8; margin-top: 10px;">Nog ${minutes} ${minutes === 1 ? 'minuut' : 'minuten'}</div>`;
+            const d = langData[currentLang];
+            const randomQuote = d.quotes[Math.floor(Math.random() * d.quotes.length)];
+            const alertBox = document.getElementById('motivational-alert');
+            const minText = minutes === 1 ? d.min : d.mins;
+            
+            alertBox.innerHTML = `<div>${randomQuote}</div><div style="font-size: 1.5rem; opacity: 0.8; margin-top: 10px;">${d.remain} ${minutes} ${minText}</div>`;
             alertBox.classList.add('show');
-            ping.play();
-            setTimeout(() => { alertBox.classList.remove('show'); }, 7000);
+            document.getElementById('pingSound').play();
+            setTimeout(() => { alertBox.classList.remove('show'); }, 6000);
         }
 
         function updateBackground(percent) {
@@ -315,8 +280,9 @@
         }
 
         function updateProgress(percent) {
+            const circumference = 628;
             const offset = circumference - (percent * circumference);
-            progressBar.style.strokeDashoffset = offset;
+            document.getElementById('progress').style.strokeDashoffset = offset;
         }
 
         function updateDisplay() {
