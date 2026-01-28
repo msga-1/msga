@@ -3,174 +3,174 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Multi-Viewer Ultra (Inclusief Workaround)</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <title>Mister Seb Offline Viewer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg: #0f172a;
             --panel: #1e293b;
             --accent: #6366f1;
+            --danger: #ef4444;
         }
-
         body, html {
             margin: 0; padding: 0; height: 100%; width: 100%;
             background-color: var(--bg); font-family: 'Poppins', sans-serif;
             color: white; overflow: hidden;
         }
 
+        /* SETUP SCHERM */
         #setup-screen {
             display: flex; flex-direction: column; justify-content: center;
-            align-items: center; height: 100%; padding: 20px;
+            align-items: center; height: 100%;
         }
-
         .config-card {
             background: var(--panel); padding: 30px; border-radius: 20px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5); text-align: center;
-            width: 100%; max-width: 450px;
+            text-align: center; width: 350px; border: 1px solid rgba(255,255,255,0.1);
         }
-
         input, button {
-            width: 100%; padding: 12px; margin: 8px 0;
-            border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
-            font-family: inherit; box-sizing: border-box;
+            width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1); font-family: inherit;
         }
-
         input { background: #0f172a; color: white; }
-        button { background: var(--accent); color: white; font-weight: 600; cursor: pointer; border: none; transition: 0.2s; }
-        button:hover { background: #4f46e5; transform: translateY(-2px); }
+        .start-btn { background: var(--accent); color: white; font-weight: bold; cursor: pointer; border: none; }
 
-        .url-input-list { max-height: 40vh; overflow-y: auto; margin: 20px 0; padding-right: 10px; }
-
+        /* GRID VIEW */
         #grid-container {
             display: grid; width: 100vw; height: 100vh; gap: 10px;
             padding: 10px; box-sizing: border-box; background: #000; display: none;
         }
-
         .frame-wrapper {
             position: relative; width: 100%; height: 100%;
-            background: #fff; border-radius: 8px; overflow: hidden;
+            background: #111; border-radius: 8px; overflow: hidden;
+            display: flex; justify-content: center; align-items: center;
         }
-
-        /* De knop om direct te openen als iframe faalt */
-        .external-link {
-            position: absolute; bottom: 10px; right: 10px;
-            z-index: 20; background: rgba(0,0,0,0.6);
-            color: white; padding: 5px 10px; border-radius: 5px;
-            font-size: 0.8rem; text-decoration: none; opacity: 0;
-            transition: opacity 0.3s; pointer-events: auto;
+        .frame-wrapper iframe {
+            width: 1920px; height: 1080px; border: none;
+            transform-origin: center center; position: absolute;
+            pointer-events: none; background: white;
         }
-
-        .frame-wrapper:hover .external-link { opacity: 1; }
-
-        .click-overlay {
+        .grid-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 10; cursor: pointer; background: rgba(0,0,0,0);
+            z-index: 10; cursor: pointer;
         }
 
-        iframe { width: 100%; height: 100%; border: none; pointer-events: none; background: white; }
-
-        .fullscreen {
-            position: fixed !important; top: 0 !important; left: 0 !important;
-            width: 100vw !important; height: 100vh !important;
-            z-index: 100 !important; border-radius: 0 !important;
+        /* FULLSCREEN VIEW */
+        #fullscreen-view {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            display: none; flex-direction: column; z-index: 1000; background: #000;
+        }
+        #app-content { flex-grow: 1; border: none; width: 100%; background: white; }
+        
+        /* DE BALK ONDERAAN */
+        .bottom-bar {
+            height: 60px; background: #1e293b; display: flex; 
+            justify-content: center; align-items: center; border-top: 1px solid #334155;
+        }
+        .back-btn {
+            background: var(--danger); color: white; border: none;
+            padding: 10px 30px; border-radius: 8px; font-weight: 800;
+            cursor: pointer; text-transform: uppercase;
         }
 
-        .fullscreen iframe { pointer-events: auto; }
-        .fullscreen .click-overlay, .fullscreen .external-link { display: none; }
-
-        #back-btn {
-            position: fixed; top: 20px; right: 20px; z-index: 9999; 
-            width: auto; padding: 12px 25px; display: none;
-            background: #ef4444; color: white; font-weight: bold;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5); border: none; border-radius: 8px;
-        }
+        footer { margin-top: 20px; font-size: 0.7rem; opacity: 0.4; }
     </style>
 </head>
 <body>
 
     <div id="setup-screen">
         <div class="config-card">
-            <h2>Web Multi-Viewer</h2>
-            <p>Vul je websites in:</p>
-            <input type="number" id="num-screens" min="2" max="10" value="4" oninput="generateInputs()">
-            
-            <div id="url-inputs" class="url-input-list"></div>
-            
-            <button onclick="launchDashboard()">Start Multi-View</button>
+            <h2 style="margin: 0 0 10px 0;">Dashboard Setup</h2>
+            <input type="number" id="num-screens" min="1" max="10" value="4" oninput="generateInputs()">
+            <div id="url-inputs"></div>
+            <button class="start-btn" onclick="startApp()">Start Dashboard</button>
+            <footer>© Mister Seb's Teacher Apps</footer>
         </div>
     </div>
 
-    <button id="back-btn" onclick="exitFullscreen()">✖ Terug naar Grid (Esc)</button>
     <div id="grid-container"></div>
 
+    <div id="fullscreen-view">
+        <iframe id="app-content" src=""></iframe>
+        <div class="bottom-bar">
+            <button class="back-btn" onclick="closeApp()">✖ Terug naar overzicht</button>
+        </div>
+    </div>
+
     <script>
+        // Genereer de invoervelden
         function generateInputs() {
-            const num = Math.min(Math.max(document.getElementById('num-screens').value, 2), 10);
+            const num = document.getElementById('num-screens').value;
             const container = document.getElementById('url-inputs');
-            const savedUrls = JSON.parse(localStorage.getItem('savedViewerUrls') || '[]');
-            
+            const saved = JSON.parse(localStorage.getItem('offlineUrls') || '[]');
             container.innerHTML = '';
+            
             for (let i = 0; i < num; i++) {
                 const input = document.createElement('input');
-                input.type = "text";
-                input.placeholder = `Website ${i + 1}`;
+                input.type = 'text';
+                input.placeholder = `bestand${i+1}.html`;
                 input.className = 'url-field';
-                input.value = savedUrls[i] || "";
+                input.value = saved[i] || '';
                 container.appendChild(input);
             }
         }
 
-        function formatUrl(url) {
-            url = url.trim();
-            if (!url) return "about:blank";
-            if (!/^https?:\/\//i.test(url)) {
-                url = 'https://' + url;
-            }
-            return url;
-        }
-
-        function launchDashboard() {
-            const fields = document.querySelectorAll('.url-field');
-            const urls = Array.from(fields).map(i => i.value);
-            localStorage.setItem('savedViewerUrls', JSON.stringify(urls));
-
+        // Start het dashboard
+        function startApp() {
+            const urls = Array.from(document.querySelectorAll('.url-field')).map(i => i.value);
+            localStorage.setItem('offlineUrls', JSON.stringify(urls));
+            
             const grid = document.getElementById('grid-container');
+            grid.innerHTML = ''; // Maak leeg om dubbele knoppen te voorkomen
             grid.style.display = 'grid';
             document.getElementById('setup-screen').style.display = 'none';
 
-            let cols = urls.length <= 2 ? 2 : (urls.length <= 4 ? 2 : (urls.length <= 6 ? 3 : 4));
+            let cols = urls.length <= 2 ? 2 : (urls.length <= 4 ? 2 : 3);
             grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-            grid.style.gridTemplateRows = `repeat(${Math.ceil(urls.length/cols)}, 1fr)`;
 
-            grid.innerHTML = '';
             urls.forEach(url => {
-                const finalUrl = formatUrl(url);
+                if(!url) return;
                 const wrapper = document.createElement('div');
                 wrapper.className = 'frame-wrapper';
                 wrapper.innerHTML = `
-                    <div class="click-overlay" onclick="makeFullscreen(this.parentElement)"></div>
-                    <a href="${finalUrl}" target="_blank" class="external-link">Open extern ↗</a>
-                    <iframe src="${finalUrl}"></iframe>
+                    <div class="grid-overlay" onclick="openFullscreen('${url}')"></div>
+                    <iframe src="${url}"></iframe>
                 `;
                 grid.appendChild(wrapper);
             });
+
+            setTimeout(scaleGridIframes, 100);
         }
 
-        function makeFullscreen(element) {
-            element.classList.add('fullscreen');
-            document.getElementById('back-btn').style.display = 'block';
+        // Schaal de iframes in het grid
+        function scaleGridIframes() {
+            const wrappers = document.querySelectorAll('.frame-wrapper');
+            wrappers.forEach(wrap => {
+                const iframe = wrap.querySelector('iframe');
+                const scale = Math.min(wrap.offsetWidth / 1920, wrap.offsetHeight / 1080);
+                iframe.style.transform = `scale(${scale})`;
+            });
         }
 
-        function exitFullscreen() {
-            const fs = document.querySelector('.fullscreen');
-            if (fs) fs.classList.remove('fullscreen');
-            document.getElementById('back-btn').style.display = 'none';
+        // Open app in volledige grootte
+        function openFullscreen(url) {
+            const view = document.getElementById('fullscreen-view');
+            const iframe = document.getElementById('app-content');
+            iframe.src = url;
+            view.style.display = 'flex';
         }
 
-        document.addEventListener('keydown', (e) => {
-            if (e.key === "Escape") exitFullscreen();
-        });
+        // Sluit de app
+        function closeApp() {
+            const view = document.getElementById('fullscreen-view');
+            const iframe = document.getElementById('app-content');
+            iframe.src = ''; // Stop de app
+            view.style.display = 'none';
+        }
 
+        // Luister naar resize
+        window.onresize = scaleGridIframes;
+        
+        // Initialiseer
         generateInputs();
     </script>
 </body>
