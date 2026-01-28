@@ -3,9 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>iPad Dashboard - Klasmanager</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@800&display=swap" rel="stylesheet">
+    <title>iPad Dashboard | Mister Seb</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;800&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --open-color: #10b981;
+            --closed-color: #ef4444;
+            --closed-dark: #dc2626;
+        }
+
         body, html {
             margin: 0;
             padding: 0;
@@ -13,7 +19,34 @@
             width: 100%;
             font-family: 'Poppins', sans-serif;
             overflow: hidden;
-            user-select: none; /* Voorkomt tekstselectie bij veel klikken */
+            user-select: none;
+        }
+
+        /* Taalkeuze zwevend bovenaan */
+        .lang-switch {
+            position: absolute;
+            top: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+            background: rgba(0,0,0,0.2);
+            padding: 8px;
+            border-radius: 12px;
+            backdrop-filter: blur(5px);
+        }
+        .lang-btn {
+            background: none;
+            border: 2px solid transparent;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 8px;
+            transition: all 0.2s;
+            line-height: 1;
+        }
+        .lang-btn.active {
+            border-color: white;
+            background: rgba(255,255,255,0.2);
         }
 
         #app-container {
@@ -39,67 +72,119 @@
             text-align: center;
             color: white;
             text-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            padding: 0 20px;
         }
 
-        /* Status: iPads Dicht (Rood) */
+        /* Status: iPads Dicht (Rood) met Pulse */
         .mode-closed {
-            background-color: #ef4444;
+            background-color: var(--closed-color);
             animation: pulse-bg 2s infinite;
         }
 
         /* Status: iPads Open (Groen) */
         .mode-open {
-            background-color: #10b981;
+            background-color: var(--open-color);
         }
 
         @keyframes pulse-bg {
-            0% { background-color: #ef4444; }
-            50% { background-color: #dc2626; }
-            100% { background-color: #ef4444; }
+            0% { background-color: var(--closed-color); }
+            50% { background-color: var(--closed-dark); }
+            100% { background-color: var(--closed-color); }
         }
 
         .instruction {
             position: absolute;
-            bottom: 30px;
-            color: rgba(255,255,255,0.7);
+            bottom: 80px;
+            color: rgba(255,255,255,0.8);
             font-size: 1.2rem;
             font-weight: 400;
+            text-align: center;
+        }
+
+        footer {
+            position: absolute;
+            bottom: 20px;
+            font-size: 0.9rem;
+            color: white;
+            opacity: 0.6;
+            letter-spacing: 1px;
+            text-align: center;
+            width: 100%;
         }
     </style>
 </head>
 <body>
 
+    <div style="display: flex; justify-content: center; width: 100%;">
+        <div class="lang-switch">
+            <button class="lang-btn active" onclick="setLang('nl', event)">🇳🇱</button>
+            <button class="lang-btn" onclick="setLang('en', event)">🇬🇧</button>
+            <button class="lang-btn" onclick="setLang('de', event)">🇩🇪</button>
+            <button class="lang-btn" onclick="setLang('fr', event)">🇫🇷</button>
+        </div>
+    </div>
+
     <div id="app-container" class="mode-open" onclick="toggleStatus()">
         <div id="icon" class="status-icon">📱</div>
         <div id="text" class="status-text">IPADS OPEN</div>
-        <div class="instruction">Klik op het scherm om de status te wijzigen</div>
+        <div id="instruction" class="instruction">Klik op het scherm om de status te wijzigen</div>
     </div>
+
+    <footer>© Mister Seb's Teacher Apps</footer>
 
     <audio id="toggleSound" src="https://actions.google.com/sounds/v1/foley/electronic_chime_short.ogg"></audio>
 
     <script>
         let isOpen = true;
+        let currentLang = 'nl';
+        
         const container = document.getElementById('app-container');
         const icon = document.getElementById('icon');
-        const text = document.getElementById('text');
+        const textDisplay = document.getElementById('text');
+        const instrDisplay = document.getElementById('instruction');
         const sound = document.getElementById('toggleSound');
+
+        const translations = {
+            nl: { open: "IPADS OPEN", closed: "IPADS DICHT", instr: "Klik op het scherm om de status te wijzigen" },
+            en: { open: "IPADS OPEN", closed: "IPADS CLOSED", instr: "Click the screen to change status" },
+            de: { open: "IPADS OPEN", closed: "IPADS ZU", instr: "Klicken Sie zum Ändern des Status" },
+            fr: { open: "IPADS OUVERT", closed: "IPADS FERMÉ", instr: "Cliquez pour changer le statut" }
+        };
+
+        function setLang(lang, e) {
+            e.stopPropagation(); // Voorkomt dat de status switcht bij het kiezen van een taal
+            currentLang = lang;
+            
+            // Update actieve knop
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+            e.target.classList.add('active');
+            
+            updateDisplay();
+        }
 
         function toggleStatus() {
             isOpen = !isOpen;
 
             // Speel geluid af
             sound.currentTime = 0;
-            sound.play().catch(e => console.log("Audio play blocked by browser"));
+            sound.play().catch(e => console.log("Audio play blocked"));
 
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            const lang = translations[currentLang];
+            
             if (isOpen) {
                 container.className = 'mode-open';
                 icon.innerText = '📱';
-                text.innerText = 'IPADS OPEN';
+                textDisplay.innerText = lang.open;
             } else {
                 container.className = 'mode-closed';
                 icon.innerText = '🚫';
-                text.innerText = 'IPADS DICHT';
+                textDisplay.innerText = lang.closed;
             }
+            instrDisplay.innerText = lang.instr;
         }
     </script>
 </body>
