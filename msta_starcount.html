@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Star Hunter - Double Star Edition</title>
+    <title>Star Hunter - Multi Class Edition</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;700&display=swap" rel="stylesheet">
     <style>
@@ -84,6 +84,34 @@
         h1 { color: var(--primary); font-size: 4rem; }
         h2 { color: var(--primary); font-size: 2.5rem; }
 
+        /* Class Manager Styles */
+        .class-controls {
+            display: flex; gap: 5px; margin-bottom: 10px;
+        }
+        
+        select {
+            flex-grow: 1; height: 40px; border-radius: 5px;
+            border: 1px solid var(--border); font-family: 'Outfit';
+            padding: 0 10px; cursor: pointer;
+            background: rgba(0,0,0,0.5); color: white;
+        }
+        
+        /* FIX: Ensure dropdown options have dark background */
+        option {
+            background-color: #0a0a0f;
+            color: white;
+        }
+
+        .btn-icon {
+            width: 40px; height: 40px; flex-shrink: 0;
+            background: rgba(255,255,255,0.1); border: 1px solid var(--border);
+            color: white; border-radius: 5px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; transition: 0.3s;
+        }
+        .btn-icon:hover { background: var(--secondary); color: black; }
+        .btn-icon.del:hover { background: var(--danger); color: white; border-color: var(--danger); }
+
         textarea { 
             height: 100px; width: 100%; background: rgba(0,0,0,0.5); 
             color: #fff; border: 1px solid var(--border); border-radius: 8px; 
@@ -153,7 +181,15 @@
     <button class="btn btn-hide" id="ui-btn-hide" onclick="toggleSidebar()">HIDE MENU [H]</button>
     <hr style="width:100%; border:0; border-top:1px solid var(--border); margin:15px 0;">
     
-    <textarea id="studentInput" placeholder="Namen per regel..."></textarea>
+    <label id="ui-label-class" style="font-size: 0.7rem; color: #888; display:block; margin-bottom:5px;">SELECT CLASS</label>
+    <div class="class-controls">
+        <select id="classSelect" onchange="switchClass()"></select>
+        <button class="btn-icon" onclick="addNewClass()">+</button>
+        <button class="btn-icon del" onclick="deleteClass()">×</button>
+    </div>
+
+    <textarea id="studentInput" placeholder="Namen per regel..." oninput="saveCurrentData()"></textarea>
+    
     <button class="btn btn-start" id="startBtn" onclick="initGame()">START LESSON</button>
     <button class="btn btn-double" id="doubleBtn" onclick="activateDoubleStars()">⚡ ACTIVATE DOUBLE STARS</button>
     <button class="btn btn-stop hidden" id="stopBtn" onclick="endGame()">FINISH SESSION</button>
@@ -169,30 +205,105 @@
 </div>
 
 <script>
+    // --- STORAGE & CLASS LOGIC ---
+    // Load from local storage or set defaults
+    let classes = JSON.parse(localStorage.getItem('sh_classes')) || { "Class 1": "" };
+    let currentClassName = localStorage.getItem('sh_currentClass') || "Class 1";
+
+    // Ensure we have at least one class
+    if (Object.keys(classes).length === 0) {
+        classes = { "Class 1": "" };
+        currentClassName = "Class 1";
+    }
+    // Ensure current class exists
+    if (!classes[currentClassName]) {
+        currentClassName = Object.keys(classes)[0];
+    }
+
+    function initClassManager() {
+        const select = document.getElementById('classSelect');
+        select.innerHTML = '';
+        Object.keys(classes).forEach(cName => {
+            const option = document.createElement('option');
+            option.value = cName;
+            option.innerText = cName;
+            if (cName === currentClassName) option.selected = true;
+            select.appendChild(option);
+        });
+        document.getElementById('studentInput').value = classes[currentClassName] || "";
+    }
+
+    function switchClass() {
+        currentClassName = document.getElementById('classSelect').value;
+        document.getElementById('studentInput').value = classes[currentClassName] || "";
+        localStorage.setItem('sh_currentClass', currentClassName);
+    }
+
+    function saveCurrentData() {
+        const content = document.getElementById('studentInput').value;
+        classes[currentClassName] = content;
+        localStorage.setItem('sh_classes', JSON.stringify(classes));
+    }
+
+    function addNewClass() {
+        const name = prompt(i18n[currentLang].newClassPrompt);
+        if (name && name.trim() !== "") {
+            if (classes[name]) {
+                alert("Class already exists!");
+                return;
+            }
+            classes[name] = "";
+            currentClassName = name;
+            localStorage.setItem('sh_classes', JSON.stringify(classes));
+            localStorage.setItem('sh_currentClass', currentClassName);
+            initClassManager();
+        }
+    }
+
+    function deleteClass() {
+        if (Object.keys(classes).length <= 1) {
+            alert("You must keep at least one class.");
+            return;
+        }
+        if(confirm(i18n[currentLang].delClassConfirm + " " + currentClassName + "?")) {
+            delete classes[currentClassName];
+            currentClassName = Object.keys(classes)[0];
+            localStorage.setItem('sh_classes', JSON.stringify(classes));
+            localStorage.setItem('sh_currentClass', currentClassName);
+            initClassManager();
+        }
+    }
+
+    // --- EXISTING LOGIC (UPDATED) ---
+
     const i18n = {
         en: {
             title: "STAR HUNTER", hide: "HIDE MENU [H]", placeholder: "Names per line...",
             start: "START LESSON", double: "⚡ ACTIVATE DOUBLE STARS", finish: "FINISH SESSION",
             standby: "SYSTEM STANDBY", banner: "DOUBLE STAR EVENT", offline: "OFFLINE",
-            winner: "STAR PUPIL", reset: "RESET", stars: "Stars"
+            winner: "STAR PUPIL", reset: "RESET", stars: "Stars",
+            selClass: "SELECT CLASS", newClassPrompt: "Enter new class name:", delClassConfirm: "Delete class"
         },
         nl: {
             title: "STERRENJAGER", hide: "VERBERG MENU [H]", placeholder: "Namen per regel...",
             start: "START LES", double: "⚡ ACTIVEER DUBBELE STERREN", finish: "SESSIE BEËINDIGEN",
             standby: "SYSTEEM STANDBY", banner: "DUBBELE STERRENEVENT", offline: "OFFLINE",
-            winner: "STER VAN DE LES", reset: "RESET", stars: "Sterren"
+            winner: "STER VAN DE LES", reset: "RESET", stars: "Sterren",
+            selClass: "KIES KLAS", newClassPrompt: "Naam nieuwe klas:", delClassConfirm: "Verwijder klas"
         },
         fr: {
             title: "CHASSEUR D'ÉTOILES", hide: "CACHER MENU [H]", placeholder: "Noms par ligne...",
             start: "COMMENCER LE COURS", double: "⚡ ACTIVER DOUBLE ÉTOILES", finish: "TERMINER LA SESSION",
             standby: "SYSTÈME EN ATTENTE", banner: "ÉVÉNEMENT DOUBLE ÉTOILE", offline: "HORS LIGNE",
-            winner: "ÉLÈVE ÉTOILÉ", reset: "RÉINITIALISER", stars: "Étoiles"
+            winner: "ÉLÈVE ÉTOILÉ", reset: "RÉINITIALISER", stars: "Étoiles",
+            selClass: "CHOISIR CLASSE", newClassPrompt: "Nom de la nouvelle classe:", delClassConfirm: "Supprimer"
         },
         de: {
             title: "STERNENJÄGER", hide: "MENÜ AUSBLENDEN [H]", placeholder: "Namen pro Zeile...",
             start: "UNTERRICHT STARTEN", double: "⚡ DOPPELTE STERNE AKTIVIEREN", finish: "SITZUNG BEENDEN",
             standby: "SYSTEM STANDBY", banner: "DOPPELSTERN EVENT", offline: "OFFLINE",
-            winner: "STERNENSCHÜLER", reset: "ZURÜCKSETZEN", stars: "Sterne"
+            winner: "STERNENSCHÜLER", reset: "ZURÜCKSETZEN", stars: "Sterne",
+            selClass: "KLASSE WÄHLEN", newClassPrompt: "Neuer Klassenname:", delClassConfirm: "Löschen"
         }
     };
 
@@ -212,6 +323,8 @@
         document.getElementById('doubleBtn').innerText = t.double;
         document.getElementById('stopBtn').innerText = t.finish;
         document.getElementById('banner-text').innerText = t.banner;
+        document.getElementById('ui-label-class').innerText = t.selClass;
+        
         if(document.getElementById('ui-standby')) document.getElementById('ui-standby').innerText = t.standby;
 
         document.querySelectorAll('.lang-btn').forEach(btn => {
@@ -230,6 +343,12 @@
         document.getElementById('startBtn').classList.add('hidden');
         document.getElementById('doubleBtn').style.display = 'block';
         document.getElementById('stopBtn').classList.remove('hidden');
+        
+        // Hide class controls during game to prevent confusion
+        document.querySelector('.class-controls').style.opacity = '0.3';
+        document.getElementById('classSelect').disabled = true;
+        document.getElementById('studentInput').disabled = true;
+
         renderGrid();
         startGameLoop();
     }
@@ -339,6 +458,9 @@
     }
 
     document.addEventListener('keydown', (e) => { if (e.key.toLowerCase() === 'h' && e.target.tagName !== 'TEXTAREA') toggleSidebar(); });
+
+    // Initialize Class Manager
+    initClassManager();
 </script>
 </body>
 </html>
