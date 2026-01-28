@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Flow Pro | Mister Seb</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f172a; --panel: rgba(255, 255, 255, 0.15);
+            --focus: #ef4444; --collab: #f59e0b; --instruc: #3b82f6;
+            --review-bg: #7f1d1d; --finish-bg: #1e293b;
+            --value-task: #fbbf24;
+        }
+
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; background-color: var(--bg); color: white; font-family: 'Poppins', sans-serif; overflow: hidden; transition: background-color 1s ease; }
+
+        #digital-clock {
+            position: fixed; top: 20px; right: 30px;
+            font-size: 2rem; font-weight: 700; opacity: 0.8;
+            background: rgba(0,0,0,0.3); padding: 5px 15px;
+            border-radius: 12px; z-index: 500; border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        #tool-container {
+            position: fixed; top: 20px; left: 30px;
+            display: flex; gap: 10px; z-index: 500;
+        }
+        .tool-btn {
+            background: rgba(255,255,255,0.2); color: white; border: 2px solid white;
+            padding: 8px 15px; border-radius: 12px; font-weight: 900;
+            cursor: pointer; text-decoration: none; transition: 0.2s; display: none;
+        }
+        .tool-btn:hover { background: white; color: var(--bg); transform: translateY(-2px); }
+
+        /* Schermen */
+        #setup-screen, #finish-screen { position: fixed; inset: 0; background: var(--bg); z-index: 200; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; padding-bottom: 100px; }
+        .setup-card { background: var(--panel); padding: 30px; border-radius: 30px; width: 100%; max-width: 600px; border: 1px solid rgba(255,255,255,0.2); max-height: 70vh; overflow-y: auto; box-sizing: border-box; }
+        
+        .class-selector-row { display: flex; gap: 10px; margin-bottom: 15px; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 15px; }
+        select { background: #334155; color: white; border: 2px solid #475569; padding: 10px; border-radius: 10px; flex-grow: 1; font-family: inherit; font-weight: 700; }
+        
+        .tool-input-group { margin-bottom: 15px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 15px; }
+        .tool-row { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
+        .tool-row label { font-size: 0.7rem; font-weight: 900; width: 60px; opacity: 0.8; }
+
+        .task-row { display: flex; gap: 10px; margin-bottom: 8px; }
+        input, textarea { background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3); color: white; padding: 10px; border-radius: 10px; font-family: inherit; width: 100%; }
+        textarea { height: 80px; resize: vertical; margin-top: 10px; }
+
+        .container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 10px; text-align: center; }
+        .label-text { text-transform: uppercase; letter-spacing: 3px; font-size: 1.4rem; font-weight: 700; opacity: 0.8; margin-bottom: 5px; display: block; }
+        
+        .display-group { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.4); padding: 20px; border-radius: 30px; border: 2px solid rgba(255,255,255,0.1); min-height: 200px; }
+        #current-task-name, #current-page-badge { font-size: 6.5rem; font-weight: 900; line-height: 1; }
+        #current-task-name { color: var(--value-task); }
+        
+        #timer-display { font-size: 9rem; font-weight: 900; line-height: 1; margin: 10px 0; }
+
+        .control-btn { background: white; border: none; padding: 12px 20px; border-radius: 15px; font-weight: 900; cursor: pointer; transition: 0.2s; }
+        .preset-btn { background: rgba(255,255,255,0.1); color: white; border: 1px solid white; padding: 6px 12px; border-radius: 10px; cursor: pointer; font-weight: 700; margin: 0 4px; }
+        .flow-btn { background: #10b981; color: white; }
+        .plus-btn { background: #6366f1; color: white; }
+        .random-btn { background: #f59e0b; color: white; margin-top: 10px; box-shadow: 0 4px 0 #b45309; }
+
+        #student-display { font-size: 6rem; font-weight: 900; color: #fbbf24; min-height: 1.2em; transition: all 0.1s; }
+        .winner-anim { transform: scale(1.1); color: #fff !important; text-shadow: 0 0 25px #fbbf24 !important; }
+
+        /* VASTE FOOTER ONDERAAN HET SCHERM */
+        footer { 
+            position: fixed; 
+            bottom: 0; 
+            left: 0; 
+            width: 100%; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 15px 40px; 
+            box-sizing: border-box; 
+            font-weight: 900; 
+            background: rgba(15, 23, 42, 0.95); 
+            z-index: 1000; 
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .lang-btn { background: rgba(255,255,255,0.1); border: 1px solid white; color: white; padding: 4px 8px; border-radius: 8px; cursor: pointer; margin-left: 5px; font-size: 0.8rem; font-weight: 900; }
+        .lang-btn:hover { background: white; color: black; }
+        .hidden { display: none !important; }
+        
+        @keyframes blink { 50% { background-color: white; color: black; } }
+        .timer-finished { animation: blink 0.8s infinite; }
+    </style>
+</head>
+<body id="main-body">
+
+    <div id="digital-clock">00:00</div>
+    
+    <div id="tool-container">
+        <a id="tool-1" class="tool-btn" href="#" target="_blank">1 🔗</a>
+        <a id="tool-2" class="tool-btn" href="#" target="_blank">2 🔗</a>
+        <a id="tool-3" class="tool-btn" href="#" target="_blank">3 🔗</a>
+        <a id="tool-4" class="tool-btn" href="#" target="_blank">4 🔗</a>
+        <a id="tool-5" class="tool-btn" href="#" target="_blank">5 🔗</a>
+    </div>
+
+    <div id="finish-screen" class="hidden">
+        <h1 style="font-size: 5rem; margin: 0;" id="fin-title">EINDE LES</h1>
+        <button class="control-btn" style="background: #10b981; color: white; margin-top: 20px;" onclick="showSetup()" id="fin-next-btn">VOLGENDE KLAS ➔</button>
+    </div>
+
+    <div id="setup-screen">
+        <h1 style="margin-bottom: 10px;">LESPLANNER 📝</h1>
+        <div class="setup-card">
+            <div class="class-selector-row">
+                <select id="class-dropdown" onchange="switchClass()"></select>
+                <button class="control-btn" style="padding: 5px 15px;" onclick="addClass()">+</button>
+                <button class="control-btn" style="background: #ef4444; color: white; padding: 5px 15px;" onclick="removeClass()">🗑️</button>
+            </div>
+            
+            <div class="tool-input-group">
+                <label style="font-size: 0.7rem; font-weight: 700; display: block; margin-bottom: 10px;">APPS (LINKS):</label>
+                <div class="tool-row"><label>APP 1</label><input type="text" id="tool-url-1" placeholder="https://..."></div>
+                <div class="tool-row"><label>APP 2</label><input type="text" id="tool-url-2" placeholder="https://..."></div>
+                <div class="tool-row"><label>APP 3</label><input type="text" id="tool-url-3" placeholder="https://..."></div>
+                <div class="tool-row"><label>APP 4</label><input type="text" id="tool-url-4" placeholder="https://..."></div>
+                <div class="tool-row"><label>APP 5</label><input type="text" id="tool-url-5" placeholder="https://..."></div>
+            </div>
+
+            <div id="task-inputs"></div>
+            <button class="control-btn" style="background: #6366f1; color: white; width: 100%; margin-bottom: 10px;" onclick="addTaskRow()">+ OPDRACHT</button>
+            <label style="font-size: 0.7rem; font-weight: 700;">NAMEN (copy/paste):</label>
+            <textarea id="student-names"></textarea>
+            <button class="control-btn flow-btn" style="width: 100%; padding: 15px; margin-top: 10px;" onclick="startLesson()">START LES ➔</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div style="display: flex; gap: 20px; width: 100%; max-width: 1100px; margin-bottom: 15px;">
+            <div class="display-group">
+                <span id="lbl-task" class="label-text">Opdracht</span>
+                <span id="current-task-name">START</span>
+            </div>
+            <div class="display-group">
+                <span id="lbl-page" class="label-text">Bladzijde</span>
+                <span id="current-page-badge">—</span>
+            </div>
+        </div>
+
+        <div id="timer-container">
+            <div id="timer-display">10:00</div>
+            <div style="margin-bottom: 15px;">
+                <button class="preset-btn" onclick="setTime(300)">5m</button>
+                <button class="preset-btn" onclick="setTime(600)">10m</button>
+                <button class="preset-btn" onclick="setTime(900)">15m</button>
+            </div>
+            <div style="display: flex; gap: 8px; justify-content: center; margin-bottom: 15px;">
+                <button class="control-btn" onclick="setMode('instruc')">📢 <span id="btn-ins">Uitleg</span></button>
+                <button class="control-btn" onclick="setMode('collab')">💬 <span id="btn-col">Overleg</span></button>
+                <button class="control-btn" onclick="setMode('focus')">🤫 <span id="btn-foc">Stilte</span></button>
+            </div>
+        </div>
+
+        <div id="review-display" style="display:none;">
+            <h2 id="review-title" style="font-size: 2rem; margin: 0; opacity: 0.7;">BEURT VOOR...</h2>
+            <div id="student-display">...</div>
+            <button class="control-btn random-btn" id="pick-btn" onclick="pickStudent()">BEURT GEVEN 🎲</button>
+        </div>
+
+        <div style="background: rgba(0,0,0,0.3); padding: 15px 25px; border-radius: 25px; margin-top: 10px; border: 1px solid rgba(255,255,255,0.1);">
+            <button class="control-btn" id="start-stop" onclick="toggleTimer()">START</button>
+            <button class="control-btn plus-btn" onclick="addTime(120)">+2m</button>
+            <button class="control-btn flow-btn" id="main-flow-btn" onclick="handleFlow()">BESPREKEN</button>
+            <button class="control-btn" onclick="showSetup()" style="background: #6366f1; color: white;" id="btn-setup">AANPASSEN</button>
+        </div>
+    </div>
+
+    <footer>
+        <div id="current-class-label">Klas: -</div>
+        <div style="font-size: 0.7rem; opacity: 0.5;">© Mister Seb's Teacher Apps</div>
+        <div>
+            <button class="lang-btn" onclick="setLanguage('nl')">NL</button>
+            <button class="lang-btn" onclick="setLanguage('en')">EN</button>
+            <button class="lang-btn" onclick="setLanguage('du')">DU</button>
+            <button class="lang-btn" onclick="setLanguage('fr')">FR</button>
+        </div>
+    </footer>
+
+    <script>
+        const translations = {
+            nl: { task: "Opdracht", page: "Bladzijde", ins: "Uitleg", col: "Overleg", foc: "Stilte", review: "BEURT VOOR...", flowBtn: "BESPREKEN", nextBtn: "VOLGENDE ➔", adjustBtn: "AANPASSEN", finTitle: "EINDE LES", random: "BEURT GEVEN 🎲" },
+            en: { task: "Assignment", page: "Page", ins: "Instruction", col: "Collab", foc: "Silence", review: "PICKING...", flowBtn: "REVIEW", nextBtn: "NEXT ➔", adjustBtn: "ADJUST", finTitle: "LESSON ENDED", random: "PICK STUDENT 🎲" },
+            du: { task: "Aufgabe", page: "Seite", ins: "Instruktion", col: "Zusammen", foc: "Stille", review: "AUSWAHL...", flowBtn: "BESPRECHEN", nextBtn: "NÄCHSTE ➔", adjustBtn: "ANPASSEN", finTitle: "UNTERRICHT ENDE", random: "WER IST DRAN? 🎲" },
+            fr: { task: "Devoir", page: "Page", ins: "Instruction", col: "Coopérer", foc: "Silence", review: "AU TOUR DE...", flowBtn: "CORRIGER", nextBtn: "SUIVANT ➔", adjustBtn: "AJUSTER", finTitle: "FIN DU COURS", random: "QUI RÉPOND ? 🎲" }
+        };
+
+        let classes = JSON.parse(localStorage.getItem('teacherFlow_classes')) || { "Klas 1": { tasks: [], students: "", toolUrls: ["","","","",""] } };
+        let currentClassName = localStorage.getItem('teacherFlow_currentClass') || "Klas 1";
+        let currentLang = localStorage.getItem('teacherLang') || 'nl';
+        let taskQueue = [], studentList = [], currentTaskIndex = -1, timeLeft = 600, timerInterval, isRunning = false, isReviewing = false;
+
+        window.onload = () => { 
+            updateClassDropdown(); loadClassData(); setLanguage(currentLang); updateDisplay();
+            setInterval(updateClock, 1000); updateClock();
+        };
+
+        function updateClock() {
+            const now = new Date();
+            const h = now.getHours().toString().padStart(2, '0');
+            const m = now.getMinutes().toString().padStart(2, '0');
+            document.getElementById('digital-clock').innerText = `${h}:${m}`;
+        }
+
+        function updateClassDropdown() {
+            const d = document.getElementById('class-dropdown'); d.innerHTML = "";
+            Object.keys(classes).forEach(n => { const o = document.createElement('option'); o.value = n; o.innerText = n; if(n===currentClassName) o.selected=true; d.appendChild(o); });
+            document.getElementById('current-class-label').innerText = "Klas: " + currentClassName;
+        }
+
+        function loadClassData() {
+            const data = classes[currentClassName];
+            const c = document.getElementById('task-inputs'); c.innerHTML = "";
+            if(data.tasks && data.tasks.length) data.tasks.forEach(t => addTaskRow(t.name, t.page)); else addTaskRow();
+            document.getElementById('student-names').value = data.students || "";
+            for(let i=1; i<=5; i++){
+                const val = (data.toolUrls && data.toolUrls[i-1]) ? data.toolUrls[i-1] : "";
+                document.getElementById(`tool-url-${i}`).value = val;
+            }
+            updateToolButtons();
+        }
+
+        function updateToolButtons() {
+            const urls = classes[currentClassName].toolUrls || ["","","","",""];
+            for(let i=1; i<=5; i++){
+                const btn = document.getElementById(`tool-${i}`);
+                const url = urls[i-1];
+                if(url && url.trim() !== "") {
+                    btn.href = url.startsWith('http') ? url : 'https://' + url;
+                    btn.style.display = 'block';
+                } else { btn.style.display = 'none'; }
+            }
+        }
+
+        function saveCurrentClassState() {
+            let tasks = []; document.querySelectorAll('.task-row').forEach(row => {
+                const n = row.querySelector('.input-task').value; const p = row.querySelector('.input-page').value;
+                if(n.trim()) tasks.push({name: n, page: p});
+            });
+            let toolUrls = [];
+            for(let i=1; i<=5; i++) { toolUrls.push(document.getElementById(`tool-url-${i}`).value); }
+            classes[currentClassName] = { tasks: tasks, students: document.getElementById('student-names').value, toolUrls: toolUrls };
+            localStorage.setItem('teacherFlow_classes', JSON.stringify(classes));
+            localStorage.setItem('teacherFlow_currentClass', currentClassName);
+            updateToolButtons();
+        }
+
+        function addClass() { const n = prompt("Klasnaam:"); if(n && !classes[n]) { classes[n]={tasks:[],students:"",toolUrls:["","","","",""]}; currentClassName=n; saveCurrentClassState(); updateClassDropdown(); loadClassData(); } }
+        function switchClass() { saveCurrentClassState(); currentClassName=document.getElementById('class-dropdown').value; loadClassData(); updateClassDropdown(); }
+        function removeClass() { if(Object.keys(classes).length > 1 && confirm("Verwijderen?")) { delete classes[currentClassName]; currentClassName=Object.keys(classes)[0]; saveCurrentClassState(); updateClassDropdown(); loadClassData(); } }
+
+        function setLanguage(l) {
+            currentLang=l; localStorage.setItem('teacherLang', l); const t=translations[l];
+            document.getElementById('lbl-task').innerText=t.task; document.getElementById('lbl-page').innerText=t.page;
+            document.getElementById('btn-ins').innerText=t.ins; document.getElementById('btn-col').innerText=t.col; document.getElementById('btn-foc').innerText=t.foc;
+            document.getElementById('review-title').innerText=t.review; document.getElementById('btn-setup').innerText=t.adjustBtn;
+            document.getElementById('main-flow-btn').innerText=isReviewing?t.nextBtn:t.flowBtn;
+            document.getElementById('fin-title').innerText=t.finTitle; document.getElementById('pick-btn').innerText=t.random;
+        }
+
+        function addTaskRow(n='', p='') {
+            const r = document.createElement('div'); r.className='task-row';
+            r.innerHTML=`<input type="text" class="input-task" value="${n}" placeholder="Opdracht...">
+                         <input type="text" class="input-page" value="${p}" placeholder="Blz." style="width:80px">`;
+            document.getElementById('task-inputs').appendChild(r);
+        }
+
+        function setTime(s) { timeLeft=s; document.getElementById('main-body').classList.remove('timer-finished'); updateDisplay(); }
+        function addTime(s) { timeLeft+=s; document.getElementById('main-body').classList.remove('timer-finished'); updateDisplay(); }
+        function updateDisplay() { const m=Math.floor(timeLeft/60), s=timeLeft%60; document.getElementById('timer-display').innerText=`${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`; }
+
+        function toggleTimer() {
+            if(isRunning) clearInterval(timerInterval);
+            else timerInterval=setInterval(() => { if(timeLeft>0){timeLeft--; updateDisplay();} else {clearInterval(timerInterval); isRunning=false; document.getElementById('start-stop').innerText='START'; document.getElementById('main-body').classList.add('timer-finished');} }, 1000);
+            isRunning=!isRunning; document.getElementById('start-stop').innerText=isRunning?'STOP':'START';
+        }
+
+        function startLesson() {
+            saveCurrentClassState(); taskQueue=classes[currentClassName].tasks;
+            studentList=classes[currentClassName].students.split(/[,\n\r]+/).map(n=>n.trim()).filter(n=>n!=="");
+            if(taskQueue.length){ document.getElementById('setup-screen').classList.add('hidden'); document.getElementById('finish-screen').classList.add('hidden'); currentTaskIndex=-1; nextTask(); }
+        }
+
+        function handleFlow() {
+            if(!isReviewing){
+                isReviewing=true; document.body.style.backgroundColor="var(--review-bg)";
+                document.getElementById('timer-container').classList.add('hidden');
+                document.getElementById('review-display').style.display='block';
+                document.getElementById('main-flow-btn').innerText=translations[currentLang].nextBtn;
+            } else {
+                isReviewing=false; setMode('focus');
+                document.getElementById('timer-container').classList.remove('hidden');
+                document.getElementById('review-display').style.display='none';
+                document.getElementById('main-flow-btn').innerText=translations[currentLang].flowBtn;
+                nextTask();
+            }
+        }
+
+        function pickStudent() {
+            if(!studentList.length) return alert("Geen namen!");
+            const d = document.getElementById('student-display');
+            const b = document.getElementById('pick-btn');
+            d.classList.remove('winner-anim');
+            b.disabled = true;
+            let speed = 40, iterations = 0, max = 30;
+            function spin() {
+                d.innerText = studentList[Math.floor(Math.random() * studentList.length)];
+                if (++iterations < max) { if (iterations > 20) speed += 20; setTimeout(spin, speed);
+                } else { d.classList.add('winner-anim'); b.disabled = false; }
+            }
+            spin();
+        }
+
+        function nextTask() {
+            if(++currentTaskIndex < taskQueue.length){
+                document.getElementById('current-task-name').innerText=taskQueue[currentTaskIndex].name;
+                document.getElementById('current-page-badge').innerText=taskQueue[currentTaskIndex].page || "—";
+            } else { document.getElementById('finish-screen').classList.remove('hidden'); document.body.style.backgroundColor="var(--finish-bg)"; }
+        }
+
+        function setMode(m) { document.body.style.backgroundColor=getComputedStyle(document.documentElement).getPropertyValue(`--${m}`); }
+        function showSetup() { document.getElementById('setup-screen').classList.remove('hidden'); document.getElementById('finish-screen').classList.add('hidden'); document.body.style.backgroundColor="var(--bg)"; }
+    </script>
+</body>
+</html>
