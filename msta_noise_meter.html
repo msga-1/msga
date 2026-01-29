@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sonic Sentry - Violation Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --safe: #00ffaa;      
+            --warn: #ffcc00;      
+            --danger: #ff0055;    
+            --bg-dark: #050510;
+            --panel: rgba(255, 255, 255, 0.05);
+            --border: rgba(255, 255, 255, 0.15);
+            --star-gold: #ffd700;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-dark);
+            background-image:
+                radial-gradient(circle at 15% 50%, rgba(0, 255, 170, 0.05), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(255, 0, 85, 0.05), transparent 25%);
+            color: white;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+
+        body.alarm-state {
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both infinite;
+            box-shadow: inset 0 0 100px rgba(255, 0, 85, 0.5);
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        /* --- VIEWS --- */
+        .view {
+            display: none; width: 100%; height: 100%;
+            flex-direction: column; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.5s;
+        }
+        .view.active { display: flex; opacity: 1; }
+
+        /* --- SETUP SCREEN STYLES --- */
+        .setup-card {
+            background: rgba(0,0,0,0.4); border: 1px solid var(--border);
+            padding: 30px; border-radius: 30px; backdrop-filter: blur(20px);
+            text-align: center; width: 90%; max-width: 500px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            overflow-y: auto; max-height: 90vh;
+        }
+
+        .logo-title {
+            font-family: 'Bebas Neue'; font-size: 4rem; margin: 0;
+            color: white; text-shadow: 0 0 20px var(--safe); line-height: 0.9;
+        }
+        .logo-sub { color: var(--safe); letter-spacing: 4px; font-weight: bold; margin-bottom: 25px; }
+
+        .input-group { margin-bottom: 20px; text-align: left; }
+        .input-label {
+            font-size: 0.75rem; color: #aaa; letter-spacing: 1px; text-transform: uppercase;
+            display: block; margin-bottom: 5px; font-weight: bold;
+        }
+       
+        .setup-row { display: flex; gap: 10px; }
+        .grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+       
+        select, input {
+            background: rgba(255,255,255,0.1); border: 1px solid var(--border);
+            color: white; padding: 12px; border-radius: 8px;
+            font-family: 'Outfit'; font-size: 1rem; width: 100%; box-sizing: border-box;
+            outline: none; transition: 0.3s;
+        }
+        select:focus, input:focus { border-color: var(--safe); background: rgba(255,255,255,0.15); }
+        option { background: #000; }
+
+        .btn-icon {
+            width: 45px; background: rgba(255,255,255,0.1); border: 1px solid var(--border);
+            color: white; border-radius: 8px; cursor: pointer; font-size: 1.5rem; transition: 0.2s;
+        }
+        .btn-icon:hover { background: var(--safe); color: black; }
+        .btn-icon.del:hover { background: var(--danger); color: white; }
+
+        .btn-launch {
+            background: var(--safe); color: black; border: none; width: 100%;
+            padding: 15px; font-family: 'Bebas Neue'; font-size: 1.8rem;
+            border-radius: 12px; cursor: pointer; margin-top: 10px;
+            letter-spacing: 2px; transition: 0.3s; box-shadow: 0 0 20px rgba(0, 255, 170, 0.3);
+        }
+        .btn-launch:hover { transform: scale(1.02); box-shadow: 0 0 40px rgba(0, 255, 170, 0.6); }
+
+        /* --- MONITOR SCREEN STYLES --- */
+        .meter-wrapper { position: relative; display: flex; gap: 20px; align-items: center; }
+
+        .meter-container {
+            width: 320px; height: 320px;
+            background: var(--panel); border: 1px solid var(--border);
+            border-radius: 24px; position: relative; overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5); backdrop-filter: blur(15px);
+            display: flex; align-items: flex-end; justify-content: center;
+            gap: 12px; padding: 20px;
+        }
+
+        .slider-container {
+            height: 320px; display: flex; flex-direction: column;
+            align-items: center; justify-content: space-between;
+            padding: 15px 10px; background: var(--panel);
+            border: 1px solid var(--border); border-radius: 24px; backdrop-filter: blur(15px);
+        }
+
+        input[type=range][orient=vertical] {
+            writing-mode: bt-lr; -webkit-appearance: slider-vertical;
+            width: 8px; height: 100%; accent-color: white; cursor: ns-resize; opacity: 0.8;
+            background: linear-gradient(to bottom, var(--safe) 0%, var(--warn) 50%, var(--danger) 100%);
+            border-radius: 4px;
+        }
+
+        .bar {
+            width: 100%; height: 5%; background: linear-gradient(to top, var(--safe), #004433);
+            border-radius: 6px 6px 0 0; transition: 0.1s;
+            box-shadow: 0 0 10px rgba(0,255,170, 0.2);
+        }
+
+        .threshold-line {
+            position: absolute; left: 0; right: 0; height: 3px; background: var(--danger);
+            z-index: 10; transition: bottom 0.1s; box-shadow: 0 0 20px var(--danger); pointer-events: none;
+        }
+
+        .info-panel { text-align: center; margin-top: 20px; width: 100%; max-width: 400px; position: relative; z-index: 10;}
+       
+        .timer-display { font-family: 'Bebas Neue'; font-size: 3rem; color: rgba(255,255,255,0.5); line-height: 1; }
+
+        .star-target-display {
+            font-family: 'Bebas Neue'; font-size: 5rem; color: var(--star-gold);
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.4); margin: 10px 0;
+            display: flex; justify-content: center; align-items: center; gap: 15px;
+        }
+       
+        .pop-anim { animation: popText 0.3s ease-out; }
+        @keyframes popText { 0% { transform: scale(1); } 50% { transform: scale(1.4); filter: brightness(2); } 100% { transform: scale(1); } }
+
+        .progress-track {
+            width: 100%; height: 12px; background: rgba(255,255,255,0.1);
+            border-radius: 20px; overflow: hidden; margin-top: 10px;
+            display: block;
+        }
+        .progress-track.hidden { display: none; }
+
+        .progress-fill {
+            height: 100%; width: 0%; background: var(--safe);
+            box-shadow: 0 0 15px var(--safe); transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .abort-btn {
+            position: absolute; top: 20px; left: 20px;
+            background: transparent; border: 1px solid var(--danger); color: var(--danger);
+            padding: 8px 15px; font-family: 'Outfit'; font-weight: bold; border-radius: 8px;
+            cursor: pointer; transition: 0.3s; z-index: 50;
+        }
+        .abort-btn:hover { background: var(--danger); color: white; }
+
+        .status-msg {
+            position: absolute; top: 80px; width: 100%; text-align: center;
+            color: var(--danger); font-family: 'Bebas Neue'; font-size: 2rem;
+            letter-spacing: 2px; opacity: 0; text-shadow: 0 0 20px var(--danger);
+            pointer-events: none;
+        }
+        .status-msg.visible { opacity: 1; animation: flash 0.5s infinite; }
+
+        /* Violation Counter Style */
+        .violation-display {
+            margin-top: 15px;
+            font-family: 'Bebas Neue';
+            font-size: 1.5rem;
+            color: var(--danger);
+            letter-spacing: 2px;
+            opacity: 0.8;
+            transition: 0.2s;
+        }
+        .violation-display.flash { opacity: 1; transform: scale(1.1); text-shadow: 0 0 15px var(--danger); }
+
+        .lang-switch { position: absolute; top: 20px; right: 20px; display: flex; gap: 5px; z-index: 50; }
+        .lang-btn { background: rgba(255,255,255,0.1); border:none; color:#888; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
+        .lang-btn.active { background: var(--safe); color: black; }
+
+        .footer {
+            position: absolute; bottom: 15px;
+            font-size: 0.75rem; color: rgba(255,255,255,0.3);
+            letter-spacing: 1px; text-transform: uppercase;
+            width: 100%; text-align: center;
+            pointer-events: none; z-index: 10;
+        }
+
+        /* --- BIG WIN OVERLAY --- */
+        .win-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(10px);
+            z-index: 999; display: none;
+            flex-direction: column; align-items: center; justify-content: center;
+            animation: fadeIn 0.5s;
+        }
+        .win-overlay.active { display: flex; }
+       
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .win-title {
+            font-family: 'Bebas Neue'; font-size: 8rem; color: var(--safe);
+            text-shadow: 0 0 50px var(--safe); margin: 0; line-height: 1;
+            text-align: center; animation: pulseWin 2s infinite;
+        }
+
+        @keyframes pulseWin { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
+        .win-btn {
+            margin-top: 40px; background: transparent; border: 2px solid white;
+            color: white; padding: 15px 40px; font-family: 'Bebas Neue'; font-size: 2rem;
+            border-radius: 50px; cursor: pointer; transition: 0.3s;
+        }
+        .win-btn:hover { background: white; color: black; box-shadow: 0 0 30px white; }
+
+    </style>
+</head>
+<body>
+
+    <div id="setup-view" class="view active">
+        <div class="lang-switch">
+            <button class="lang-btn active" onclick="setLanguage('nl')">NL</button>
+            <button class="lang-btn" onclick="setLanguage('en')">EN</button>
+            <button class="lang-btn" onclick="setLanguage('de')">DE</button>
+            <button class="lang-btn" onclick="setLanguage('fr')">FR</button>
+        </div>
+
+        <div class="setup-card">
+            <h1 class="logo-title">SONIC SENTRY</h1>
+            <div class="logo-sub" id="ui-subtitle">MISSION CONTROL</div>
+
+            <div class="input-group">
+                <label class="input-label" id="lbl-class">SELECT CLASS</label>
+                <div class="setup-row">
+                    <select id="classSelect" onchange="loadRecord()"></select>
+                    <button class="btn-icon" onclick="addClass()">+</button>
+                    <button class="btn-icon del" onclick="deleteClass()">×</button>
+                </div>
+            </div>
+
+            <div class="grid-row">
+                <div class="input-group">
+                    <label class="input-label" id="lbl-interval">SECONDS / STAR</label>
+                    <input type="number" id="intervalInput" value="15" min="5" max="300">
+                </div>
+                <div class="input-group">
+                    <label class="input-label" id="lbl-penalty">PENALTY (STARS)</label>
+                    <input type="number" id="penaltyInput" value="1" min="0" max="50" placeholder="0">
+                </div>
+            </div>
+
+            <div class="input-group">
+                <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                    <label class="input-label" id="lbl-goal">STAR TARGET (OPTIONAL)</label>
+                    <span style="font-size: 0.8rem; color: var(--safe);">RECORD: <span id="recordDisplay">0</span> ★</span>
+                </div>
+                <input type="number" id="starGoalInput" placeholder="Leave empty for Endless Mode" min="1" max="999">
+            </div>
+
+            <button class="btn-launch" id="btn-launch" onclick="launchMission()">🚀 LAUNCH MISSION</button>
+        </div>
+        <div class="footer">© Mister Seb's Teacher Apps</div>
+    </div>
+
+    <div id="monitor-view" class="view">
+        <button class="abort-btn" id="btn-abort" onclick="abortMission()">❌ ABORT</button>
+       
+        <div class="status-msg" id="alertMsg">STREAK BROKEN!</div>
+
+        <div class="meter-wrapper">
+            <div class="meter-container">
+                <div class="threshold-line" id="limitLine" style="bottom: 50%;"></div>
+                <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            </div>
+            <div class="slider-container">
+                <span style="font-size:0.7rem; font-weight:bold; writing-mode:vertical-rl; transform:rotate(180deg); color:var(--safe)">SOEPEL</span>
+                <input type="range" orient="vertical" min="10" max="95" value="50" oninput="updateSensitivity(this.value)">
+                <span style="font-size:0.7rem; font-weight:bold; writing-mode:vertical-rl; transform:rotate(180deg); color:var(--danger)">STRENG</span>
+            </div>
+        </div>
+
+        <div class="info-panel" id="infoPanel">
+            <div class="timer-display" id="timerDisplay">00:00</div>
+           
+            <div class="star-target-display">
+                <span>★</span>
+                <span id="currentStars">0</span>
+                <span id="targetDivider" style="font-size: 2.5rem; color:rgba(255,255,255,0.3); vertical-align: middle;">/</span>
+                <span id="targetStars" style="font-size: 2.5rem; color:rgba(255,255,255,0.3); vertical-align: middle;">10</span>
+            </div>
+
+            <div class="progress-track" id="progTrack">
+                <div class="progress-fill" id="progBar"></div>
+            </div>
+            <div style="margin-top:5px; font-size:0.7rem; color:#666; letter-spacing:2px;" id="lbl-progress">PROGRESS</div>
+           
+            <div id="violationDisplay" class="violation-display">OVERTREDINGEN: 0</div>
+        </div>
+
+        <div class="footer">© Mister Seb's Teacher Apps</div>
+    </div>
+
+    <div class="win-overlay" id="winOverlay">
+        <div class="win-title" id="winTitle">MISSION<br>COMPLETED</div>
+        <button class="win-btn" id="btn-continue" onclick="closeOverlay()">CONTINUE</button>
+    </div>
+
+    <script>
+        const i18n = {
+            nl: {
+                sub: "MISSIE CONTROLE", lblClass: "SELECTEER KLAS", lblGoal: "DOEL (LEEG = VRIJ SPEL)",
+                lblInterval: "SECONDEN PER STER", lblPenalty: "STRAF (STERREN ERAF)",
+                btnLaunch: "🚀 START MISSIE", btnAbort: "❌ STOPPEN", alert: "REEKS VERBROKEN!",
+                newClass: "Nieuwe klas naam:", delConfirm: "Verwijder", progress: "VOORTGANG",
+                win: "MISSIE<br>VOLTOOID", cont: "DOORGAAN", violations: "OVERTREDINGEN"
+            },
+            en: {
+                sub: "MISSION CONTROL", lblClass: "SELECT CLASS", lblGoal: "STAR TARGET (EMPTY = FREE PLAY)",
+                lblInterval: "SECONDS PER STAR", lblPenalty: "PENALTY (STARS LOST)",
+                btnLaunch: "🚀 LAUNCH MISSION", btnAbort: "❌ ABORT", alert: "STREAK BROKEN!",
+                newClass: "New Class Name:", delConfirm: "Delete", progress: "PROGRESS",
+                win: "MISSION<br>COMPLETED", cont: "CONTINUE", violations: "VIOLATIONS"
+            },
+            fr: {
+                sub: "CONTRÔLE MISSION", lblClass: "CHOISIR CLASSE", lblGoal: "OBJECTIF (VIDE = LIBRE)",
+                lblInterval: "SECONDES PAR ÉTOILE", lblPenalty: "PÉNALITÉ (ÉTOILES)",
+                btnLaunch: "🚀 DÉMARRER", btnAbort: "❌ QUITTER", alert: "SÉRIE BRISÉE!",
+                newClass: "Nom de la classe:", delConfirm: "Supprimer", progress: "PROGRESSION",
+                win: "MISSION<br>ACCOMPLIE", cont: "CONTINUER", violations: "VIOLATIONS"
+            },
+            de: {
+                sub: "MISSION STEUERUNG", lblClass: "KLASSE WÄHLEN", lblGoal: "ZIEL (LEER = FREIES SPIEL)",
+                lblInterval: "SEKUNDEN PRO STERN", lblPenalty: "STRAFE (STERNE ABZUG)",
+                btnLaunch: "🚀 STARTEN", btnAbort: "❌ ABBRECHEN", alert: "SERIE BEENDET!",
+                newClass: "Name der Klasse:", delConfirm: "Löschen", progress: "FORTSCHRITT",
+                win: "MISSION<br>ERFÜLLT", cont: "WEITERMACHEN", violations: "VERSTÖSSE"
+            }
+        };
+
+        // State
+        let classes = JSON.parse(localStorage.getItem('sonic_star_classes')) || { "Class 1": 0 };
+        let currentClass = localStorage.getItem('sonic_star_current') || "Class 1";
+        let currentLang = 'nl';
+        let audioContext, analyser, microphone, jsNode;
+        let sensitivity = 50;
+        let isRunning = false;
+        let timerInterval;
+        let seconds = 0;
+        let starCount = 0;
+        let starGoal = 0;
+        let starInterval = 15;
+        let starPenalty = 1;
+        let isEndless = false;
+        let alarmCooldown = false;
+        let violationCount = 0;
+
+        // Init
+        if(Object.keys(classes).length === 0) { classes = {"Class 1": 0}; currentClass = "Class 1"; }
+        if(!classes[currentClass] && classes[currentClass] !== 0) currentClass = Object.keys(classes)[0];
+
+        function init() {
+            setLanguage('nl');
+            populateClasses();
+            loadRecord();
+            updateSensitivity(50);
+        }
+
+        function populateClasses() {
+            const sel = document.getElementById('classSelect');
+            sel.innerHTML = '';
+            Object.keys(classes).forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c; opt.innerText = c;
+                if(c === currentClass) opt.selected = true;
+                sel.appendChild(opt);
+            });
+        }
+
+        function loadRecord() {
+            currentClass = document.getElementById('classSelect').value;
+            localStorage.setItem('sonic_star_current', currentClass);
+            document.getElementById('recordDisplay').innerText = classes[currentClass];
+        }
+
+        function addClass() {
+            const n = prompt(i18n[currentLang].newClass);
+            if(n) { classes[n]=0; saveClasses(); currentClass=n; populateClasses(); loadRecord(); }
+        }
+
+        function deleteClass() {
+            if(Object.keys(classes).length > 1 && confirm(i18n[currentLang].delConfirm)) {
+                delete classes[currentClass]; currentClass=Object.keys(classes)[0];
+                saveClasses(); populateClasses(); loadRecord();
+            }
+        }
+
+        function saveClasses() { localStorage.setItem('sonic_star_classes', JSON.stringify(classes)); }
+
+        function setLanguage(l) {
+            currentLang = l; const t = i18n[l];
+            document.getElementById('ui-subtitle').innerText = t.sub;
+            document.getElementById('lbl-class').innerText = t.lblClass;
+            document.getElementById('lbl-goal').innerText = t.lblGoal;
+            document.getElementById('lbl-interval').innerText = t.lblInterval;
+            document.getElementById('lbl-penalty').innerText = t.lblPenalty;
+            document.getElementById('starGoalInput').placeholder = t.lblGoal;
+            document.getElementById('btn-launch').innerText = t.btnLaunch;
+            document.getElementById('btn-abort').innerText = t.btnAbort;
+            document.getElementById('alertMsg').innerText = t.alert;
+            document.getElementById('lbl-progress').innerText = t.progress;
+            document.getElementById('winTitle').innerHTML = t.win;
+            document.getElementById('btn-continue').innerText = t.cont;
+           
+            // Update violation text dynamically
+            document.getElementById('violationDisplay').innerText = `${t.violations}: ${violationCount}`;
+
+            document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.innerText.toLowerCase()===l));
+        }
+
+        // --- Mission Logic ---
+        async function launchMission() {
+            const inputVal = document.getElementById('starGoalInput').value;
+            const intervalVal = document.getElementById('intervalInput').value;
+            const penaltyVal = document.getElementById('penaltyInput').value;
+
+            // Set Rules
+            starInterval = intervalVal && intervalVal > 0 ? parseInt(intervalVal) : 15;
+            starPenalty = penaltyVal && penaltyVal >= 0 ? parseInt(penaltyVal) : 1;
+
+            // Check endless mode
+            if(!inputVal || inputVal <= 0) {
+                isEndless = true;
+                starGoal = 0;
+            } else {
+                isEndless = false;
+                starGoal = parseInt(inputVal);
+                document.getElementById('targetStars').innerText = starGoal;
+            }
+
+            // Configure Monitor View UI based on mode
+            if(isEndless) {
+                document.getElementById('targetDivider').style.display = 'none';
+                document.getElementById('targetStars').style.display = 'none';
+                document.getElementById('progTrack').classList.add('hidden');
+                document.getElementById('lbl-progress').style.display = 'none';
+            } else {
+                document.getElementById('targetDivider').style.display = 'inline';
+                document.getElementById('targetStars').style.display = 'inline';
+                document.getElementById('progTrack').classList.remove('hidden');
+                document.getElementById('lbl-progress').style.display = 'block';
+            }
+           
+            // Switch Screens
+            document.getElementById('setup-view').classList.remove('active');
+            document.getElementById('monitor-view').classList.add('active');
+
+            // Reset Game State
+            seconds = 0; starCount = 0; violationCount = 0; isRunning = true;
+            document.getElementById('timerDisplay').innerText = "00:00";
+            updateStarUI();
+            updateViolationUI();
+
+            // Start Audio
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                startAudio(stream);
+                startTimer();
+            } catch(e) {
+                alert("Microphone Access Required");
+                abortMission();
+            }
+        }
+
+        function abortMission() {
+            stopAudio(); stopTimer();
+            isRunning = false;
+            document.getElementById('monitor-view').classList.remove('active');
+            document.getElementById('setup-view').classList.add('active');
+        }
+
+        function startAudio(stream) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            analyser = audioContext.createAnalyser();
+            microphone = audioContext.createMediaStreamSource(stream);
+            jsNode = audioContext.createScriptProcessor(2048, 1, 1);
+            analyser.smoothingTimeConstant = 0.5; analyser.fftSize = 1024;
+            microphone.connect(analyser); analyser.connect(jsNode);
+            jsNode.connect(audioContext.destination);
+            jsNode.onaudioprocess = () => {
+                const arr = new Uint8Array(analyser.frequencyBinCount);
+                analyser.getByteFrequencyData(arr);
+                let v = 0; for(let i=0; i<arr.length; i++) v+=arr[i];
+                const vol = Math.min(100, (v/arr.length)*1.5);
+                updateBars(vol);
+                if(vol > sensitivity && !alarmCooldown) triggerAlarm();
+            };
+        }
+
+        function stopAudio() {
+            if(microphone) microphone.disconnect();
+            if(jsNode) jsNode.disconnect();
+            if(audioContext) audioContext.close();
+        }
+
+        function updateBars(vol) {
+            document.querySelectorAll('.bar').forEach((b,i) => {
+                let h = Math.max(5, Math.min(100, vol + Math.sin(Date.now()/100+i)*10));
+                b.style.height = h+"%";
+                b.style.background = h > sensitivity ? "var(--danger)" :
+                                     h > sensitivity*0.8 ? "var(--warn)" : "linear-gradient(to top, var(--safe), #004433)";
+            });
+        }
+
+        function triggerAlarm() {
+            alarmCooldown = true;
+            document.body.classList.add('alarm-state');
+            document.getElementById('alertMsg').classList.add('visible');
+           
+            // TRACK VIOLATION
+            violationCount++;
+            updateViolationUI();
+           
+            // PUNISHMENT: Subtract penalty stars
+            starCount = Math.max(0, starCount - starPenalty);
+            updateStarUI();
+
+            // RESET TIMER
+            seconds = 0;
+            document.getElementById('timerDisplay').innerText = "00:00";
+           
+            setTimeout(() => {
+                document.body.classList.remove('alarm-state');
+                document.getElementById('alertMsg').classList.remove('visible');
+                alarmCooldown = false;
+            }, 2000);
+        }
+
+        function updateViolationUI() {
+            const el = document.getElementById('violationDisplay');
+            el.innerText = `${i18n[currentLang].violations}: ${violationCount}`;
+            // Flash effect
+            el.classList.remove('flash');
+            void el.offsetWidth;
+            el.classList.add('flash');
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                if(!alarmCooldown) {
+                    seconds++;
+                    const m = Math.floor(seconds/60); const s = seconds%60;
+                    document.getElementById('timerDisplay').innerText = `${m<10?'0':''}${m}:${s<10?'0':''}${s}`;
+                   
+                    // Add Star based on variable interval
+                    if(seconds > 0 && seconds % starInterval === 0) addStar();
+                }
+            }, 1000);
+        }
+
+        function stopTimer() { clearInterval(timerInterval); }
+
+        function addStar() {
+            starCount++;
+            updateStarUI();
+           
+            // Save Record
+            if(starCount > classes[currentClass]) {
+                classes[currentClass] = starCount;
+                saveClasses();
+                loadRecord();
+            }
+
+            // Check Win Condition
+            if(!isEndless && starCount >= starGoal) {
+                if(starCount === starGoal) showWin();
+            }
+           
+            // Pop Animation
+            const el = document.getElementById('currentStars');
+            el.classList.remove('pop-anim'); void el.offsetWidth; el.classList.add('pop-anim');
+        }
+
+        function updateStarUI() {
+            document.getElementById('currentStars').innerText = starCount;
+            if(!isEndless && starGoal > 0) {
+                let pct = (starCount / starGoal) * 100;
+                if(pct > 100) pct = 100;
+                document.getElementById('progBar').style.width = pct + "%";
+            }
+        }
+
+        function showWin() {
+            confetti({ particleCount: 200, spread: 80, origin: { y: 0.6 } });
+            document.getElementById('winOverlay').classList.add('active');
+        }
+
+        function closeOverlay() {
+            document.getElementById('winOverlay').classList.remove('active');
+        }
+
+        function updateSensitivity(val) {
+            sensitivity = val;
+            document.getElementById('limitLine').style.bottom = val + "%";
+        }
+
+        init();
+    </script>
+</body>
+</html>
