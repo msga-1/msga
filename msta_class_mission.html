@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mission Control - Tactical HUD v8</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Outfit:wght@300;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --cyan: #00f2ff;
+            --danger: #ff0055;
+            --success: #39ff14;
+            --bg: #050a14;
+            --panel: rgba(10, 25, 47, 0.95);
+            --border: #1e3a8a;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            background-image: radial-gradient(circle at center, #102a43 0%, #050a14 100%);
+            color: white; margin: 0; display: flex; height: 100vh; overflow: hidden;
+        }
+
+        /* Sidebar Settings */
+        .sidebar {
+            width: 350px; background: var(--panel); backdrop-filter: blur(20px);
+            padding: 20px; border-right: 2px solid var(--border);
+            display: flex; flex-direction: column; z-index: 100;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.4s ease;
+        }
+        .sidebar.hidden { transform: translateX(-100%); margin-left: -350px; }
+
+        .game-area { 
+            flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            padding: 20px; transition: all 0.4s ease; position: relative;
+        }
+
+        /* HUD Main Frame */
+        .hud-frame {
+            border: 2px solid var(--border); padding: 30px; border-radius: 20px; background: rgba(0,0,0,0.4);
+            width: 95%; max-width: 1100px; text-align: center; box-shadow: 0 0 30px rgba(0, 242, 255, 0.1);
+        }
+
+        /* Progress Display */
+        .progress-container {
+            width: 100%; height: 60px; background: rgba(0,0,0,0.6);
+            border: 2px solid var(--cyan); position: relative; overflow: hidden; border-radius: 8px; margin: 15px 0;
+        }
+        #progress-bar {
+            width: 0%; height: 100%; background: linear-gradient(90deg, #0088ff, #00f2ff);
+            box-shadow: 0 0 20px var(--cyan); transition: width 0.4s ease;
+        }
+        #progress-bar.failure { background: linear-gradient(90deg, #ff0055, #880000); animation: pulse 0.5s infinite; }
+
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        /* Tactical Controls */
+        .hud-controls { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-top: 15px; }
+
+        .btn {
+            padding: 10px 2px; border-radius: 6px; border: 1px solid var(--border); font-family: 'Orbitron';
+            font-size: 0.7rem; cursor: pointer; transition: 0.2s; background: rgba(0,0,0,0.3); color: white;
+        }
+        .btn:hover { border-color: var(--cyan); color: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+        .btn-success { color: var(--success); border-color: var(--success); }
+        .btn-danger { color: var(--danger); border-color: var(--danger); }
+        .btn-picker { grid-column: span 7; border-color: var(--cyan); color: var(--cyan); font-weight: bold; font-size: 1.1rem; margin-top: 10px; padding: 15px; }
+
+        /* Absentee Grid */
+        .absent-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); gap: 6px;
+            overflow-y: auto; background: rgba(0,0,0,0.3); padding: 10px; border: 1px solid var(--border);
+            border-radius: 6px; flex-grow: 1; margin-bottom: 10px;
+        }
+        .absent-item {
+            font-size: 0.7rem; display: flex; align-items: center; gap: 5px; 
+            background: rgba(255,255,255,0.05); padding: 5px; border-radius: 4px; cursor: pointer;
+        }
+
+        /* Dynamic Texts */
+        #status-text { font-family: 'Orbitron'; font-size: 1.8rem; color: var(--cyan); margin: 0; letter-spacing: 2px; }
+        #percentage { font-family: 'Orbitron'; font-size: 4rem; color: white; margin: 5px 0; }
+        #reward-display { font-family: 'Orbitron'; font-size: 2.2rem; color: var(--success); display: none; text-shadow: 0 0 15px var(--success); margin-top: 10px; }
+        
+        /* Picker Box Styling */
+        #pickerBox { margin-top: 20px; transition: opacity 1s ease; }
+        #picked-name { 
+            font-family: 'Orbitron'; font-size: 3rem; color: #fff; 
+            margin-top: 15px; border: 1px dashed var(--cyan); padding: 10px; 
+            border-radius: 10px; display: inline-block; min-width: 300px;
+        }
+
+        /* Footer */
+        footer {
+            position: absolute; bottom: 20px; font-family: 'Orbitron';
+            font-size: 0.7rem; color: var(--cyan); opacity: 0.5; letter-spacing: 1px;
+        }
+
+        /* Form Elements */
+        .sidebar label { font-size: 0.65rem; color: var(--cyan); font-family: 'Orbitron'; margin-bottom: 4px; display: block; margin-top: 12px; opacity: 0.8; }
+        textarea, select, input { width: 100%; background: #000; color: var(--cyan); border: 1px solid var(--border); padding: 10px; font-family: 'Outfit'; border-radius: 4px; box-sizing: border-box; }
+        .lang-switcher { display: flex; gap: 4px; margin-bottom: 10px; }
+        .lang-btn { flex: 1; background: transparent; border: 1px solid var(--border); color: var(--cyan); cursor: pointer; padding: 6px; font-size: 0.6rem; font-family: 'Orbitron'; border-radius: 4px; }
+        .lang-btn.active { background: var(--cyan); color: #000; }
+        .hint { font-size: 0.65rem; opacity: 0.4; text-align: center; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar" id="sidebar">
+    <div class="lang-switcher">
+        <button class="lang-btn active" id="btn-nl" onclick="setLanguage('nl')">NL</button>
+        <button class="lang-btn" id="btn-en" onclick="setLanguage('en')">EN</button>
+        <button class="lang-btn" id="btn-de" onclick="setLanguage('de')">DE</button>
+        <button class="lang-btn" id="btn-fr" onclick="setLanguage('fr')">FR</button>
+    </div>
+
+    <label id="lbl-class">SELECTEER KLAS</label>
+    <select id="classSelect" onchange="switchClass()"></select>
+    
+    <label id="lbl-reward">BELONING (100%)</label>
+    <input type="text" id="rewardInput" oninput="updateRewardLabel()">
+
+    <label id="lbl-crew">CREW INPUT (ENTER)</label>
+    <textarea id="studentInput" oninput="saveAndRefresh()" style="height: 60px;"></textarea>
+    
+    <label>AANWEZIGHEID (KLIK NAAM)</label>
+    <div class="absent-grid" id="absentGrid"></div>
+    
+    <button class="btn btn-success" id="btn-start" onclick="startGame()" style="width:100%; padding: 15px; font-size: 0.9rem;">START MISSIE</button>
+    <p class="hint">Druk op [ESC] voor focus-modus</p>
+</div>
+
+<div class="game-area">
+    <div id="game-view" class="hud-frame" style="display:none;">
+        <h1 id="status-text">SYSTEMS STANDBY</h1>
+        <div id="percentage">0%</div>
+
+        <div class="progress-container">
+            <div id="progress-bar"></div>
+        </div>
+
+        <div id="reward-display">MISSION ACCOMPLISHED</div>
+
+        <div class="hud-controls">
+            <button class="btn btn-success" onclick="updateProgress(1)">+1</button>
+            <button class="btn btn-success" onclick="updateProgress(2)">+2</button>
+            <button class="btn btn-success" onclick="updateProgress(5)">+5</button>
+            <button class="btn btn-danger" id="sabotageBtn" onclick="toggleSabotage()">FAIL</button>
+            <button class="btn btn-danger" onclick="updateProgress(-5)">-5</button>
+            <button class="btn btn-danger" onclick="updateProgress(-2)">-2</button>
+            <button class="btn btn-danger" onclick="updateProgress(-1)">-1</button>
+            
+            <button class="btn btn-picker" id="btn-crew-picker" onclick="pickCrewMember()">PICK CREW MEMBER</button>
+        </div>
+
+        <div id="pickerBox" style="display:none; opacity: 0;">
+            <div id="lbl-picked" style="font-family:'Orbitron'; font-size:0.7rem; color:var(--cyan);">SELECTED CREW MEMBER:</div>
+            <div id="picked-name">READY</div>
+        </div>
+    </div>
+    
+    <div id="setup-view" style="font-family:'Orbitron'; color:var(--cyan); text-align:center;">
+        <h1 id="setup-h1">MISSION CONTROL</h1>
+        <p id="setup-p">INITIALIZE SYSTEMS TO BEGIN</p>
+    </div>
+
+    <footer>© Mister Seb's Teacher Apps</footer>
+</div>
+
+<script>
+    const i18n = {
+        nl: { class: "SELECTEER KLAS", crew: "CREW LIJST", reward: "BELONING (100%)", start: "START MISSIE", standby: "SYSTEMEN STANDBY", progress: "MISSIE IN UITVOERING", success: "MISSIE VOLBRACHT!", picker: "KIES CREW LID", picked: "GESELECTEERD CREW LID:", setupH1: "MISSIE CONTROLE", setupP: "INITIALISEER SYSTEMEN", defaultReward: "5 MINUTEN PAUZE" },
+        en: { class: "SELECT CLASS", crew: "CREW ROSTER", reward: "REWARD (100%)", start: "START MISSION", standby: "SYSTEMS STANDBY", progress: "MISSION IN PROGRESS", success: "MISSION SUCCESS!", picker: "PICK CREW MEMBER", picked: "SELECTED CREW MEMBER:", setupH1: "MISSION CONTROL", setupP: "INITIALIZE SYSTEMS", defaultReward: "5 MINUTE BREAK" },
+        de: { class: "KLASSE WÄHLEN", crew: "CREW-LISTE", reward: "BELOHNUNG (100%)", start: "MISSION STARTEN", standby: "SYSTEME STANDBY", progress: "MISSION LÄUFT", success: "MISSION ERFOLGREICH!", picker: "CREW-MITGLIED WÄHLEN", picked: "GEWÄHLTES CREW-MITGLIED:", setupH1: "MISSIONSKONTROLLE", setupP: "SYSTEME INITIALISIEREN", defaultReward: "5 MINUTEN PAUSE" },
+        fr: { class: "CHOISIR LA CLASSE", crew: "LISTE D'ÉQUIPAGE", reward: "RÉCOMPENSE (100%)", start: "LANCER LA MISSION", standby: "SYSTÈMES EN ATTENTE", progress: "MISSION EN COURS", success: "MISSION RÉUSSIE !", picker: "CHOISIR UN ÉQUIPIER", picked: "MEMBRE D'ÉQUIPAGE SÉLECTIONNÉ :", setupH1: "CONTRÔLE DE MISSION", setupP: "INITIALISER LES SYSTÈMES", defaultReward: "5 MINUTES DE PAUSE" }
+    };
+
+    let currentLang = 'nl';
+    let classes = JSON.parse(localStorage.getItem('mc_classes_v8')) || { "Klas 1": "" };
+    let currentClassName = localStorage.getItem('mc_current_v8') || "Klas 1";
+    let rewards = JSON.parse(localStorage.getItem('mc_rewards_v8')) || { nl: "5 MINUTEN PAUZE", en: "5 MINUTE BREAK", de: "5 MINUTEN PAUSE", fr: "5 MINUTES DE PAUSE" };
+    let absentStudents = new Set();
+    let progress = 0;
+    let sabotageInterval = null;
+    let pickerTimeout = null;
+
+    function setLanguage(lang) {
+        currentLang = lang;
+        const t = i18n[lang];
+        document.getElementById('lbl-class').innerText = t.class;
+        document.getElementById('lbl-crew').innerText = t.crew;
+        document.getElementById('lbl-reward').innerText = t.reward;
+        document.getElementById('btn-start').innerText = t.start;
+        document.getElementById('btn-crew-picker').innerText = t.picker;
+        document.getElementById('lbl-picked').innerText = t.picked;
+        document.getElementById('setup-h1').innerText = t.setupH1;
+        document.getElementById('setup-p').innerText = t.setupP;
+        document.getElementById('rewardInput').value = rewards[lang] || t.defaultReward;
+        updateRewardLabel();
+        document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.toggle('active', btn.id === `btn-${lang}`));
+        updateStatusText();
+    }
+
+    function updateRewardLabel() {
+        const val = document.getElementById('rewardInput').value;
+        rewards[currentLang] = val;
+        localStorage.setItem('mc_rewards_v8', JSON.stringify(rewards));
+        document.getElementById('reward-display').innerText = val || i18n[currentLang].success;
+    }
+
+    function updateStatusText() {
+        const t = i18n[currentLang];
+        const statusTxt = document.getElementById('status-text');
+        if(progress >= 100) statusTxt.innerText = t.success;
+        else statusTxt.innerText = progress > 0 ? t.progress : t.standby;
+    }
+
+    function init() {
+        const select = document.getElementById('classSelect');
+        select.innerHTML = '';
+        Object.keys(classes).forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c; opt.innerText = c;
+            if(c === currentClassName) opt.selected = true;
+            select.appendChild(opt);
+        });
+        document.getElementById('studentInput').value = classes[currentClassName];
+        renderAbsentGrid();
+        setLanguage('nl');
+    }
+
+    function renderAbsentGrid() {
+        const grid = document.getElementById('absentGrid');
+        const names = document.getElementById('studentInput').value.split('\n').filter(n => n.trim());
+        grid.innerHTML = '';
+        names.forEach(n => {
+            const name = n.trim();
+            const div = document.createElement('div');
+            div.className = 'absent-item';
+            const isChecked = !absentStudents.has(name) ? 'checked' : '';
+            div.innerHTML = `<input type="checkbox" ${isChecked} onchange="toggleStudent('${name}')"> <span style="text-transform:none;">${name}</span>`;
+            div.onclick = (e) => { if(e.target.tagName !== 'INPUT') { const cb = div.querySelector('input'); cb.checked = !cb.checked; toggleStudent(name); } };
+            grid.appendChild(div);
+        });
+    }
+
+    function toggleStudent(name) {
+        if(absentStudents.has(name)) absentStudents.delete(name); else absentStudents.add(name);
+    }
+
+    function saveAndRefresh() {
+        classes[currentClassName] = document.getElementById('studentInput').value;
+        localStorage.setItem('mc_classes_v8', JSON.stringify(classes));
+        renderAbsentGrid();
+    }
+
+    function switchClass() {
+        currentClassName = document.getElementById('classSelect').value;
+        document.getElementById('studentInput').value = classes[currentClassName];
+        absentStudents.clear();
+        localStorage.setItem('mc_current_v8', currentClassName);
+        renderAbsentGrid();
+    }
+
+    function startGame() {
+        document.getElementById('setup-view').style.display = 'none';
+        document.getElementById('game-view').style.display = 'block';
+    }
+
+    function updateProgress(amt) {
+        progress = Math.min(100, Math.max(0, progress + amt));
+        document.getElementById('progress-bar').style.width = progress + '%';
+        document.getElementById('percentage').innerText = progress + '%';
+        document.getElementById('reward-display').style.display = progress >= 100 ? 'block' : 'none';
+        if(progress >= 100) confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+        updateStatusText();
+    }
+
+    function toggleSabotage() {
+        const bar = document.getElementById('progress-bar');
+        const btn = document.getElementById('sabotageBtn');
+        if(sabotageInterval) {
+            clearInterval(sabotageInterval); sabotageInterval = null;
+            bar.classList.remove('failure'); btn.style.background = "transparent";
+        } else {
+            bar.classList.add('failure'); btn.style.background = "var(--danger)";
+            sabotageInterval = setInterval(() => updateProgress(-1), 1000);
+        }
+    }
+
+    function pickCrewMember() {
+        const names = document.getElementById('studentInput').value.split('\n').filter(n => n.trim() && !absentStudents.has(n.trim()));
+        if(names.length === 0) return;
+
+        if(pickerTimeout) clearTimeout(pickerTimeout);
+        
+        const box = document.getElementById('pickerBox');
+        const nameDisp = document.getElementById('picked-name');
+        
+        box.style.display = 'block';
+        box.style.opacity = '1';
+        nameDisp.style.color = "#fff";
+
+        let count = 0;
+        const shuffle = setInterval(() => {
+            nameDisp.innerText = names[Math.floor(Math.random() * names.length)].toUpperCase();
+            if(++count > 12) {
+                clearInterval(shuffle);
+                nameDisp.style.color = "var(--success)";
+                
+                pickerTimeout = setTimeout(() => {
+                    box.style.opacity = '0';
+                    setTimeout(() => { box.style.display = 'none'; }, 1000);
+                }, 15000);
+            }
+        }, 60);
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            document.getElementById('sidebar').classList.toggle('hidden');
+        }
+    });
+
+    init();
+</script>
+</body>
+</html>
