@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BBC Newsround - Class Challenge</title>
+    <style>
+        :root {
+            --accent: #00d4ff;
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+        }
+        body {
+            font-family: 'Arial Black', sans-serif;
+            background-color: var(--bg);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        .container {
+            background: var(--card-bg);
+            padding: 20px 40px;
+            border-radius: 40px;
+            box-shadow: 0 0 60px rgba(0, 212, 255, 0.15);
+            width: 95vw;
+            height: 90vh;
+            border: 2px solid #334155;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            position: relative;
+        }
+        .top-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 50px;
+            flex-shrink: 0;
+        }
+        h1 {
+            font-size: 1rem;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            margin: 0;
+        }
+        .watch-link {
+            background: #ff0055;
+            color: white;
+            text-decoration: none;
+            padding: 8px 15px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            transition: 0.2s;
+        }
+        .watch-link:hover { transform: scale(1.05); background: #ff2e73; }
+
+        #display-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        #question-display {
+            width: 100%;
+            text-align: center;
+            line-height: 1.05;
+            text-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            word-wrap: break-word;
+            /* Extra groot voor de "Ready?" en korte vragen */
+            font-size: 160px; 
+        }
+
+        .rolling {
+            animation: pulse 0.1s infinite;
+            filter: blur(3px);
+            opacity: 0.5;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.98); }
+            100% { transform: scale(1); }
+        }
+
+        #translation-display {
+            font-size: 2.2rem;
+            color: #94a3b8;
+            min-height: 50px;
+            font-weight: normal;
+            opacity: 0;
+            transition: opacity 0.3s;
+            margin-top: 15px;
+            flex-shrink: 0;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 20px;
+            flex-shrink: 0;
+        }
+
+        /* Knop kleiner gemaakt zoals gevraagd */
+        .main-btn {
+            background: var(--accent);
+            color: #0f172a;
+            border: none;
+            padding: 15px 50px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #008eb3;
+            transition: all 0.1s;
+        }
+
+        .main-btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 3px 0 #008eb3;
+        }
+
+        .main-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .sub-btn {
+            background: transparent;
+            border: 1px solid #475569;
+            color: #64748b;
+            padding: 6px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .show { opacity: 1 !important; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="top-nav">
+            <h1>BBC Newsround Challenge</h1>
+            <a href="https://www.bbc.co.uk/newsround/news/watch_newsround" target="_blank" class="watch-link">▶ WATCH VIDEO</a>
+        </div>
+        
+        <div id="display-wrapper">
+            <div id="question-display">Ready?</div>
+            <div id="translation-display"></div>
+        </div>
+
+        <div class="controls">
+            <button class="main-btn" id="generate-btn" onclick="startRoll()">GET TASK</button>
+            <button class="sub-btn" id="trans-btn" onclick="toggleTranslation()" style="visibility: hidden;">Translate</button>
+        </div>
+    </div>
+
+<script>
+    const allQuestions = [
+        {en: "🟢 How many subjects were there in total?", nl: "Hoeveel onderwerpen waren er in totaal?"},
+        {en: "🟢 What were the subjects of today?", nl: "Wat waren de onderwerpen van vandaag?"},
+        {en: "🟢 For each subject, choose the topic: people, nature, sport, school, or something else.", nl: "Voor elk onderwerp kies je het thema: mensen, natuur, sport, school of iets anders."},
+        {en: "🟢 For each subject, choose the feeling: happy, sad, serious, funny, or something else.", nl: "Voor elk onderwerp kies je het gevoel: vrolijk, verdrietig, serieus, grappig of iets anders."},
+        {en: "🟢 Write down 3 key words from one subject.", nl: "Schrijf 3 kernwoorden op van één onderwerp."},
+        {en: "🟡 What was the very first subject? Summarise it in 5 sentences.", nl: "Wat was het allereerste onderwerp? Vat het samen in 5 zinnen."},
+        {en: "🟡 What was the very last subject? Summarise it in 5 sentences.", nl: "Wat was het allerlaatste onderwerp? Vat het samen in 5 zinnen."},
+        {en: "🟡 Explain each topic in one sentence.", nl: "Leg elk onderwerp uit in één zin."},
+        {en: "🟡 Choose one subject and explain it in simple words.", nl: "Kies één onderwerp en leg het simpel uit."},
+        {en: "🟡 Which subject did you like most? Why?", nl: "Welk onderwerp vond je het leukst? Waarom?"},
+        {en: "🟡 Which subject did you like least? Why?", nl: "Welk onderwerp vond je het minst leuk? Waarom?"},
+        {en: "🟡 Did you learn something new? What?", nl: "Heb je iets nieuws geleerd? Wat?"},
+        {en: "🟡 Which subject would you like to know more about?", nl: "Over welk onderwerp zou je meer willen weten?"},
+        {en: "🟡 Was there a subject you didn’t understand?", nl: "Was er een onderwerp dat je niet begreep?"},
+        {en: "🔴 If you were the editor, which subject would you skip?", nl: "Als jij de redacteur was, welk onderwerp zou je overslaan?"},
+        {en: "🔴 Give one subject a new headline.", nl: "Bedenk een nieuwe kop voor één onderwerp."},
+        {en: "🔴 Which subject would get the most likes on social media?", nl: "Welk onderwerp krijgt de meeste likes op social media?"},
+        {en: "🔴 What words did you hear more than once?", nl: "Welke woorden hoorde je vaker dan één keer?"}
+    ];
+
+    let currentNL = "";
+    let isRolling = false;
+
+    function fitText() {
+        const display = document.getElementById('question-display');
+        const wrapper = document.getElementById('display-wrapper');
+        
+        let fontSize = 160; 
+        display.style.fontSize = fontSize + "px";
+
+        const maxHeight = wrapper.clientHeight * 0.90;
+        const maxWidth = wrapper.clientWidth * 0.98;
+
+        while ((display.scrollHeight > maxHeight || display.scrollWidth > maxWidth) && fontSize > 40) {
+            fontSize -= 2;
+            display.style.fontSize = fontSize + "px";
+        }
+    }
+
+    function startRoll() {
+        if (isRolling) return;
+        isRolling = true;
+        
+        const display = document.getElementById('question-display');
+        const transDiv = document.getElementById('translation-display');
+        const transBtn = document.getElementById('trans-btn');
+        const mainBtn = document.getElementById('generate-btn');
+        
+        transDiv.classList.remove('show');
+        transBtn.style.visibility = "hidden";
+        display.classList.add('rolling');
+        mainBtn.disabled = true;
+
+        let counter = 0;
+        const interval = setInterval(() => {
+            const randomTemp = allQuestions[Math.floor(Math.random() * allQuestions.length)];
+            display.innerText = randomTemp.en;
+            fitText(); 
+            counter++;
+            
+            if (counter > 20) {
+                clearInterval(interval);
+                finalize();
+            }
+        }, 50);
+
+        function finalize() {
+            const final = allQuestions[Math.floor(Math.random() * allQuestions.length)];
+            display.innerText = final.en;
+            currentNL = final.nl;
+            fitText();
+            display.classList.remove('rolling');
+            transBtn.style.visibility = "visible";
+            mainBtn.disabled = false;
+            isRolling = false;
+        }
+    }
+
+    function toggleTranslation() {
+        const transDiv = document.getElementById('translation-display');
+        transDiv.classList.toggle('show');
+        transDiv.innerText = transDiv.classList.contains('show') ? currentNL : "";
+    }
+
+    window.onload = fitText;
+    window.addEventListener('resize', fitText);
+</script>
+
+</body>
+</html>
