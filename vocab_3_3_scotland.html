@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Scotland Vocab Challenge</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --scot-blue: #005eb8;
+            --neon-purple: #8b5cf6;
+            --correct: #10b981;
+            --wrong: #ef4444;
+            --gold: #fbbf24;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --easy-green: #22c55e;
+            --medium-orange: #f97316;
+            --hard-red: #ef4444;
+        }
+
+        body { 
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', -apple-system, sans-serif;
+            display: flex; justify-content: center; align-items: flex-start;
+            min-height: 100vh; margin: 0; padding-top: 20px;
+            touch-action: manipulation; /* Voorkomt onbedoeld inzoomen */
+        }
+
+        .scotland-app { 
+            width: 92%; max-width: 500px; 
+            background: var(--card-bg); padding: 1.5rem; 
+            border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            text-align: center; border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* Scotland Flag */
+        .flag-icon {
+            width: 50px; height: 32px; background-color: var(--scot-blue);
+            margin: 0 auto 10px; position: relative; border-radius: 4px;
+            overflow: hidden; border: 1px solid rgba(255,255,255,0.2);
+        }
+        .flag-icon::before, .flag-icon::after {
+            content: ""; position: absolute; top: 50%; left: 50%;
+            width: 150%; height: 5px; background: white;
+        }
+        .flag-icon::before { transform: translate(-50%, -50%) rotate(32deg); }
+        .flag-icon::after { transform: translate(-50%, -50%) rotate(-32deg); }
+
+        h2 { margin: 0 0 1rem; font-size: 1.5rem; }
+
+        .progress-container { background: rgba(255,255,255,0.05); border-radius: 20px; height: 12px; margin-bottom: 1.5rem; }
+        #progress-bar { background: linear-gradient(90deg, var(--scot-blue), var(--neon-purple)); width: 0%; height: 100%; border-radius: 20px; transition: 0.4s; }
+
+        .question-card { min-height: 200px; }
+        .sentence { font-size: 1.1rem; margin-bottom: 1rem; line-height: 1.4; }
+        .sentence b { color: var(--gold); }
+        
+        input { 
+            width: 100%; padding: 16px; border: 2px solid rgba(255,255,255,0.1); 
+            background: rgba(0,0,0,0.2); color: white; border-radius: 14px; 
+            font-size: 1.2rem; text-align: center; margin-bottom: 15px;
+            /* iPad specifieke instellingen */
+            -webkit-appearance: none; appearance: none;
+        }
+        input.is-correct { border-color: var(--correct); background: rgba(16, 185, 129, 0.1); }
+        input.is-wrong { border-color: var(--wrong); background: rgba(239, 68, 68, 0.1); }
+
+        #feedback-msg { min-height: 24px; font-size: 0.95rem; margin-bottom: 15px; font-weight: 600; }
+        
+        .btn-main {
+            width: 100%; padding: 18px; border-radius: 14px; border: none;
+            font-weight: 800; cursor: pointer; text-transform: uppercase; font-size: 1rem;
+        }
+        #check-btn { background: var(--scot-blue); color: white; }
+        #next-btn { background: var(--neon-purple); color: white; display: none; }
+
+        .level-select { display: flex; gap: 8px; margin-top: 25px; }
+        .level-select button { 
+            flex: 1; padding: 12px 5px; border-radius: 12px; border: 2px solid transparent; 
+            cursor: pointer; color: white; font-size: 0.8rem; font-weight: bold;
+            opacity: 0.4; transition: 0.2s;
+        }
+        #l-easy { background-color: var(--easy-green); }
+        #l-medium { background-color: var(--medium-orange); }
+        #l-hard { background-color: var(--hard-red); }
+        .level-select button.active { opacity: 1; border-color: white; transform: scale(1.05); }
+    </style>
+</head>
+<body>
+
+<div class="scotland-app">
+    <div class="flag-icon"></div>
+    <h2>Scotland Vocab Challenge</h2>
+    <div id="stat-text" style="font-size: 0.9rem; margin-bottom: 8px; color: var(--text-dim);">Question 1/10</div>
+    <div class="progress-container"><div id="progress-bar"></div></div>
+
+    <div class="question-card">
+        <div id="sentence-display" class="sentence"></div>
+        <div id="hint-display" style="color:var(--text-dim); margin-bottom:10px; font-weight:bold;"></div>
+        <input type="text" id="answer-input" placeholder="Tap to type..." 
+               autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="off">
+        <div id="feedback-msg"></div>
+        
+        <button id="check-btn" class="btn-main" onclick="processAnswer()">Check Answer</button>
+        <button id="next-btn" class="btn-main" onclick="nextQuestion()">Next Question →</button>
+    </div>
+
+    <div class="level-select">
+        <button id="l-easy" onclick="startGame('easy')">Easy</button>
+        <button id="l-medium" onclick="startGame('medium')">Medium</button>
+        <button id="l-hard" onclick="startGame('hard')">Hard</button>
+    </div>
+</div>
+
+<script>
+const allWords = [
+    {nl: "geschiedenis", en: "history", context: "Scotland has a very old <b>history</b>."},
+    {nl: "land", en: "country", context: "Scotland is a beautiful <b>country</b>."},
+    {nl: "dapper", en: "brave", context: "The knights were very <b>brave</b>."},
+    {nl: "stam", en: "tribe", context: "A <b>tribe</b> called the Picts lived here."},
+    {nl: "kasteel", en: "castle", context: "Edinburgh has a famous <b>castle</b>."},
+    {nl: "koning", en: "king", context: "He was a famous Scottish <b>king</b>."},
+    {nl: "oorlog", en: "war", context: "There was a long <b>war</b> for freedom."},
+    {nl: "vrijheid", en: "freedom", context: "The people fought for their <b>freedom</b>."},
+    {nl: "held", en: "hero", context: "William Wallace is a national <b>hero</b>."},
+    {nl: "cultuur", en: "culture", context: "Bagpipes are part of Scottish <b>culture</b>."},
+    {nl: "erfgoed", en: "heritage", context: "We must protect our <b>heritage</b>."},
+    {nl: "soldaat", en: "soldier", context: "The <b>soldier</b> wore a kilt."},
+    {nl: "dorp", en: "village", context: "I live in a small <b>village</b>."},
+    {nl: "hoofdstad", en: "capital city", context: "Edinburgh is the <b>capital city</b>."},
+    {nl: "toekomst", en: "future", context: "What will the <b>future</b> bring?"}
+];
+
+let currentLevel = 'easy';
+let currentSelection = [];
+let currentIndex = 0;
+
+function startGame(lvl) {
+    currentLevel = lvl;
+    currentIndex = 0;
+    currentSelection = [...allWords].sort(() => 0.5 - Math.random()).slice(0, 10);
+    document.querySelectorAll('.level-select button').forEach(b => b.classList.remove('active'));
+    document.getElementById('l-' + lvl).classList.add('active');
+    showQuestion();
+}
+
+function showQuestion() {
+    const word = currentSelection[currentIndex];
+    const input = document.getElementById('answer-input');
+    const msg = document.getElementById('feedback-msg');
+    
+    input.value = ""; input.className = ""; input.disabled = false;
+    msg.innerText = "";
+    document.getElementById('check-btn').style.display = "block";
+    document.getElementById('next-btn').style.display = "none";
+    
+    document.getElementById('stat-text').innerText = `Question ${currentIndex + 1}/10`;
+    document.getElementById('progress-bar').style.width = (currentIndex * 10) + "%";
+    document.getElementById('sentence-display').innerHTML = word.context.replace(new RegExp(word.en, 'gi'), '______');
+    
+    let hint = `Translate: ${word.nl}`;
+    if(currentLevel === 'easy') hint += ` (Starts with: ${word.en[0].toUpperCase()})`;
+    if(currentLevel === 'medium') hint += ` (${word.en.length} letters)`;
+    document.getElementById('hint-display').innerText = hint;
+    
+    // Op iPad is auto-focus soms lastig, we laten de leerling zelf tappen voor het toetsenbord
+}
+
+function processAnswer() {
+    const input = document.getElementById('answer-input');
+    const msg = document.getElementById('feedback-msg');
+    const userAns = input.value.toLowerCase().trim();
+    const correctAns = currentSelection[currentIndex].en.toLowerCase();
+
+    if (userAns === correctAns) {
+        input.className = "is-correct";
+        input.disabled = true;
+        msg.className = "msg-success";
+        msg.innerText = "Correct! Well done.";
+        document.getElementById('check-btn').style.display = "none";
+        document.getElementById('next-btn').style.display = "block";
+        if(currentIndex === 9) document.getElementById('next-btn').innerText = "Finish Mission 🏆";
+    } else {
+        input.className = "is-wrong";
+        msg.className = "msg-error";
+        msg.innerText = getSmartFeedback(userAns, correctAns);
+    }
+}
+
+function getSmartFeedback(user, correct) {
+    if (!user) return "Type your answer first!";
+    if (user === correct) return "Perfect!";
+    
+    // Swapped letters
+    if (user.length === correct.length) {
+        let diff = [];
+        for(let i=0; i<user.length; i++) if(user[i] !== correct[i]) diff.push(i);
+        if(diff.length === 2 && user[diff[0]] === correct[diff[1]] && user[diff[1]] === correct[diff[0]]) return "Check the letter order!";
+    }
+    
+    // Spelling mistake
+    let mistakes = 0;
+    let i = 0, j = 0;
+    while (i < user.length && j < correct.length) {
+        if (user[i] !== correct[j]) { mistakes++; i++; j++; } else { i++; j++; }
+    }
+    mistakes += Math.abs(user.length - correct.length);
+    
+    return mistakes <= 2 ? "Almost! Check your spelling." : "Try again!";
+}
+
+function nextQuestion() {
+    currentIndex++;
+    if(currentIndex < 10) showQuestion();
+    else { alert("Mission Complete!"); startGame(currentLevel); }
+}
+
+// Support voor 'Enter' op iPad toetsenbord
+document.getElementById('answer-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        if (document.getElementById('check-btn').style.display !== "none") processAnswer();
+        else if (document.getElementById('next-btn').style.display !== "none") nextQuestion();
+    }
+});
+
+startGame('easy');
+</script>
+
+</body>
+</html>
