@@ -317,21 +317,15 @@
             document.getElementById('lvl-title').innerText = "Individual Quest";
             document.getElementById('game-content').innerHTML = `<div class="story-text">The world is in chaos.
 
-Two grammar forces are fighting for control: Have and Have got. Their battle has twisted sentences and scattered glowing grammar shards across the Realms. Worst of all, they have mixed up how we ask questions and make negatives.
+Have and Have got are fighting. Their battle has mixed up questions and negatives.
 
-Now, nobody knows what is right anymore.
+You must fix it.
 
-You have been chosen to restore order.
+Travel through five Realms and collect grammar shards by choosing the correct form.
 
-Travel through five magical Realms. In each Realm, complete challenges that test your knowledge of have and have got. Every correct answer returns a grammar shard to its place and brings clarity back to the world.
+Be careful…
 
-You will need focus, sharp thinking, and careful reading to win this battle.
-
-But be careful…
-
-In the Water Realm, you have only five lives.
-
-Choose wisely. Collect the shards. Bring balance back to grammar.</div><button class="btn-action" onclick="lvl=1; save(); init();">Start Quest</button>`;
+In the Water Realm, you have got five lives.</div><button class="btn-action" onclick="lvl=1; save(); init();">Start Quest</button>`;
         } else if (lvl > 5) { showFinalWin(); } 
         else {
             document.getElementById('shard-viz').style.display = 'flex';
@@ -423,4 +417,5 @@ Choose wisely. Collect the shards. Bring balance back to grammar.</div><button c
 </script>
 </body>
 </html>
+
 
