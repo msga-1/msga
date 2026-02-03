@@ -95,32 +95,202 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        const QUESTIONS = [
-            { p: "This car is ___ than that one. (fast)", a: "faster" },
-            { p: "It's the ___ car in the race. (fast)", a: "fastest" },
-            { p: "London is ___ than my village. (big)", a: "bigger" },
-            { p: "Tokyo is the ___ city. (big)", a: "biggest" },
-            { p: "Ice is ___ than water. (cold)", a: "colder" },
-            { p: "Antarctica is the ___ place. (cold)", a: "coldest" },
-            { p: "The sun is ___ than the moon. (hot)", a: "hotter" },
-            { p: "July is the ___ month. (hot)", a: "hottest" },
-            { p: "A giraffe is ___ than a horse. (tall)", a: "taller" },
-            { p: "He is the ___ boy in class. (tall)", a: "tallest" },
-            { p: "This box is ___ than that one. (small)", a: "smaller" },
-            { p: "It's the ___ gift here. (small)", a: "smallest" },
-            { p: "This rope is ___ than yours. (long)", a: "longer" },
-            { p: "This is the ___ movie ever. (long)", a: "longest" },
-            { p: "My dad is ___ than my uncle. (old)", a: "older" },
-            { p: "That is the ___ tree. (old)", a: "oldest" },
-            { p: "This wall is ___ than that one. (low)", a: "lower" },
-            { p: "A plane flies ___ than a bird. (high)", a: "higher" },
-            { p: "Steel is ___ than wood. (hard)", a: "harder" },
-            { p: "This is the ___ test. (hard)", a: "hardest" },
-            { p: "Your bike is ___ than mine. (new)", a: "newer" },
-            { p: "The lake is ___ than the pool. (deep)", a: "deeper" },
-            { p: "He is ___ than his brother. (young)", a: "younger" },
-            { p: "This shirt is ___ than that. (clean)", a: "cleaner" }
-        ];
+const QUESTIONS = [
+    // FAST
+    { p: "This car is ___ than that one. (fast)", a: "faster" },
+    { p: "It's the ___ car in the race. (fast)", a: "fastest" },
+    { p: "He runs ___ than his friend. (fast)", a: "faster" },
+    // BIG (Double consonant)
+    { p: "London is ___ than my village. (big)", a: "bigger" },
+    { p: "Tokyo is the ___ city. (big)", a: "biggest" },
+    { p: "An elephant is ___ than a lion. (big)", a: "bigger" },
+    { p: "That is the ___ cake I've seen. (big)", a: "biggest" },
+    // COLD
+    { p: "Ice is ___ than water. (cold)", a: "colder" },
+    { p: "Antarctica is the ___ place. (cold)", a: "coldest" },
+    { p: "Winter is ___ than autumn. (cold)", a: "colder" },
+    { p: "The ___ drink is for me. (cold)", a: "coldest" },
+    // HOT (Double consonant)
+    { p: "The sun is ___ than the moon. (hot)", a: "hotter" },
+    { p: "July is the ___ month. (hot)", a: "hottest" },
+    { p: "This coffee is ___ than yours. (hot)", a: "hotter" },
+    { p: "That was the ___ day of the year. (hot)", a: "hottest" },
+    // TALL
+    { p: "A giraffe is ___ than a horse. (tall)", a: "taller" },
+    { p: "He is the ___ boy in class. (tall)", a: "tallest" },
+    { p: "The skyscraper is ___ than the house. (tall)", a: "taller" },
+    { p: "Who is the ___ person in your family? (tall)", a: "tallest" },
+    // SMALL
+    { p: "This box is ___ than that one. (small)", a: "smaller" },
+    { p: "It's the ___ gift here. (small)", a: "smallest" },
+    { p: "A mouse is ___ than a cat. (small)", a: "smaller" },
+    { p: "That is the ___ bird in the world. (small)", a: "smallest" },
+    // LONG
+    { p: "This rope is ___ than yours. (long)", a: "longer" },
+    { p: "This is the ___ movie ever. (long)", a: "longest" },
+    { p: "A snake is ___ than a worm. (long)", a: "longer" },
+    { p: "The Nile is the ___ river. (long)", a: "longest" },
+    // OLD
+    { p: "My dad is ___ than my uncle. (old)", a: "older" },
+    { p: "That is the ___ tree. (old)", a: "oldest" },
+    { p: "This book is ___ than that one. (old)", a: "older" },
+    { p: "Who is the ___ student? (old)", a: "oldest" },
+    // YOUNG
+    { p: "He is ___ than his brother. (young)", a: "younger" },
+    { p: "She is the ___ student. (young)", a: "youngest" },
+    { p: "The puppy is ___ than the dog. (young)", a: "younger" },
+    { p: "I am the ___ in my family. (young)", a: "youngest" },
+    // HIGH
+    { p: "A plane flies ___ than a bird. (high)", a: "higher" },
+    { p: "That is the ___ mountain. (high)", a: "highest" },
+    { p: "The jump was ___ than before. (high)", a: "higher" },
+    { p: "This is the ___ level. (high)", a: "highest" },
+    // LOW
+    { p: "This wall is ___ than that one. (low)", a: "lower" },
+    { p: "The price is at its ___ point. (low)", a: "lowest" },
+    { p: "The temperature is ___ today. (low)", a: "lower" },
+    { p: "That was the ___ score ever. (low)", a: "lowest" },
+    // HARD
+    { p: "Steel is ___ than wood. (hard)", a: "harder" },
+    { p: "This is the ___ test. (hard)", a: "hardest" },
+    { p: "The floor is ___ than the rug. (hard)", a: "harder" },
+    { p: "Diamond is the ___ stone. (hard)", a: "hardest" },
+    // NEW
+    { p: "Your bike is ___ than mine. (new)", a: "newer" },
+    { p: "This is the ___ model. (new)", a: "newest" },
+    { p: "My phone is ___ than yours. (new)", a: "newer" },
+    { p: "Is that the ___ version? (new)", a: "newest" },
+    // DEEP
+    { p: "The lake is ___ than the pool. (deep)", a: "deeper" },
+    { p: "This is the ___ part of the sea. (deep)", a: "deepest" },
+    { p: "The hole is ___ than yesterday. (deep)", a: "deeper" },
+    { p: "Who can dive the ___? (deep)", a: "deepest" },
+    // CLEAN
+    { p: "This shirt is ___ than that. (clean)", a: "cleaner" },
+    { p: "It's the ___ kitchen. (clean)", a: "cleanest" },
+    { p: "My room is ___ than yours. (clean)", a: "cleaner" },
+    { p: "This is the ___ car. (clean)", a: "cleanest" },
+    // SHORT
+    { p: "A pen is ___ than a ruler. (short)", a: "shorter" },
+    { p: "He is the ___ in class. (short)", a: "shortest" },
+    { p: "This story is ___ than that. (short)", a: "shorter" },
+    { p: "February is the ___ month. (short)", a: "shortest" },
+    // WARM
+    { p: "Today is ___ than yesterday. (warm)", a: "warmer" },
+    { p: "It's the ___ day of spring. (warm)", a: "warmest" },
+    { p: "My soup is ___ than yours. (warm)", a: "warmer" },
+    { p: "This is the ___ jacket. (warm)", a: "warmest" },
+    // LIGHT
+    { p: "This bag is ___ than that. (light)", a: "lighter" },
+    { p: "It's the ___ box. (light)", a: "lightest" },
+    { p: "Feathers are ___ than stones. (light)", a: "lighter" },
+    { p: "This is the ___ color. (light)", a: "lightest" },
+    // DARK
+    { p: "The night is ___ than the day. (dark)", a: "darker" },
+    { p: "This is the ___ room. (dark)", a: "darkest" },
+    { p: "The sky is ___ tonight. (dark)", a: "darker" },
+    { p: "It was the ___ forest. (dark)", a: "darkest" },
+    // STRONG
+    { p: "He is ___ than his cousin. (strong)", a: "stronger" },
+    { p: "She is the ___ woman. (strong)", a: "strongest" },
+    { p: "The wind is ___ today. (strong)", a: "stronger" },
+    { p: "That is the ___ coffee. (strong)", a: "strongest" },
+    // WEAK
+    { p: "My legs are ___ than yours. (weak)", a: "weaker" },
+    { p: "He is the ___ player. (weak)", a: "weakest" },
+    { p: "The signal is ___ here. (weak)", a: "weaker" },
+    { p: "That was the ___ link. (weak)", a: "weakest" },
+    // SOFT
+    { p: "Silk is ___ than cotton. (soft)", a: "softer" },
+    { p: "This is the ___ pillow. (soft)", a: "softest" },
+    { p: "The wool is ___ now. (soft)", a: "softer" },
+    { p: "She has the ___ voice. (soft)", a: "softest" },
+    // LOUD
+    { p: "The music is ___ than before. (loud)", a: "louder" },
+    { p: "He is the ___ person. (loud)", a: "loudest" },
+    { p: "That thunder was ___! (loud)", a: "louder" },
+    { p: "Who can scream the ___? (loud)", a: "loudest" },
+    // WIDE (Ends in -e)
+    { p: "The street is ___ than ours. (wide)", a: "wider" },
+    { p: "It's the ___ river. (wide)", a: "widest" },
+    { p: "Open your mouth ___! (wide)", a: "wider" },
+    { p: "This is the ___ screen. (wide)", a: "widest" },
+    // LARGE (Ends in -e)
+    { p: "The room is ___ than mine. (large)", a: "larger" },
+    { p: "That is the ___ boat. (large)", a: "largest" },
+    { p: "My house is ___ than yours. (large)", a: "larger" },
+    { p: "What is the ___ animal? (large)", a: "largest" },
+    // BRAVE (Ends in -e)
+    { p: "He is ___ than a lion. (brave)", a: "braver" },
+    { p: "She is the ___ girl. (brave)", a: "bravest" },
+    { p: "Be ___ than before. (brave)", a: "braver" },
+    { p: "He was the ___ knight. (brave)", a: "bravest" },
+    // NICE (Ends in -e)
+    { p: "She is ___ than her sister. (nice)", a: "nicer" },
+    { p: "He is the ___ teacher. (nice)", a: "nicest" },
+    { p: "Your garden is ___ than mine. (nice)", a: "nicer" },
+    { p: "That was the ___ thing to say. (nice)", a: "nicest" },
+    // SAFE (Ends in -e)
+    { p: "The car is ___ than the bike. (safe)", a: "safer" },
+    { p: "It's the ___ place. (safe)", a: "safest" },
+    { p: "Is this road ___? (safe)", a: "safer" },
+    { p: "This is the ___ city. (safe)", a: "safest" },
+    // FAT (Double consonant)
+    { p: "This cat is ___ than that one. (fat)", a: "fatter" },
+    { p: "He is the ___ man here. (fat)", a: "fattest" },
+    { p: "The pig grew ___! (fat)", a: "fatter" },
+    { p: "That is the ___ hamster. (fat)", a: "fattest" },
+    // THIN (Double consonant)
+    { p: "The paper is ___ than the card. (thin)", a: "thinner" },
+    { p: "She is the ___ model. (thin)", a: "thinnest" },
+    { p: "My slice is ___ than yours. (thin)", a: "thinner" },
+    { p: "This is the ___ wire. (thin)", a: "thinnest" },
+    // SAD (Double consonant)
+    { p: "He looks ___ than yesterday. (sad)", a: "sadder" },
+    { p: "It was the ___ day. (sad)", a: "saddest" },
+    { p: "The movie was ___ than I thought. (sad)", a: "sadder" },
+    { p: "That is the ___ song. (sad)", a: "saddest" },
+    // WET (Double consonant)
+    { p: "The grass is ___ than the road. (wet)", a: "wetter" },
+    { p: "This is the ___ shirt. (wet)", a: "wettest" },
+    { p: "I am ___ than you! (wet)", a: "wetter" },
+    { p: "It was the ___ summer. (wet)", a: "wettest" },
+    // SLOW
+    { p: "A snail is ___ than a rabbit. (slow)", a: "slower" },
+    { p: "He is the ___ walker. (slow)", a: "slowest" },
+    { p: "This computer is ___ than mine. (slow)", a: "slower" },
+    { p: "It's the ___ bus. (slow)", a: "slowest" },
+    // BRIGHT
+    { p: "The sun is ___ than the lamp. (bright)", a: "brighter" },
+    { p: "This is the ___ star. (bright)", a: "brightest" },
+    { p: "Your room is ___ than mine. (bright)", a: "brighter" },
+    { p: "She is the ___ student. (bright)", a: "brightest" },
+    // CLEAR
+    { p: "The water is ___ than before. (clear)", a: "clearer" },
+    { p: "That is the ___ photo. (clear)", a: "clearest" },
+    { p: "The sky is ___ today. (clear)", a: "clearer" },
+    { p: "This is the ___ example. (clear)", a: "clearest" },
+    // SWEET
+    { p: "This apple is ___ than that one. (sweet)", a: "sweeter" },
+    { p: "It's the ___ candy. (sweet)", a: "sweetest" },
+    { p: "Honey is ___ than sugar. (sweet)", a: "sweeter" },
+    { p: "She is the ___ girl. (sweet)", a: "sweetest" },
+    // RICH
+    { p: "He is ___ than his neighbor. (rich)", a: "richer" },
+    { p: "She is the ___ woman. (rich)", a: "richest" },
+    { p: "This country is ___ than that. (rich)", a: "richer" },
+    { p: "Who is the ___ person? (rich)", a: "richest" },
+    // POOR
+    { p: "The family is ___ than before. (poor)", a: "poorer" },
+    { p: "It's the ___ area. (poor)", a: "poorest" },
+    { p: "He grew ___ after the war. (poor)", a: "poorer" },
+    { p: "This is the ___ village. (poor)", a: "poorest" },
+    // SMART
+    { p: "He is ___ than his friend. (smart)", a: "smarter" },
+    { p: "She is the ___ in class. (smart)", a: "smartest" },
+    { p: "The dog is ___ than the cat. (smart)", a: "smarter" },
+    { p: "That was a ___ move! (smart)", a: "smarter" }
+];
 
         const App = () => {
             const [phase, setPhase] = useState('START');
@@ -261,3 +431,4 @@
     </script>
 </body>
 </html>
+
