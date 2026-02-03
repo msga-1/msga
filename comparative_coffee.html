@@ -33,7 +33,7 @@
             align-items: center;
             justify-content: center;
             border: 14px solid #6f4e37;
-            overflow: hidden; /* Zorgt dat bonen binnen de cirkel blijven */
+            overflow: hidden;
         }
 
         .bean-container {
@@ -45,7 +45,7 @@
             height: 100%;
             align-content: center;
             justify-items: center;
-            border-radius: 50%; /* Maakt de grid zelf ook rond */
+            border-radius: 50%;
         }
 
         .bean {
@@ -59,6 +59,7 @@
             100% { transform: scale(1); opacity: 1; }
         }
 
+        /* GROTERE LETTERS VOOR BEHAALD REALM */
         .achievement-text {
             font-size: 3.5rem !important; 
             color: #3c2a21;
@@ -73,6 +74,19 @@
         @keyframes pop {
             0% { transform: scale(0.5); opacity: 0; }
             100% { transform: scale(1); opacity: 1; }
+        }
+
+        .shake {
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+            border-bottom-color: #ef4444 !important;
+            color: #ef4444 !important;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
         }
 
         .steam {
@@ -95,7 +109,7 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-const QUESTIONS = [
+        const QUESTIONS = [
     // FAST
     { p: "This car is ___ than that one. (fast)", a: "faster" },
     { p: "It's the ___ car in the race. (fast)", a: "fastest" },
@@ -301,6 +315,7 @@ const QUESTIONS = [
             const [input, setInput] = useState("");
             const [isBrewing, setIsBrewing] = useState(false);
             const [showSuccess, setShowSuccess] = useState(false);
+            const [isError, setIsError] = useState(false);
             
             const inputRef = useRef(null);
 
@@ -320,21 +335,20 @@ const QUESTIONS = [
             const nextQuestion = () => {
                 setCurrentQ(QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)]);
                 setInput("");
+                setIsError(false);
                 setTimeout(() => inputRef.current?.focus(), 10);
             };
 
             const handleSubmit = (e) => {
                 e.preventDefault();
-                if (isBrewing) return;
+                if (isBrewing || isError) return;
 
                 if (input.toLowerCase().trim() === currentQ.a.toLowerCase()) {
                     const nextBeans = beans + 1;
-                    
                     if (nextBeans === 10) {
                         setBeans(10);
                         setIsBrewing(true);
                         setShowSuccess(true);
-                        
                         setTimeout(() => {
                             setCupsServed(prev => prev + 1);
                             setBeans(0);
@@ -347,7 +361,12 @@ const QUESTIONS = [
                         nextQuestion();
                     }
                 } else {
-                    setInput("");
+                    setIsError(true);
+                    setTimeout(() => {
+                        setIsError(false);
+                        setInput("");
+                        inputRef.current?.focus();
+                    }, 600); // Korte pauze voor de shake-animatie
                 }
             };
 
@@ -385,19 +404,25 @@ const QUESTIONS = [
                             )}
 
                             {!isBrewing && (
-                                <form onSubmit={handleSubmit} className="w-full bg-white p-8 rounded-[30px] shadow-xl border-b-4 border-amber-200">
-                                    <p className="text-xl text-center text-amber-950 font-bold">
-                                        {currentQ?.p.split("___")[0]}
-                                        <input 
-                                            ref={inputRef}
-                                            className="mx-2 border-b-4 border-amber-600 bg-amber-50 w-full md:w-64 text-center outline-none py-1 text-amber-900 block md:inline-block mt-4 md:mt-0"
-                                            value={input}
-                                            onChange={(e) => setInput(e.target.value)}
-                                            autoComplete="off"
-                                        />
-                                        {currentQ?.p.split("___")[1]}
-                                    </p>
-                                </form>
+                                <div className="w-full">
+                                    <form onSubmit={handleSubmit} className="w-full bg-white p-8 rounded-[30px] shadow-xl border-b-4 border-amber-200">
+                                        <p className="text-xl text-center text-amber-950 font-bold">
+                                            {currentQ?.p.split("___")[0]}
+                                            <input 
+                                                ref={inputRef}
+                                                className={`mx-2 border-b-4 border-amber-600 bg-amber-50 w-full md:w-64 text-center outline-none py-1 text-amber-900 block md:inline-block mt-4 md:mt-0 transition-all ${isError ? 'shake' : ''}`}
+                                                value={input}
+                                                onChange={(e) => setInput(e.target.value)}
+                                                autoComplete="off"
+                                                disabled={isError}
+                                            />
+                                            {currentQ?.p.split("___")[1]}
+                                        </p>
+                                    </form>
+                                    {isError && (
+                                        <p className="text-center text-red-600 font-bold mt-2 animate-bounce">Try again!</p>
+                                    )}
+                                </div>
                             )}
                         </div>
                     )}
@@ -431,4 +456,3 @@ const QUESTIONS = [
     </script>
 </body>
 </html>
-
