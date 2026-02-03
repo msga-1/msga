@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cake Dash - Possessives Expert</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@700&display=swap');
+        body, html { margin: 0; padding: 0; font-family: 'Quicksand', sans-serif; background: #fdf2f8; height: 100dvh; overflow: hidden; touch-action: manipulation; }
+        h1, h2, button { font-family: 'Fredoka One', cursive; }
+
+        .cake-plate { position: relative; width: min(65vw, 280px); height: min(65vw, 280px); background: #ffffff; border-radius: 50%; box-shadow: 0 15px 30px rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: center; border: min(3vw, 10px) solid #fce7f3; }
+        .cake-canvas { position: relative; width: 90%; height: 90%; border-radius: 50%; overflow: hidden; }
+        .slice { position: absolute; width: 100%; height: 100%; background: conic-gradient(from var(--start-deg), #f472b6 0deg, #f472b6 51.7deg, transparent 51.7deg); transform-origin: center; }
+        .topping-overlay { position: absolute; inset: 0; z-index: 20; opacity: 0; transform: scale(0.8); transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .toppings-ready .topping-overlay { opacity: 1; transform: scale(1); }
+        .topping { position: absolute; transform: translate(-50%, -50%); }
+        .sprinkle { background: #818cf8; width: 2%; height: 6%; border-radius: 20px; }
+        .cherry { background: #ef4444; width: 10%; height: 10%; border-radius: 50%; }
+        .cream { background: #ffffff; width: 12%; height: 12%; border-radius: 50%; border: 2px solid #fce7f3; }
+        .frosting-ring { position: absolute; inset: 0; border-radius: 50%; border: min(3.5vw, 12px) solid #db2777; z-index: 30; mask: conic-gradient(from 0deg, black var(--progress), transparent 0deg); -webkit-mask: conic-gradient(from 0deg, black var(--progress), transparent 0deg); }
+        
+        .cake-box { width: 70px; height: 28px; background: white; border: 2px solid #fbcfe8; border-bottom: 4px solid #f9a8d4; margin-bottom: 2px; border-radius: 4px; position: relative; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+        .fly-away { transform: translate(-150%, -50%) scale(0) rotate(-180deg); opacity: 0; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
+
+        const QUESTIONS = [
+            // --- MENS / DIER ENKELVOUD ('S) ---
+            { p: "I see ___. (my uncle / car)", a: "my uncle's car" },
+            { p: "Look at ___. (Lisa / bike)", a: "Lisa's bike" },
+            { p: "This is ___. (the cat / food)", a: "the cat's food" },
+            { p: "Where is ___. (the teacher / house)", a: "the teacher's house" },
+            { p: "I like ___. (Peter / eyes)", a: "Peter's eyes" },
+            { p: "That is ___. (Sarah / laptop)", a: "Sarah's laptop" },
+            { p: "I found ___. (the boy / phone)", a: "the boy's phone" },
+            { p: "This is ___. (my sister / room)", a: "my sister's room" },
+            { p: "Look at ___. (the dog / tail)", a: "the dog's tail" },
+            { p: "I heard ___. (the bird / song)", a: "the bird's song" },
+            { p: "Where is ___. (the doctor / car)", a: "the doctor's car" },
+            { p: "I love ___. (my grandma / cake)", a: "my grandma's cake" },
+            { p: "That is ___. (James / coat)", a: "James's coat" },
+            { p: "This is ___. (the baby / bottle)", a: "the baby's bottle" },
+            { p: "I see ___. (the neighbor / garden)", a: "the neighbor's garden" },
+            { p: "Look at ___. (my dad / watch)", a: "my dad's watch" },
+            { p: "That is ___. (the nurse / desk)", a: "the nurse's desk" },
+            { p: "I like ___. (Tom / idea)", a: "Tom's idea" },
+            { p: "Where is ___. (the pilot / bag)", a: "the pilot's bag" },
+            { p: "This is ___. (my friend / secret)", a: "my friend's secret" },
+            { p: "I found ___. (the girl / hat)", a: "the girl's hat" },
+            { p: "Look at ___. (the horse / saddle)", a: "the horse's saddle" },
+            { p: "That is ___. (the chef / knife)", a: "the chef's knife" },
+            { p: "This is ___. (my brother / game)", a: "my brother's game" },
+            { p: "I see ___. (the king / crown)", a: "the king's crown" },
+            { p: "Where is ___. (the queen / ring)", a: "the queen's ring" },
+            { p: "Look at ___. (the lion / mane)", a: "the lion's mane" },
+            { p: "This is ___. (Emily / drawing)", a: "Emily's drawing" },
+            { p: "I found ___. (the driver / license)", a: "the driver's license" },
+            { p: "That is ___. (the actor / script)", a: "the actor's script" },
+            { p: "I like ___. (my mom / scarf)", a: "my mom's scarf" },
+            { p: "Where is ___. (the farmer / tractor)", a: "the farmer's tractor" },
+            { p: "Look at ___. (the mouse / cheese)", a: "the mouse's cheese" },
+            { p: "This is ___. (the astronaut / suit)", a: "the astronaut's suit" },
+            { p: "I see ___. (the rabbit / ears)", a: "the rabbit's ears" },
+            { p: "That is ___. (the baker / bread)", a: "the baker's bread" },
+            { p: "I found ___. (the policeman / whistle)", a: "the policeman's whistle" },
+            { p: "Where is ___. (the coach / whistle)", a: "the coach's whistle" },
+            { p: "Look at ___. (the dancer / shoes)", a: "the dancer's shoes" },
+            { p: "This is ___. (the student / pen)", a: "the student's pen" },
+            { p: "I see ___. (the wolf / den)", a: "the wolf's den" },
+            { p: "That is ___. (Harry / owl)", a: "Harry's owl" },
+            { p: "I found ___. (the gardener / tools)", a: "the gardener's tools" },
+            { p: "Where is ___. (the singer / mic)", a: "the singer's mic" },
+            { p: "Look at ___. (the elephant / trunk)", a: "the elephant's trunk" },
+            { p: "This is ___. (my cousin / ball)", a: "my cousin's ball" },
+            { p: "I see ___. (the spider / web)", a: "the spider's web" },
+            { p: "That is ___. (the monkey / banana)", a: "the monkey's banana" },
+            { p: "I found ___. (the pirate / gold)", a: "the pirate's gold" },
+            { p: "Where is ___. (the captain / ship)", a: "the captain's ship" },
+            { p: "___. (Mister Sebel / lessons) are amazing.", a: "Mister Sebel's lessons" },{ p: "I see ___. (the boy / bike)", a: "the boy's bike" },
+    { p: "Look at ___. (the girl / dress)", a: "the girl's dress" },
+    { p: "That is ___. (Mr. Smith / car)", a: "Mr. Smith's car" },
+    { p: "Where is ___. (the lady / purse)", a: "the lady's purse" },
+    { p: "I like ___. (the cat / whiskers)", a: "the cat's whiskers" },
+    { p: "This is ___. (my aunt / kitchen)", a: "my aunt's kitchen" },
+    { p: "Look at ___. (the bird / wing)", a: "the bird's wing" },
+    { p: "I found ___. (the baby / shoe)", a: "the baby's shoe" },
+    { p: "That is ___. (the waiter / tray)", a: "the waiter's tray" },
+    { p: "Where is ___. (the artist / brush)", a: "the artist's brush" },
+    { p: "I love ___. (the dog / bone)", a: "the dog's bone" },
+    { p: "This is ___. (the teacher / desk)", a: "the teacher's desk" },
+    { p: "Look at ___. (the turtle / shell)", a: "the turtle's shell" },
+    { p: "I see ___. (the cow / milk)", a: "the cow's milk" },
+    { p: "That is ___. (the judge / robe)", a: "the judge's robe" },
+
+            // --- MENS / DIER MEERVOUD (S') ---
+            { p: "This is the ___. (boys / room)", a: "boys' room" },
+            { p: "Look at the ___. (teachers / office)", a: "teachers' office" },
+            { p: "Those are the ___. (dogs / toys)", a: "dogs' toys" },
+            { p: "Welcome to our ___. (parents / garden)", a: "parents' garden" },
+            { p: "I found the ___. (students / bags)", a: "students' bags" },
+            { p: "This is the ___. (girls / club)", a: "girls' club" },
+            { p: "I see the ___. (birds / nests)", a: "birds' nests" },
+            { p: "Where are the ___. (doctors / cars)", a: "doctors' cars" },
+            { p: "Those are the ___. (cats / beds)", a: "cats' beds" },
+            { p: "Look at the ___. (players / shirts)", a: "players' shirts" },
+            { p: "This is the ___. (sisters / house)", a: "sisters' house" },
+            { p: "I found the ___. (drivers / keys)", a: "drivers' keys" },
+            { p: "Where are the ___. (pilots / uniforms)", a: "pilots' uniforms" },
+            { p: "Look at the ___. (bears / cave)", a: "bears' cave" },
+            { p: "Those are the ___. (babies / toys)", a: "babies' toys" },
+            { p: "This is the ___. (farmers / market)", a: "farmers' market" },
+            { p: "I see the ___. (rabbits / hole)", a: "rabbits' hole" },
+            { p: "Where are the ___. (nurses / coats)", a: "nurses' coats" },
+            { p: "Those are the ___. (actors / masks)", a: "actors' masks" },
+            { p: "Look at the ___. (lions / cubs)", a: "lions' cubs" },
+            { p: "This is the ___. (friends / party)", a: "friends' party" },
+            { p: "I found the ___. (workers / tools)", a: "workers' tools" },
+            { p: "Where are the ___. (soldiers / boots)", a: "soldiers' boots" },
+            { p: "Look at the ___. (monkeys / tails)", a: "monkeys' tails" },
+            { p: "Those are the ___. (grandparents / photos)", a: "grandparents' photos" },
+            { p: "This is the ___. (dancers / stage)", a: "dancers' stage" },
+            { p: "I see the ___. (bees / hive)", a: "bees' hive" },
+            { p: "Where are the ___. (singers / voices)", a: "singers' voices" },
+            { p: "Look at the ___. (students / grades)", a: "students' grades" },
+            { p: "This is the ___. (neighbors / dog)", a: "neighbors' dog" },
+            { p: "I found the ___. (boys / jackets)", a: "boys' jackets" },
+            { p: "Those are the ___. (horses / stables)", a: "horses' stables" },
+            { p: "Where are the ___. (builders / hats)", a: "builders' hats" },
+            { p: "Look at the ___. (chickens / eggs)", a: "chickens' eggs" },
+            { p: "This is the ___. (girls / team)", a: "girls' team" },
+            { p: "I see the ___. (athletes / medals)", a: "athletes' medals" },
+            { p: "Where are the ___. (engineers / plans)", a: "engineers' plans" },
+            { p: "Those are the ___. (bakers / cakes)", a: "bakers' cakes" },
+            { p: "Look at the ___. (sharks / teeth)", a: "sharks' teeth" },
+            { p: "This is the ___. (brothers / bike)", a: "brothers' bike" },
+            { p: "I found the ___. (guests / rooms)", a: "guests' rooms" },
+            { p: "Where are the ___. (painters / brushes)", a: "painters' brushes" },
+            { p: "Look at the ___. (tigers / stripes)", a: "tigers' stripes" },
+            { p: "Those are the ___. (sailors / boats)", a: "sailors' boats" },
+            { p: "This is the ___. (cats / tails)", a: "cats' tails" },
+            { p: "I found the ___. (members / cards)", a: "members' cards" },
+            { p: "Where are the ___. (waiters / aprons)", a: "waiters' aprons" },
+            { p: "Look at the ___. (owls / eyes)", a: "owls' eyes" },
+            { p: "Those are the ___. (pirates / ships)", a: "pirates' ships" },
+            { p: "This is the ___. (students / entrance)", a: "students' entrance" },{ p: "Look at the ___. (babies / blankets)", a: "babies' blankets" },
+    { p: "Those are the ___. (students / desks)", a: "students' desks" },
+    { p: "This is the ___. (boys / coach)", a: "boys' coach" },
+    { p: "I see the ___. (girls / uniform)", a: "girls' uniform" },
+    { p: "Where are the ___. (horses / riders)", a: "horses' riders" },
+    { p: "Those are the ___. (doctors / notes)", a: "doctors' notes" },
+    { p: "Look at the ___. (lions / territory)", a: "lions' territory" },
+    { p: "This is the ___. (teachers / meeting)", a: "teachers' meeting" },
+    { p: "I found the ___. (passengers / luggage)", a: "passengers' luggage" },
+    { p: "Where are the ___. (musicians / instruments)", a: "musicians' instruments" },
+    { p: "Look at the ___. (wolves / pack)", a: "wolves' pack" },
+    { p: "Those are the ___. (athletes / scores)", a: "athletes' scores" },
+    { p: "This is the ___. (sisters / bedroom)", a: "sisters' bedroom" },
+    { p: "I see the ___. (farmers / crops)", a: "farmers' crops" },
+    { p: "Where are the ___. (customers / orders)", a: "customers' orders" },
+
+            // --- DINGEN & AARDRIJKSKUNDE (OF) ---
+            { p: "Look! The ___ is broken. (the chair / leg)", a: "leg of the chair" },
+            { p: "I forgot the ___. (the book / title)", a: "title of the book" },
+            { p: "The ___ is very high. (the ticket / price)", a: "price of the ticket" },
+            { p: "I can't see the ___. (the mountain / top)", a: "top of the mountain" },
+            { p: "The ___ are green. (the tree / leaves)", a: "leaves of the tree" },
+            { p: "Paris is the ___. (France / capital)", a: "capital of France" },
+            { p: "London is the ___. (England / capital)", a: "capital of England" },
+            { p: "The ___ is beautiful. (Spain / coast)", a: "coast of Spain" },
+            { p: "What is the ___? (the city / population)", a: "population of the city" },
+            { p: "He is the ___. (the Netherlands / king)", a: "king of the Netherlands" },
+            { p: "Look at the ___. (the car / door)", a: "door of the car" },
+            { p: "The ___ is red. (the house / roof)", a: "roof of the house" },
+            { p: "What is the ___. (the street / name)", a: "name of the street" },
+            { p: "I like the ___. (the room / color)", a: "color of the room" },
+            { p: "Where is the ___. (the hotel / entrance)", a: "entrance of the hotel" },
+            { p: "The ___ is cold. (the water / temperature)", a: "temperature of the water" },
+            { p: "Look at the ___. (the clock / hands)", a: "hands of the clock" },
+            { p: "The ___ is very old. (the town / center)", a: "center of the town" },
+            { p: "I know the ___. (the story / end)", a: "end of the story" },
+            { p: "Where is the ___. (the laptop / screen)", a: "screen of the laptop" },
+            { p: "The ___ is broken. (the table / corner)", a: "corner of the table" },
+            { p: "Look at the ___. (the page / bottom)", a: "bottom of the page" },
+            { p: "What is the ___. (the movie / title)", a: "title of the movie" },
+            { p: "The ___ is big. (the plane / wing)", a: "wing of the plane" },
+            { p: "Where is the ___. (the garden / gate)", a: "gate of the garden" },
+            { p: "The ___ is dirty. (the window / glass)", a: "glass of the window" },
+            { p: "I saw the ___. (the mountain / peak)", a: "peak of the mountain" },
+            { p: "What is the ___. (the river / length)", a: "length of the river" },
+            { p: "Look at the ___. (the bottle / cap)", a: "cap of the bottle" },
+            { p: "The ___ is expensive. (the car / engine)", a: "engine of the car" },
+            { p: "Brussels is the ___. (Belgium / capital)", a: "capital of Belgium" },
+            { p: "Berlin is the ___. (Germany / capital)", a: "capital of Germany" },
+            { p: "Rome is the ___. (Italy / capital)", a: "capital of Italy" },
+            { p: "The ___ is sunny. (Portugal / coast)", a: "coast of Portugal" },
+            { p: "What is the ___? (the world / size)", a: "size of the world" },
+            { p: "The ___ is new. (the school / building)", a: "building of the school" },
+            { p: "Look at the ___. (the knife / edge)", a: "edge of the knife" },
+            { p: "Where is the ___. (the box / lid)", a: "lid of the box" },
+            { p: "The ___ is very soft. (the bed / pillow)", a: "pillow of the bed" },
+            { p: "I like the ___. (the song / rhythm)", a: "rhythm of the song" },
+            { p: "What is the ___. (the puzzle / answer)", a: "answer of the puzzle" },
+            { p: "Look at the ___. (the jacket / zipper)", a: "zipper of the jacket" },
+            { p: "The ___ is empty. (the vase / water)", a: "water of the vase" },
+            { p: "Where is the ___. (the shop / exit)", a: "exit of the shop" },
+            { p: "The ___ is blue. (the sky / color)", a: "color of the sky" },
+            { p: "Look at the ___. (the book / cover)", a: "cover of the book" },
+            { p: "I know the ___. (the problem / cause)", a: "cause of the problem" },
+            { p: "The ___ is famous. (France / cheese)", a: "cheese of France" },
+            { p: "The ___ is great. (Holland / history)", a: "history of Holland" },
+            { p: "Tokyo is the ___. (Japan / capital)", a: "capital of Japan" },
+{ p: "The ___ is broken. (the lamp / bulb)", a: "bulb of the lamp" },
+    { p: "Look at the ___. (the tree / shadow)", a: "shadow of the tree" },
+    { p: "I like the ___. (the shirt / pattern)", a: "pattern of the shirt" },
+    { p: "What is the ___? (the island / name)", a: "name of the island" },
+    { p: "The ___ is very deep. (the pool / water)", a: "water of the pool" },
+    { p: "Look at the ___. (the door / handle)", a: "handle of the door" },
+    { p: "The ___ is very loud. (the radio / volume)", a: "volume of the radio" },
+    { p: "Where is the ___? (the museum / entrance)", a: "entrance of the museum" },
+    { p: "The ___ is exciting. (the game / result)", a: "result of the game" },
+    { p: "Look at the ___. (the bike / chain)", a: "chain of the bike" },
+    { p: "What is the ___? (the building / height)", a: "height of the building" },
+    { p: "The ___ is very fast. (the train / speed)", a: "speed of the train" },
+    { p: "Madrid is the ___. (Spain / capital)", a: "capital of Spain" },
+    { p: "The ___ is interesting. (the movie / plot)", a: "plot of the movie" },
+    { p: "Look at the ___. (the guitar / strings)", a: "strings of the guitar" },
+    { p: "The ___ is clear. (the mirror / surface)", a: "surface of the mirror" },
+    { p: "I see the ___. (the city / lights)", a: "lights of the city" },
+    { p: "The ___ is heavy. (the truck / load)", a: "load of the truck" },
+    { p: "What is the ___? (the book / price)", a: "price of the book" }
+        ];
+
+        const generateToppings = () => [...Array(50)].map((_, i) => ({ id: i, type: ['sprinkle', 'cherry', 'cream'][Math.floor(Math.random() * 3)], x: 20 + Math.random() * 60, y: 20 + Math.random() * 60, rotation: Math.random() * 360 }));
+
+        const App = () => {
+            const [phase, setPhase] = useState('START');
+            const [timeLeft, setTimeLeft] = useState(300);
+            const [slices, setSlices] = useState(0);
+            const [completedCakes, setCompletedCakes] = useState(0);
+            const [currentQ, setCurrentQ] = useState(null);
+            const [input, setInput] = useState("");
+            const [isPausing, setIsPausing] = useState(false);
+            const [isFlying, setIsFlying] = useState(false);
+            const toppings = useMemo(() => generateToppings(), [completedCakes]);
+            const inputRef = useRef(null);
+
+            useEffect(() => {
+                if (phase === 'PLAY') {
+                    const timer = setInterval(() => setTimeLeft(p => p <= 1 ? (setPhase('END'), 0) : p - 1), 1000);
+                    nextQuestion();
+                    return () => clearInterval(timer);
+                }
+            }, [phase]);
+
+            useEffect(() => { if (phase === 'PLAY' && !isPausing) inputRef.current?.focus(); }, [currentQ, isPausing, phase]);
+
+            const nextQuestion = () => { setCurrentQ(QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)]); setInput(""); };
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (isPausing || isFlying) return;
+                // CASE SENSITIVE VERGELIJKING (zonder toLowerCase)
+                if (input.trim() === currentQ.a) {
+                    const nextSlices = slices + 1;
+                    setSlices(nextSlices);
+                    setIsPausing(true);
+                    if (nextSlices === 7) {
+                        setTimeout(() => { setIsFlying(true); setTimeout(() => { setCompletedCakes(prev => prev + 1); setSlices(0); setIsFlying(false); setIsPausing(false); nextQuestion(); }, 800); }, 1500);
+                    } else { setTimeout(() => { setIsPausing(false); nextQuestion(); }, 400); }
+                } else { setInput(""); }
+            };
+
+            return (
+                <div className="flex flex-col items-center justify-between h-full w-full p-4 max-w-4xl mx-auto relative">
+                    <div className="w-full flex justify-between items-center p-2">
+                        <div className="bg-pink-100 text-pink-700 px-4 py-1 rounded-xl font-bold uppercase text-[10px]">Possessives Bakery</div>
+                        <h1 className="text-2xl text-pink-600">CAKE DASH</h1>
+                        <div className="w-16"></div>
+                    </div>
+
+                    {phase === 'PLAY' && (
+                        <>
+                            <div className="bg-pink-500 text-white px-6 py-1 rounded-full font-bold text-xl mb-4 shadow-md">
+                                {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+                            </div>
+                            <div className="flex flex-col items-center w-full flex-1 justify-center gap-8">
+                                <div className={`cake-plate ${isFlying ? 'fly-away' : ''} ${slices === 7 ? 'toppings-ready' : ''}`}>
+                                    <div className="cake-canvas">
+                                        {[...Array(slices)].map((_, i) => <div key={i} className="slice" style={{ '--start-deg': `${i * 51.42}deg` }} />)}
+                                        <div className="topping-overlay">{toppings.map(t => <div key={t.id} className={`topping ${t.type}`} style={{ left: `${t.x}%`, top: `${t.y}%`, transform: `translate(-50%, -50%) rotate(${t.rotation}deg)` }} />)}</div>
+                                    </div>
+                                    <div className="frosting-ring" style={{ '--progress': `${slices * 51.42}deg` }} />
+                                </div>
+                                <form onSubmit={handleSubmit} className="w-full bg-white p-6 rounded-[30px] shadow-lg border-b-4 border-pink-200">
+                                    <p className="text-xl text-center text-slate-700 font-bold">
+                                        {currentQ?.p.split("___")[0]}
+                                        <input ref={inputRef} className="mx-2 border-b-4 border-pink-500 bg-pink-50 w-full md:w-96 text-center outline-none py-1 text-pink-700 block md:inline-block mt-4 md:mt-0" value={input} onChange={(e) => setInput(e.target.value)} disabled={isPausing} autoComplete="off" />
+                                        {currentQ?.p.split("___")[1]}
+                                    </p>
+                                </form>
+                            </div>
+                        </>
+                    )}
+
+                    {phase === 'START' && (
+                        <div className="bg-white p-10 rounded-[40px] shadow-2xl text-center border-b-8 border-pink-500 my-auto">
+                            <h2 className="text-3xl mb-4 text-pink-600 font-black uppercase">Start Baking!</h2>
+                            <p className="mb-4 text-slate-600 text-sm">Fill the bakery with as many cakes as possible!<br/><strong>Note: Capitals matter!</strong></p>
+                            <button onClick={() => setPhase('PLAY')} className="bg-pink-500 hover:bg-pink-600 text-white text-2xl px-16 py-4 rounded-2xl shadow-xl w-full">START SHIFT</button>
+                        </div>
+                    )}
+
+                    {phase === 'END' && (
+                        <div className="bg-white p-6 md:p-10 rounded-[40px] shadow-2xl w-full max-w-2xl my-auto text-center border-t-8 border-pink-400">
+                            <h2 className="text-pink-600 font-black uppercase text-[42px] leading-tight mb-4">BAKERY CLOSED!</h2>
+                            
+                            <div className="flex flex-col md:flex-row gap-12 items-center justify-center mb-10">
+                                <div className="flex flex-col items-center">
+                                    <p className="text-xs font-bold text-slate-400 mb-2 uppercase">Full Cakes</p>
+                                    <div className="flex flex-col-reverse items-center min-h-[140px] justify-start">
+                                        {[...Array(completedCakes)].map((_, i) => <div key={i} className="cake-box" style={{ width: `${75 + i*2}px` }}>🍰</div>)}
+                                        {completedCakes === 0 && <p className="text-slate-300 italic text-xs">No full cakes...</p>}
+                                    </div>
+                                    <p className="mt-4 font-black text-pink-600 text-[32px]">{completedCakes}</p>
+                                    <p className="text-pink-400 font-bold text-sm uppercase">Full Boxes</p>
+                                </div>
+
+                                <div className="flex flex-col items-center">
+                                    <p className="text-xs font-bold text-slate-400 mb-2 uppercase">Extra Slices</p>
+                                    <div className="cake-plate scale-[0.45] origin-center -my-14">
+                                        <div className="cake-canvas">
+                                            {[...Array(slices)].map((_, i) => <div key={i} className="slice" style={{ '--start-deg': `${i * 51.42}deg` }} />)}
+                                        </div>
+                                        <div className="frosting-ring" style={{ '--progress': `${slices * 51.42}deg` }} />
+                                    </div>
+                                    <p className="mt-4 font-black text-purple-600 text-[32px]">{slices}</p>
+                                    <p className="text-purple-400 font-bold text-sm uppercase">Slices on Plate</p>
+                                </div>
+                            </div>
+
+                            <button onClick={() => window.location.reload()} className="bg-slate-800 text-white px-10 py-5 rounded-2xl font-bold w-full uppercase shadow-xl hover:bg-slate-900 transition-colors text-xl">NEW SHIFT</button>
+                        </div>
+                    )}
+                    <div className="mt-4 text-[11px] text-pink-400 font-bold uppercase tracking-widest text-center">© Mister Seb's Grammar Apps</div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

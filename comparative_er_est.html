@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mister Sebel Coffee Dash</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@700&display=swap');
+        
+        body, html { 
+            margin: 0; padding: 0; 
+            font-family: 'Quicksand', sans-serif; 
+            background: #fdfaf1; 
+            height: 100dvh; 
+            overflow: hidden; 
+            touch-action: manipulation;
+        }
+        
+        h1, h2, button { font-family: 'Fredoka One', cursive; }
+
+        .coffee-cup {
+            position: relative;
+            width: min(70vw, 280px);
+            height: min(70vw, 280px);
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 15px 30px rgba(60, 42, 33, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 14px solid #6f4e37;
+            overflow: hidden; /* Zorgt dat bonen binnen de cirkel blijven */
+        }
+
+        .bean-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            padding: 30px;
+            width: 100%;
+            height: 100%;
+            align-content: center;
+            justify-items: center;
+            border-radius: 50%; /* Maakt de grid zelf ook rond */
+        }
+
+        .bean {
+            font-size: 1.8rem;
+            filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.3));
+            animation: dropIn 0.3s ease-out;
+        }
+
+        @keyframes dropIn {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .achievement-text {
+            font-size: 3.5rem !important; 
+            color: #3c2a21;
+            text-align: center;
+            line-height: 1.1;
+            font-family: 'Fredoka One', cursive;
+            animation: pop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            padding: 20px;
+            z-index: 50;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .steam {
+            position: absolute;
+            top: 20%;
+            font-size: 4rem;
+            animation: float-up 2s infinite ease-in-out;
+            z-index: 40;
+        }
+
+        @keyframes float-up {
+            0% { transform: translateY(0) scale(0.8); opacity: 0; }
+            50% { opacity: 0.6; }
+            100% { transform: translateY(-80px) scale(1.4); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const QUESTIONS = [
+            { p: "This car is ___ than that one. (fast)", a: "faster" },
+            { p: "It's the ___ car in the race. (fast)", a: "fastest" },
+            { p: "London is ___ than my village. (big)", a: "bigger" },
+            { p: "Tokyo is the ___ city. (big)", a: "biggest" },
+            { p: "Ice is ___ than water. (cold)", a: "colder" },
+            { p: "Antarctica is the ___ place. (cold)", a: "coldest" },
+            { p: "The sun is ___ than the moon. (hot)", a: "hotter" },
+            { p: "July is the ___ month. (hot)", a: "hottest" },
+            { p: "A giraffe is ___ than a horse. (tall)", a: "taller" },
+            { p: "He is the ___ boy in class. (tall)", a: "tallest" },
+            { p: "This box is ___ than that one. (small)", a: "smaller" },
+            { p: "It's the ___ gift here. (small)", a: "smallest" },
+            { p: "This rope is ___ than yours. (long)", a: "longer" },
+            { p: "This is the ___ movie ever. (long)", a: "longest" },
+            { p: "My dad is ___ than my uncle. (old)", a: "older" },
+            { p: "That is the ___ tree. (old)", a: "oldest" },
+            { p: "This wall is ___ than that one. (low)", a: "lower" },
+            { p: "A plane flies ___ than a bird. (high)", a: "higher" },
+            { p: "Steel is ___ than wood. (hard)", a: "harder" },
+            { p: "This is the ___ test. (hard)", a: "hardest" },
+            { p: "Your bike is ___ than mine. (new)", a: "newer" },
+            { p: "The lake is ___ than the pool. (deep)", a: "deeper" },
+            { p: "He is ___ than his brother. (young)", a: "younger" },
+            { p: "This shirt is ___ than that. (clean)", a: "cleaner" }
+        ];
+
+        const App = () => {
+            const [phase, setPhase] = useState('START');
+            const [timeLeft, setTimeLeft] = useState(300);
+            const [beans, setBeans] = useState(0);
+            const [cupsServed, setCupsServed] = useState(0);
+            const [currentQ, setCurrentQ] = useState(null);
+            const [input, setInput] = useState("");
+            const [isBrewing, setIsBrewing] = useState(false);
+            const [showSuccess, setShowSuccess] = useState(false);
+            
+            const inputRef = useRef(null);
+
+            useEffect(() => {
+                if (phase === 'PLAY') {
+                    const timer = setInterval(() => {
+                        setTimeLeft(p => {
+                            if (p <= 1) { setPhase('END'); return 0; }
+                            return p - 1;
+                        });
+                    }, 1000);
+                    nextQuestion();
+                    return () => clearInterval(timer);
+                }
+            }, [phase]);
+
+            const nextQuestion = () => {
+                setCurrentQ(QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)]);
+                setInput("");
+                setTimeout(() => inputRef.current?.focus(), 10);
+            };
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (isBrewing) return;
+
+                if (input.toLowerCase().trim() === currentQ.a.toLowerCase()) {
+                    const nextBeans = beans + 1;
+                    
+                    if (nextBeans === 10) {
+                        setBeans(10);
+                        setIsBrewing(true);
+                        setShowSuccess(true);
+                        
+                        setTimeout(() => {
+                            setCupsServed(prev => prev + 1);
+                            setBeans(0);
+                            setIsBrewing(false);
+                            setShowSuccess(false);
+                            nextQuestion();
+                        }, 2500);
+                    } else {
+                        setBeans(nextBeans);
+                        nextQuestion();
+                    }
+                } else {
+                    setInput("");
+                }
+            };
+
+            return (
+                <div className="flex flex-col items-center justify-between h-full w-full p-4 max-w-4xl mx-auto">
+                    <div className="w-full flex justify-between items-center p-2">
+                        <h1 className="text-2xl text-amber-900 uppercase">Coffee Dash</h1>
+                        <div className="bg-amber-800 text-white px-4 py-1 rounded-full font-bold">
+                            {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+                        </div>
+                    </div>
+
+                    {phase === 'PLAY' && (
+                        <div className="flex flex-col items-center w-full flex-1 justify-center gap-6">
+                            
+                            {showSuccess ? (
+                                <div className="achievement-text">
+                                    YOU EARNED A<br/>CUP OF COFFEE!<br/>☕
+                                </div>
+                            ) : (
+                                <div className="coffee-cup">
+                                    {!isBrewing ? (
+                                        <div className="bean-container">
+                                            {[...Array(beans)].map((_, i) => (
+                                                <span key={i} className="bean">🫘</span>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="steam">💨</div>
+                                            <div className="text-7xl">☕</div>
+                                        </>
+                                    )}
+                                </div>
+                            )}
+
+                            {!isBrewing && (
+                                <form onSubmit={handleSubmit} className="w-full bg-white p-8 rounded-[30px] shadow-xl border-b-4 border-amber-200">
+                                    <p className="text-xl text-center text-amber-950 font-bold">
+                                        {currentQ?.p.split("___")[0]}
+                                        <input 
+                                            ref={inputRef}
+                                            className="mx-2 border-b-4 border-amber-600 bg-amber-50 w-full md:w-64 text-center outline-none py-1 text-amber-900 block md:inline-block mt-4 md:mt-0"
+                                            value={input}
+                                            onChange={(e) => setInput(e.target.value)}
+                                            autoComplete="off"
+                                        />
+                                        {currentQ?.p.split("___")[1]}
+                                    </p>
+                                </form>
+                            )}
+                        </div>
+                    )}
+
+                    {phase === 'START' && (
+                        <div className="bg-white p-10 rounded-[40px] shadow-2xl text-center border-b-8 border-amber-800 my-auto">
+                            <h2 className="text-3xl mb-4 text-amber-900">BREW COFFEE!</h2>
+                            <p className="mb-8 text-amber-700">Collect 10 beans to serve Mister Sebel a cup of coffee.</p>
+                            <button onClick={() => setPhase('PLAY')} className="bg-amber-800 text-white text-2xl px-16 py-4 rounded-2xl w-full shadow-lg hover:bg-amber-900 transition-all">START SHIFT</button>
+                        </div>
+                    )}
+
+                    {phase === 'END' && (
+                        <div className="bg-white p-10 rounded-[40px] shadow-2xl w-full max-w-md my-auto text-center border-b-8 border-amber-800">
+                            <h2 className="text-2xl font-black mb-6 text-amber-900">SHIFT OVER!</h2>
+                            <div className="text-6xl mb-4">☕</div>
+                            <p className="text-xl font-bold text-amber-800 mb-8">You served {cupsServed} cups of coffee!</p>
+                            <button onClick={() => window.location.reload()} className="bg-amber-900 text-white px-10 py-4 rounded-xl font-bold w-full uppercase">TRY AGAIN</button>
+                        </div>
+                    )}
+
+                    <div className="mt-4 text-[11px] text-amber-800 font-bold uppercase tracking-widest">
+                        © Mister Sebel's Grammar Apps, 2026
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
