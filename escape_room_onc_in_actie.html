@@ -9,247 +9,132 @@
       --bg0:#07080b;
       --bg1:#0e1016;
       --glass: rgba(255,255,255,.08);
-      --glass2: rgba(255,255,255,.12);
-      --stroke: rgba(255,255,255,.14);
+      --glass2: rgba(255,255,255,.15);
+      --stroke: rgba(255,255,255,.2);
       --neon: #00ff88;
       --neon2:#00d4ff;
       --danger:#ff3b57;
-      --text:#eaf7ff;
-      --muted: rgba(234,247,255,.7);
-      --shadow: 0 18px 55px rgba(0,0,0,.55);
+      --text:#ffffff;
     }
 
     *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      color: var(--text);
-      overflow:hidden;
-      background:
-        radial-gradient(1200px 600px at 20% 20%, rgba(0,255,136,.18), transparent 60%),
-        radial-gradient(900px 500px at 80% 30%, rgba(0,212,255,.14), transparent 55%),
-        radial-gradient(700px 500px at 50% 90%, rgba(255,255,255,.06), transparent 55%),
-        linear-gradient(160deg, var(--bg0), var(--bg1));
-      display:grid;
-      place-items:center;
-      padding: 16px;
+    html,body{height:100%; margin:0; font-family: system-ui, sans-serif; color: var(--text); overflow-x:hidden; background: var(--bg0);}
+    
+    body {
+      background: linear-gradient(160deg, var(--bg0), var(--bg1));
+      display:grid; place-items:center; padding: 20px;
     }
 
-    body::before{
-      content:"";
-      position:fixed; inset:0;
-      background:
-        linear-gradient(to right, rgba(255,255,255,.04) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255,255,255,.04) 1px, transparent 1px);
-      background-size: 56px 56px;
-      opacity:.22;
-      pointer-events:none;
-      mask-image: radial-gradient(circle at 50% 30%, black 40%, transparent 70%);
+    /* Start Screen */
+    .overlay-screen {
+      position: fixed; inset: 0; z-index: 100; background: var(--bg0);
+      display: flex; justify-content: center; align-items: center; padding: 20px;
     }
 
+    .info-card {
+      width: min(1000px, 95vw); background: var(--glass2); border: 4px solid var(--neon);
+      border-radius: 40px; padding: 40px; backdrop-filter: blur(20px); text-align: center;
+    }
+
+    .info-card h2 { color: var(--neon); font-size: clamp(2rem, 8vw, 4rem); text-transform: uppercase; margin: 0 0 20px 0; }
+    
+    .instructions ul { 
+      text-align: left; display: inline-block; font-size: clamp(1.2rem, 4vw, 2rem);
+      line-height: 1.4; list-style-type: "🚀 ";
+    }
+    .instructions li { margin-bottom: 15px; }
+
+    .btn-group { display: flex; gap: 15px; margin-top: 30px; justify-content: center; flex-wrap: wrap; }
+
+    .start-btn {
+      background: var(--neon); color: #000; border: none; padding: 20px 50px;
+      border-radius: 20px; cursor: pointer; font-weight: 900;
+      text-transform: uppercase; font-size: 2rem;
+    }
+
+    /* Game UI */
     .app{
-      width: min(460px, 92vw);
-      max-height: min(820px, calc(100vh - 32px));
-      display:flex;
-      flex-direction:column;
-      gap:14px;
-      padding: 18px;
-      border-radius: 28px;
-      background: linear-gradient(180deg, var(--glass2), var(--glass));
-      border: 1px solid var(--stroke);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-      position:relative;
-      overflow:hidden;
-    }
-
-    header{
-      position:relative;
-      z-index:1;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      padding: 6px 6px 0 6px;
-    }
-
-    .title{display:flex;flex-direction:column;gap:4px;line-height:1.1}
-    h1{
-      margin:0;
-      font-size: 1.35rem;
-      letter-spacing: .14em;
-      text-transform: uppercase;
-      font-weight: 900;
-    }
-    .subtitle{
-      font-size:.9rem;
-      color: var(--muted);
-      letter-spacing:.06em;
-      text-transform: uppercase;
-    }
-
-    .badge{
-      font-weight:700;
-      font-size:.85rem;
-      color: rgba(0,0,0,.9);
-      background: linear-gradient(135deg, rgba(0,255,136,.9), rgba(0,212,255,.9));
-      padding: 8px 12px;
-      border-radius: 999px;
+      width: min(500px, 92vw); padding: 25px; border-radius: 40px;
+      background: var(--glass2); border: 2px solid var(--stroke);
+      display:flex; flex-direction:column; gap:15px; text-align: center;
     }
 
     #display{
-      position:relative;
-      z-index:1;
-      margin-top: 8px;
-      height: 70px;
-      border-radius: 18px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size: 2.6rem;
-      font-weight: 900;
-      letter-spacing: .45em;
-      background: rgba(0,0,0,.35);
-      border: 1px solid rgba(255,255,255,.14);
-      color: var(--neon);
-      text-shadow: 0 0 18px rgba(0,255,136,.25);
+      height: 90px; border-radius: 20px; display:flex; align-items:center; justify-content:center;
+      font-size: 3.5rem; font-weight: 900; background: #000;
+      border: 3px solid var(--neon); color: var(--neon); margin: 10px 0;
     }
 
-    .keypad{
-      position:relative;
-      z-index:1;
-      display:grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      width:100%;
-    }
-
+    .keypad{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
     .key{
-      height: 74px;
-      border-radius: 18px;
-      border: 1px solid rgba(255,255,255,.16);
-      background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
-      color: rgba(234,247,255,.95);
-      font-size: 1.8rem;
-      font-weight: 900;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      cursor:pointer;
-      transition: transform .08s ease;
+      height: 80px; border-radius: 18px; border: 2px solid var(--stroke);
+      background: rgba(255,255,255,0.1); color: #fff; font-size: 2rem; font-weight: 900; cursor:pointer;
+    }
+    .key.clear { color: var(--danger); }
+    .key.enter { background: var(--neon); color: #000; }
+
+    /* Success Screen */
+    .success-screen { width: 95vw; max-width: 1300px; text-align: center; overflow-y: auto; max-height: 95vh; padding: 20px; }
+    .success-title { font-size: clamp(3rem, 10vw, 6rem); font-weight: 1000; color: var(--neon); margin: 20px 0; }
+
+    .reveal-btn {
+      background: var(--neon2); color: #000; border: none; padding: 15px 40px;
+      border-radius: 15px; font-weight: 900; font-size: 1.5rem; cursor: pointer; margin-bottom: 30px;
     }
 
-    .key:active{ transform: translateY(2px) scale(.99); }
-    .key.clear{ background: rgba(255,59,87,.25); border-color: rgba(255,59,87,.35); }
-    .key.enter{ background: rgba(0,255,136,.26); border-color: rgba(0,255,136,.35); }
-
-    .hidden{display:none !important;}
-
-    .success-screen{
-      width: min(850px, 95vw);
-      text-align:center;
-      padding: 22px;
-      border-radius: 28px;
-      background: var(--glass);
-      border: 1px solid var(--stroke);
-      backdrop-filter: blur(18px);
-      display:flex;
-      flex-direction:column;
-      align-items:center;
+    .answers-grid { 
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); 
+      gap: 15px; list-style: none; padding: 0; 
     }
-
-    .success-title{ font-size: 3.5rem; font-weight: 1000; color: #fff; margin: 10px 0; text-transform: uppercase; }
-
-    .answers-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-      gap: 12px;
-      width: 100%;
-      margin-top: 20px;
-      padding: 0;
-      list-style: none;
+    .answer-tile { 
+      background: rgba(0,0,0,0.6); padding: 15px; border-radius: 20px; border: 2px solid var(--stroke); 
     }
+    .answer-tile .num { font-size: 2.5rem; color: #fff; font-weight: 900; display: block; line-height: 1; margin-bottom: 5px;}
+    .answer-tile .val { font-size: 1.4rem; color: var(--neon); font-weight: 700; }
+    .answer-tile .val b { color: var(--neon2); }
 
-    .answer-tile {
-      background: rgba(0,0,0,0.35);
-      border: 1px solid var(--stroke);
-      padding: 15px 10px;
-      border-radius: 16px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* AANPASSING: Vraagnummers dikker en groter */
-    .answer-tile .num { 
-      font-size: 1.4rem; 
-      color: #fff; 
-      margin-bottom: 4px; 
-      font-weight: 900; 
-      text-shadow: 0 0 10px rgba(255,255,255,0.3);
-    }
-
-    .answer-tile .val { font-size: 1.2rem; font-weight: 700; color: var(--neon); letter-spacing: 1px; }
-    .answer-tile .val b { font-weight: 900; color: var(--neon2); }
-
-    .reveal-btn{
-      background: linear-gradient(135deg, var(--neon), var(--neon2));
-      color: #000;
-      font-weight: 900;
-      padding: 18px 40px;
-      border-radius: 14px;
-      border: none;
-      cursor: pointer;
-      margin: 20px 0;
-      text-transform: uppercase;
-      font-size: 1.1rem;
-    }
-
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      25% { transform: translateX(-10px); }
-      75% { transform: translateX(10px); }
-    }
-    .wrong{ animation: shake 0.2s ease-in-out 2; border-color: var(--danger) !important; color: var(--danger) !important; }
+    .hidden{ display:none !important; }
+    .translate-btn, .fs-btn { background: #333; color: #fff; border: 1px solid #777; padding: 10px; border-radius: 10px; cursor: pointer; }
   </style>
 </head>
 <body>
 
-  <div id="game-ui" class="app">
-    <header>
-      <div class="title">
-        <h1>ESCAPE ROOM</h1>
-        <div class="subtitle">Digital Lock</div>
+  <div id="start-screen" class="overlay-screen">
+    <div class="info-card">
+      <h2 id="info-title">MISSION: CRACK THE CODE</h2>
+      <div id="info-text" class="instructions">
+        <ul>
+          <li>Find the <b>15 texts</b> in the room.</li>
+          <li><b>Careful:</b> Only 10 texts have questions. 5 are FAKE!</li>
+          <li>Answer the 20 questions on your sheet.</li>
+          <li><b>Add up</b> all correct numbers for the secret code.</li>
+          <li>Enter the code to <b>ESCAPE</b>!</li>
+        </ul>
       </div>
-      <div class="badge">LOCKED</div>
-    </header>
+      <div class="btn-group">
+        <button class="translate-btn" onclick="toggleLanguage()">VERTAAL NAAR NL</button>
+        <button class="fs-btn" onclick="toggleFullScreen()">FULL SCREEN</button>
+        <button class="start-btn" onclick="startGame()">START MISSION</button>
+      </div>
+    </div>
+  </div>
 
+  <div id="game-ui" class="app hidden">
+    <h1>ESCAPE ROOM</h1>
     <div id="display"></div>
-
     <div class="keypad">
-      <button class="key" onclick="press('1')">1</button>
-      <button class="key" onclick="press('2')">2</button>
-      <button class="key" onclick="press('3')">3</button>
-      <button class="key" onclick="press('4')">4</button>
-      <button class="key" onclick="press('5')">5</button>
-      <button class="key" onclick="press('6')">6</button>
-      <button class="key" onclick="press('7')">7</button>
-      <button class="key" onclick="press('8')">8</button>
-      <button class="key" onclick="press('9')">9</button>
-      <button class="key clear" onclick="clearDisplay()">C</button>
-      <button class="key" onclick="press('0')">0</button>
-      <button class="key enter" onclick="checkCode()">OK</button>
+      <button class="key" onclick="press('1')">1</button><button class="key" onclick="press('2')">2</button><button class="key" onclick="press('3')">3</button>
+      <button class="key" onclick="press('4')">4</button><button class="key" onclick="press('5')">5</button><button class="key" onclick="press('6')">6</button>
+      <button class="key" onclick="press('7')">7</button><button class="key" onclick="press('8')">8</button><button class="key" onclick="press('9')">9</button>
+      <button class="key clear" onclick="clearDisplay()">C</button><button class="key" onclick="press('0')">0</button><button class="key enter" onclick="checkCode()">OK</button>
     </div>
   </div>
 
   <div id="success-screen" class="success-screen hidden">
-    <h1 class="success-title">YOU DID IT!</h1>
-    <button id="reveal-btn" class="reveal-btn" onclick="toggleAnswers()">Show answers</button>
-
-    <div id="answers-panel" class="hidden" style="width: 100%;">
+    <h1 class="success-title">REALM ACHIEVED!</h1>
+    <button id="reveal-btn" class="reveal-btn" onclick="toggleAnswers()">SHOW ANSWERS</button>
+    
+    <div id="answers-panel" class="hidden">
       <ul class="answers-grid">
         <li class="answer-tile"><span class="num">1</span><span class="val">b <b>(97)</b></span></li>
         <li class="answer-tile"><span class="num">2</span><span class="val">b <b>(32)</b></span></li>
@@ -278,22 +163,37 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
   <script>
     let currentCode = "";
-    const display = document.getElementById('display');
     const correctCode = "807";
+    let isDutch = false;
 
-    function press(num) {
-      if (currentCode.length < 3) {
-        currentCode += num;
-        display.innerText = currentCode;
-        display.classList.remove('wrong');
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) { document.documentElement.requestFullscreen(); }
+      else { document.exitFullscreen(); }
+    }
+
+    function toggleLanguage() {
+      const title = document.getElementById('info-title');
+      const text = document.getElementById('info-text');
+      const btn = document.querySelector('.translate-btn');
+      if (!isDutch) {
+        title.innerText = "MISSIE: KRAAK DE CODE";
+        text.innerHTML = `<ul><li>Zoek de <b>15 teksten</b> in het lokaal.</li><li><b>Let op:</b> Maar 10 teksten hebben vragen. 5 zijn FAKE!</li><li>Beantwoord de 20 vragen op je blad.</li><li><b>Tel alles op</b> voor de geheime code.</li><li>Voer de code in om te <b>ONTSNAPPEN</b>!</li></ul>`;
+        btn.innerText = "ENGLISH";
+      } else {
+        title.innerText = "MISSION: CRACK THE CODE";
+        text.innerHTML = `<ul><li>Find the <b>15 texts</b> in the room.</li><li><b>Careful:</b> Only 10 texts have questions. 5 are FAKE!</li><li>Answer the 20 questions on your sheet.</li><li><b>Add up</b> all correct numbers for the secret code.</li><li>Enter the code to <b>ESCAPE</b>!</li></ul>`;
+        btn.innerText = "VERTAAL NAAR NL";
       }
+      isDutch = !isDutch;
     }
 
-    function clearDisplay() {
-      currentCode = "";
-      display.innerText = "";
-      display.classList.remove('wrong');
+    function startGame() {
+      document.getElementById('start-screen').classList.add('hidden');
+      document.getElementById('game-ui').classList.remove('hidden');
     }
+
+    function press(num) { if (currentCode.length < 4) { currentCode += num; document.getElementById('display').innerText = currentCode; } }
+    function clearDisplay() { currentCode = ""; document.getElementById('display').innerText = ""; }
 
     function checkCode() {
       if (currentCode === correctCode) {
@@ -301,26 +201,28 @@
         document.getElementById('success-screen').classList.remove('hidden');
         launchConfetti();
       } else {
-        display.classList.add('wrong');
-        setTimeout(clearDisplay, 500);
+        const d = document.getElementById('display');
+        d.style.borderColor = "var(--danger)";
+        setTimeout(() => { d.style.borderColor = "var(--neon)"; clearDisplay(); }, 600);
       }
     }
 
-    function toggleAnswers(){
-      const panel = document.getElementById('answers-panel');
-      const btn = document.getElementById('reveal-btn');
-      panel.classList.toggle('hidden');
-      btn.textContent = panel.classList.contains('hidden') ? "Show answers" : "Hide answers";
+    function toggleAnswers() {
+      const p = document.getElementById('answers-panel');
+      const b = document.getElementById('reveal-btn');
+      p.classList.toggle('hidden');
+      b.innerText = p.classList.contains('hidden') ? "SHOW ANSWERS" : "HIDE ANSWERS";
     }
 
     function launchConfetti() {
       var end = Date.now() + (5 * 1000);
       (function frame() {
-        confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#00ff88', '#00d4ff'] });
-        confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#00ff88', '#00d4ff'] });
+        confetti({ particleCount: 7, angle: 60, spread: 60, origin: { x: 0 }, colors: ['#00ff88', '#00d4ff'] });
+        confetti({ particleCount: 7, angle: 120, spread: 60, origin: { x: 1 }, colors: ['#00ff88', '#00d4ff'] });
         if (Date.now() < end) requestAnimationFrame(frame);
       }());
     }
   </script>
 </body>
 </html>
+
