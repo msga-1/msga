@@ -147,9 +147,8 @@
 
     .hidden{display:none !important;}
 
-    /* SUCCESS SCREEN MODIFIED FOR TILES */
     .success-screen{
-      width: min(700px, 95vw); /* Wider for tiles */
+      width: min(850px, 95vw);
       text-align:center;
       padding: 22px;
       border-radius: 28px;
@@ -161,12 +160,12 @@
       align-items:center;
     }
 
-    .success-title{ font-size: 3rem; font-weight: 1000; color: #fff; margin: 10px 0; }
+    .success-title{ font-size: 3.5rem; font-weight: 1000; color: #fff; margin: 10px 0; text-transform: uppercase; }
 
     .answers-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 12px;
       width: 100%;
       margin-top: 20px;
       padding: 0;
@@ -174,28 +173,39 @@
     }
 
     .answer-tile {
-      background: rgba(255,255,255,0.05);
+      background: rgba(0,0,0,0.35);
       border: 1px solid var(--stroke);
-      padding: 10px;
-      border-radius: 12px;
+      padding: 15px 10px;
+      border-radius: 16px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
     }
 
-    .answer-tile .num { font-size: 0.8rem; color: var(--muted); margin-bottom: 4px; }
-    .answer-tile .val { font-size: 1.2rem; font-weight: 900; color: var(--neon); }
+    /* AANPASSING: Vraagnummers dikker en groter */
+    .answer-tile .num { 
+      font-size: 1.4rem; 
+      color: #fff; 
+      margin-bottom: 4px; 
+      font-weight: 900; 
+      text-shadow: 0 0 10px rgba(255,255,255,0.3);
+    }
+
+    .answer-tile .val { font-size: 1.2rem; font-weight: 700; color: var(--neon); letter-spacing: 1px; }
+    .answer-tile .val b { font-weight: 900; color: var(--neon2); }
 
     .reveal-btn{
-      background: var(--neon);
+      background: linear-gradient(135deg, var(--neon), var(--neon2));
       color: #000;
       font-weight: 900;
-      padding: 15px 30px;
-      border-radius: 12px;
+      padding: 18px 40px;
+      border-radius: 14px;
       border: none;
       cursor: pointer;
-      margin: 15px 0;
+      margin: 20px 0;
+      text-transform: uppercase;
+      font-size: 1.1rem;
     }
 
     @keyframes shake {
@@ -241,26 +251,26 @@
 
     <div id="answers-panel" class="hidden" style="width: 100%;">
       <ul class="answers-grid">
-        <li class="answer-tile"><span class="num">1</span><span class="val">b (97)</span></li>
-        <li class="answer-tile"><span class="num">2</span><span class="val">b (32)</span></li>
-        <li class="answer-tile"><span class="num">3</span><span class="val">b (72)</span></li>
-        <li class="answer-tile"><span class="num">4</span><span class="val">a (63)</span></li>
-        <li class="answer-tile"><span class="num">5</span><span class="val">b (36)</span></li>
-        <li class="answer-tile"><span class="num">6</span><span class="val">b (21)</span></li>
-        <li class="answer-tile"><span class="num">7</span><span class="val">a (69)</span></li>
-        <li class="answer-tile"><span class="num">8</span><span class="val">b (42)</span></li>
-        <li class="answer-tile"><span class="num">9</span><span class="val">b (59)</span></li>
-        <li class="answer-tile"><span class="num">10</span><span class="val">b (17)</span></li>
-        <li class="answer-tile"><span class="num">11</span><span class="val">b (3)</span></li>
-        <li class="answer-tile"><span class="num">12</span><span class="val">b (84)</span></li>
-        <li class="answer-tile"><span class="num">13</span><span class="val">b (84)</span></li>
-        <li class="answer-tile"><span class="num">14</span><span class="val">a (48)</span></li>
-        <li class="answer-tile"><span class="num">15</span><span class="val">c (99)</span></li>
-        <li class="answer-tile"><span class="num">16</span><span class="val">a (1)</span></li>
-        <li class="answer-tile"><span class="num">17</span><span class="val">b (11)</span></li>
-        <li class="answer-tile"><span class="num">18</span><span class="val">a (8)</span></li>
-        <li class="answer-tile"><span class="num">19</span><span class="val">b (13)</span></li>
-        <li class="answer-tile"><span class="num">20</span><span class="val">b (6)</span></li>
+        <li class="answer-tile"><span class="num">1</span><span class="val">b <b>(97)</b></span></li>
+        <li class="answer-tile"><span class="num">2</span><span class="val">b <b>(32)</b></span></li>
+        <li class="answer-tile"><span class="num">3</span><span class="val">b <b>(72)</b></span></li>
+        <li class="answer-tile"><span class="num">4</span><span class="val">a <b>(63)</b></span></li>
+        <li class="answer-tile"><span class="num">5</span><span class="val">b <b>(36)</b></span></li>
+        <li class="answer-tile"><span class="num">6</span><span class="val">b <b>(21)</b></span></li>
+        <li class="answer-tile"><span class="num">7</span><span class="val">a <b>(69)</b></span></li>
+        <li class="answer-tile"><span class="num">8</span><span class="val">b <b>(42)</b></span></li>
+        <li class="answer-tile"><span class="num">9</span><span class="val">b <b>(59)</b></span></li>
+        <li class="answer-tile"><span class="num">10</span><span class="val">b <b>(17)</b></span></li>
+        <li class="answer-tile"><span class="num">11</span><span class="val">b <b>(3)</b></span></li>
+        <li class="answer-tile"><span class="num">12</span><span class="val">b <b>(84)</b></span></li>
+        <li class="answer-tile"><span class="num">13</span><span class="val">b <b>(84)</b></span></li>
+        <li class="answer-tile"><span class="num">14</span><span class="val">a <b>(48)</b></span></li>
+        <li class="answer-tile"><span class="num">15</span><span class="val">c <b>(99)</b></span></li>
+        <li class="answer-tile"><span class="num">16</span><span class="val">a <b>(1)</b></span></li>
+        <li class="answer-tile"><span class="num">17</span><span class="val">b <b>(11)</b></span></li>
+        <li class="answer-tile"><span class="num">18</span><span class="val">a <b>(8)</b></span></li>
+        <li class="answer-tile"><span class="num">19</span><span class="val">b <b>(13)</b></span></li>
+        <li class="answer-tile"><span class="num">20</span><span class="val">b <b>(6)</b></span></li>
       </ul>
     </div>
   </div>
