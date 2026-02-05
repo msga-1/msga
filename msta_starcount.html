@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Star Hunter - Confetti Fix</title>
+    <title>Star Hunter - Continuous Edition</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;600;800&display=swap" rel="stylesheet">
     <style>
@@ -15,7 +15,6 @@
         body { font-family: 'Outfit', sans-serif; background: var(--bg); color: white; margin: 0; display: flex; height: 100vh; overflow: hidden; transition: background 0.5s ease; }
         body.double-active { background: radial-gradient(circle at 50% 50%, #1a1205 0%, #0a0a0f 100%); outline: 6px solid var(--double); outline-offset: -6px; }
         
-        /* Sidebar & Menu */
         .sidebar { width: 260px; background: rgba(10, 10, 15, 0.98); backdrop-filter: blur(15px); padding: 20px; border-right: 1px solid var(--border); display: flex; flex-direction: column; z-index: 100; transition: transform 0.3s ease; }
         .sidebar.collapsed { transform: translateX(-100%); position: absolute; }
         
@@ -33,37 +32,46 @@
         #event-text { font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; color: var(--double); display: none; animation: pulse 0.6s infinite alternate; }
         @keyframes pulse { from { opacity: 0.6; transform: scale(0.98); } to { opacity: 1; transform: scale(1.02); } }
 
-        .student-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; width: 100%; max-width: 1200px; }
-        .student-card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; align-items: center; transition: 0.2s; cursor: pointer; position: relative; }
-        .student-card.is-offline { opacity: 0.3; filter: grayscale(1); }
-        .student-card.active-star { background: rgba(255,255,255,0.15); border-color: var(--star-yellow); transform: scale(1.05); }
+        .student-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; width: 100%; max-width: 1200px; }
         
-        .student-name { font-size: 0.95rem; font-weight: 600; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+        .student-card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; align-items: center; transition: 0.3s; cursor: pointer; position: relative; overflow: hidden; }
+        .student-card.active-star { background: rgba(255,255,255,0.15); border-color: var(--star-yellow); transform: scale(1.05); }
+        .student-card.is-absent { display: none; }
+        
+        .student-card.is-offline { opacity: 0.4; filter: grayscale(1); pointer-events: none; border-color: var(--danger); }
+        .student-card.is-offline .card-controls { pointer-events: auto; }
+
+        .timeout-counter { position: absolute; top: 8px; left: 8px; color: var(--danger); font-weight: 800; font-size: 0.75rem; background: rgba(0,0,0,0.5); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--danger); }
+        .timeout-overlay { position: absolute; top: 8px; right: 8px; color: var(--danger); font-size: 1.2rem; display: none; }
+        .student-card.is-offline .timeout-overlay { display: block; }
+
+        .student-name { font-size: 0.95rem; font-weight: 600; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; margin-top: 10px; }
         .star-count { font-size: 2.2rem; font-weight: 800; color: var(--secondary); margin: 5px 0; }
         .yellow-star { color: var(--star-yellow); font-size: 1.5rem; }
-        .timeout-btn { font-size: 0.6rem; padding: 4px 6px; border-radius: 4px; border: none; font-weight: bold; cursor: pointer; text-transform: uppercase; width: 100%; margin-top: 5px; }
+        
+        .card-controls { display: flex; gap: 4px; width: 100%; margin-top: 5px; position: relative; z-index: 5; }
+        .action-btn { flex: 1; font-size: 0.55rem; padding: 6px 2px; border-radius: 4px; border: none; font-weight: bold; cursor: pointer; text-transform: uppercase; color: white; }
 
-        /* End Screen */
-        #end-screen { 
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            display: none; flex-direction: column; align-items: center; justify-content: center; 
-            z-index: 200; background: var(--bg);
-        }
-        .winner-card { 
-            text-align: center; padding: 40px; border-radius: 24px; 
-            background: rgba(255, 255, 255, 0.05); border: 2px solid var(--border);
-            box-shadow: 0 0 50px rgba(0,0,0,0.5); transform: scale(0.8); animation: zoomIn 0.5s forwards ease-out;
-        }
+        #end-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 200; background: var(--bg); }
+        .winner-card { text-align: center; padding: 40px; border-radius: 24px; background: rgba(255, 255, 255, 0.05); border: 2px solid var(--border); box-shadow: 0 0 50px rgba(0,0,0,0.5); transform: scale(0.8); animation: zoomIn 0.5s forwards ease-out; max-width: 500px; width: 90%; }
         @keyframes zoomIn { to { transform: scale(1); } }
+
+        #reward-display { font-family: 'Bebas Neue', sans-serif; font-size: 2.5rem; color: var(--primary); margin: 20px 0; min-height: 60px; }
+        .reward-spinning { animation: shake 0.1s infinite; color: white !important; filter: blur(2px); }
+        @keyframes shake { 0% { transform: translateY(-5px); } 100% { transform: translateY(5px); } }
 
         .floating-star { position: absolute; pointer-events: none; color: var(--star-yellow); font-size: 1.5rem; animation: floatUp 0.7s forwards ease-out; z-index: 10; }
         @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-50px) scale(1.5); opacity: 0; } }
 
         .option-group { background: rgba(255,255,255,0.04); padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px solid var(--border); }
-        .sidebar label { font-size: 0.7rem; color: #aaa; text-transform: uppercase; }
+        .sidebar label { font-size: 0.7rem; color: #aaa; text-transform: uppercase; display: block; margin-bottom: 4px; }
         .btn-start { width: 100%; padding: 12px; background: var(--primary); color: #000; border: none; font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; cursor: pointer; border-radius: 6px; }
-        textarea { flex-grow: 1; background: rgba(0,0,0,0.3); color: #fff; border: 1px solid var(--border); padding: 10px; resize: none; font-size: 0.8rem; margin-bottom: 10px; }
+        textarea { width: 100%; background: rgba(0,0,0,0.3); color: #fff; border: 1px solid var(--border); padding: 10px; resize: none; font-size: 0.8rem; margin-bottom: 10px; box-sizing: border-box; }
         input[type="number"], select { background:#000; color:#fff; border:1px solid var(--border); border-radius:4px; padding:2px; font-size: 0.8rem; }
+        
+        .class-manager-box { display: flex; gap: 5px; margin-bottom: 10px; }
+        .btn-icon { background: var(--panel); border: 1px solid var(--border); color: white; cursor: pointer; border-radius: 4px; padding: 4px 8px; transition: 0.2s; }
+        .btn-icon:hover { background: rgba(255,255,255,0.2); }
         .hidden { display: none !important; }
     </style>
 </head>
@@ -78,37 +86,52 @@
 
 <div class="sidebar" id="sidebar">
     <h2 style="color:var(--primary); text-align:center; font-family:'Bebas Neue'; font-size: 2rem; margin-bottom: 10px;">STAR HUNTER</h2>
+    
     <div id="setup-options">
         <div class="option-group">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                 <label id="lbl-lang">TAAL</label>
-                <select id="langSelect" onchange="updateLanguage()">
-                    <option value="NL">NL</option><option value="EN">EN</option><option value="FR">FR</option><option value="DU">DU</option>
+                <select id="langSelect" onchange="handleLanguageChange()">
+                    <option value="NL">NL</option><option value="EN">EN</option><option value="FR">FR</option><option value="DE">DU</option>
                 </select>
             </div>
-            <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                 <label id="lbl-timer">TIMER</label>
                 <input type="checkbox" id="useTimer" checked onchange="document.getElementById('timerSettings').classList.toggle('hidden', !this.checked)">
             </div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <label id="lbl-enable-rewards">BELONINGEN</label>
+                <input type="checkbox" id="useRewards" checked onchange="document.getElementById('rewardSettings').classList.toggle('hidden', !this.checked)">
+            </div>
         </div>
+
         <div id="timerSettings" class="option-group">
             <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
                 <label id="lbl-mins">MINUTEN:</label>
                 <input type="number" id="lessonMinutes" value="20" style="width:40px;">
             </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
                 <label id="lbl-auto">AUTO BOOST</label>
                 <input type="checkbox" id="enableAutoDouble" checked>
             </div>
-            <div style="display:flex; justify-content:space-between;">
-                <label id="lbl-last">LAATSTE (MIN):</label>
-                <input type="number" id="doubleMinutes" value="5" style="width:40px;">
-            </div>
+        </div>
+
+        <div id="rewardSettings" class="option-group">
+            <label>EIGEN BELONINGEN (1 PER REGEL)</label>
+            <textarea id="rewardInput" style="height: 60px;" oninput="saveCurrentData()">5 min extra pauze&#10;Sticker uitzoeken&#10;Kies je plek&#10;Huiswerkvrij pas</textarea>
         </div>
     </div>
-    <select id="classSelect" onchange="switchClass()" style="width:100%; padding:8px; margin-bottom:10px;"></select>
-    <textarea id="studentInput" placeholder="Namen per regel..." oninput="saveCurrentData();"></textarea>
-    <button id="startBtn" class="btn-start" onclick="initGame()">START</button>
+
+    <label>KLAS BEHEER</label>
+    <div class="class-manager-box">
+        <select id="classSelect" onchange="switchClass()" style="flex-grow: 1; padding: 6px;"></select>
+        <button class="btn-icon" onclick="addClass()" title="Klas toevoegen">+</button>
+        <button class="btn-icon" onclick="deleteClass()" title="Klas verwijderen" style="color: var(--danger)">🗑</button>
+    </div>
+    
+    <label>LEERLINGEN</label>
+    <textarea id="studentInput" placeholder="Namen per regel..." oninput="saveCurrentData();" style="height: 120px;"></textarea>
+    <button id="startBtn" class="btn-start" onclick="initGame()">START SESSION</button>
 </div>
 
 <div class="main-content">
@@ -124,15 +147,46 @@
 
 <script>
     const dictionary = {
-        NL: { title: "TODAY'S STAR PUPIL:", stop: "STOP", boost: "⚡ SURPRISE BOOST", menu: "MENU", online: "ONLINE", offline: "TIMEOUT", lang: "TAAL", mins: "MINUTEN", last: "LAATSTE (MIN)" },
-        EN: { title: "TODAY'S STAR PUPIL:", stop: "STOP", boost: "⚡ SURPRISE BOOST", menu: "MENU", online: "ONLINE", offline: "TIMEOUT", lang: "LANGUAGE", mins: "MINUTES", last: "LAST (MIN)" },
-        FR: { title: "L'ÉLÈVE VEDETTE DU JOUR :", stop: "ARRÊTER", boost: "⚡ BOOST SURPRISE", menu: "MENU", online: "EN LIGNE", offline: "PAUSE", lang: "LANGUE", mins: "MINUTES", last: "DERNIÈRES (MIN)" },
-        DU: { title: "DER HEUTIGE STAR-SCHÜLER:", stop: "STOPP", boost: "⚡ ÜBERRASCHUNGS-BOOST", menu: "MENÜ", online: "ONLINE", offline: "TIMEOUT", lang: "SPRACHE", mins: "MINUTEN", last: "LETZTE (MIN)" }
+        NL: { title: "DE STER VAN DE LES:", stop: "STOP", boost: "⚡ SURPRISE BOOST", menu: "OPNIEUW", online: "HERSTEL", offline: "TIMEOUT", absent: "ABSENT", lang: "TAAL", mins: "MINUTEN", rewardBtn: "🎁 ONTDEK BELONING", claim: "GEFELICITEERD!", promptClass: "Naam van de nieuwe klas?" },
+        EN: { title: "TODAY'S STAR PUPIL:", stop: "STOP", boost: "⚡ SURPRISE BOOST", menu: "RESET", online: "RECOVER", offline: "TIMEOUT", absent: "ABSENT", lang: "LANGUAGE", mins: "MINUTES", rewardBtn: "🎁 REVEAL REWARD", claim: "CONGRATULATIONS!", promptClass: "Name of the new class?" },
+        FR: { title: "L'ÉLÈVE VEDETTE :", stop: "ARRÊTER", boost: "⚡ BOOST SURPRISE", menu: "RETOUR", online: "RETOUR", offline: "PAUSE", absent: "ABSENT", lang: "LANGUE", mins: "MINUTES", rewardBtn: "🎁 RÉCOMPENSE", claim: "FÉLICITATIONS !", promptClass: "Nom de la nouvelle classe ?" },
+        DE: { title: "DER STAR-SCHÜLER:", stop: "STOPP", boost: "⚡ ÜBERRASCHUNGS-BOOST", menu: "MENÜ", online: "AKTIV", offline: "PAUSE", absent: "ABSENT", lang: "SPRACHE", mins: "MINUTEN", rewardBtn: "🎁 BELOHNUNG", claim: "GLÜCKWUNSCH!", promptClass: "Name der nieuwe Klasse?" }
     };
 
-    let students = [], gameActive = false, isDoubleActive = false, mainTimer = null, boostTimer = null, secondsRemaining = 0, currentLang = "NL";
+    let students = [], gameActive = false, isDoubleActive = false, mainTimer = null, secondsRemaining = 0, currentLang = "NL";
+    let lastRewardLang = "NL";
+    let confettiInterval = null;
     let classes = JSON.parse(localStorage.getItem('sh_classes')) || { "Klas 1": "" };
-    let currentClassName = localStorage.getItem('sh_currentClass') || "Klas 1";
+    let currentClassName = localStorage.getItem('sh_currentClass') || Object.keys(classes)[0];
+    let rewards = localStorage.getItem('sh_rewards') || "5 min extra pauze\nSticker uitzoeken\nKies je plek\nHuiswerkvrij pas";
+
+    // ... (Andere functies zoals translateRewards, handleLanguageChange, updateLanguage blijven gelijk) ...
+    async function translateRewards(targetLang) {
+        if (!document.getElementById('useRewards').checked || lastRewardLang === targetLang) return;
+        const rewardInput = document.getElementById('rewardInput');
+        const lines = rewardInput.value.split('\n').filter(l => l.trim() !== "");
+        if (lines.length === 0) return;
+        rewardInput.value = "...vertalen...";
+        rewardInput.disabled = true;
+        try {
+            const translatedLines = await Promise.all(lines.map(async (line) => {
+                const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(line)}&langpair=${lastRewardLang}|${targetLang}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                return data.responseData.translatedText || line;
+            }));
+            rewardInput.value = translatedLines.join('\n');
+            lastRewardLang = targetLang;
+            saveCurrentData();
+        } catch (error) { rewardInput.value = lines.join('\n'); }
+        finally { rewardInput.disabled = false; }
+    }
+
+    function handleLanguageChange() {
+        const newLang = document.getElementById('langSelect').value;
+        translateRewards(newLang);
+        updateLanguage();
+    }
 
     function updateLanguage() {
         currentLang = document.getElementById('langSelect').value;
@@ -141,7 +195,6 @@
         document.getElementById('quick-boost-btn').innerText = d.boost;
         document.getElementById('lbl-lang').innerText = d.lang;
         document.getElementById('lbl-mins').innerText = d.mins;
-        document.getElementById('lbl-last').innerText = d.last;
         if (gameActive) renderGrid();
     }
 
@@ -154,16 +207,39 @@
             select.appendChild(opt);
         });
         document.getElementById('studentInput').value = classes[currentClassName] || "";
+        document.getElementById('rewardInput').value = rewards;
+    }
+
+    function addClass() {
+        const name = prompt(dictionary[currentLang].promptClass);
+        if (name && !classes[name]) {
+            classes[name] = ""; currentClassName = name;
+            saveCurrentData(); initClassManager();
+        }
+    }
+
+    function deleteClass() {
+        if (Object.keys(classes).length <= 1) return;
+        if (confirm(`Klas ${currentClassName} verwijderen?`)) {
+            delete classes[currentClassName];
+            currentClassName = Object.keys(classes)[0];
+            saveCurrentData(); initClassManager();
+        }
     }
 
     function switchClass() {
+        classes[currentClassName] = document.getElementById('studentInput').value;
         currentClassName = document.getElementById('classSelect').value;
         document.getElementById('studentInput').value = classes[currentClassName] || "";
+        saveCurrentData();
     }
 
     function saveCurrentData() {
         classes[currentClassName] = document.getElementById('studentInput').value;
+        rewards = document.getElementById('rewardInput').value;
         localStorage.setItem('sh_classes', JSON.stringify(classes));
+        localStorage.setItem('sh_currentClass', currentClassName);
+        localStorage.setItem('sh_rewards', rewards);
     }
 
     function triggerManualBoost() {
@@ -179,9 +255,10 @@
     }
 
     function initGame() {
+        saveCurrentData();
         const names = document.getElementById('studentInput').value.split('\n').filter(n => n.trim() !== "");
         if (names.length === 0) return;
-        students = names.map(name => ({ name: name.trim(), stars: 0, systemStars: 0, isOffline: false }));
+        students = names.map(name => ({ name: name.trim(), stars: 0, systemStars: 0, isOffline: false, isAbsent: false, timeoutCount: 0 }));
         
         if (document.getElementById('useTimer').checked) {
             document.getElementById('timer-container').style.display = 'block';
@@ -194,32 +271,50 @@
             }, 1000);
         }
         gameActive = true;
+        document.getElementById('sidebar').classList.add('collapsed');
         document.getElementById('setup-options').classList.add('hidden');
         document.getElementById('startBtn').classList.add('hidden');
         document.getElementById('end-session-main').style.display = 'block';
         document.getElementById('quick-boost-btn').style.display = 'block';
-        document.getElementById('sidebar').classList.add('collapsed');
         renderGrid();
         gameLoop();
     }
 
+    function toggleTimeout(index) {
+        students[index].isOffline = !students[index].isOffline;
+        if (students[index].isOffline) students[index].timeoutCount++;
+        renderGrid();
+    }
+
+    function toggleAbsent(index) {
+        students[index].isAbsent = true;
+        renderGrid();
+    }
+
     function renderGrid() {
         const grid = document.getElementById('grid'); grid.innerHTML = '';
+        const d = dictionary[currentLang];
         students.forEach((s, i) => {
+            if (s.isAbsent) return;
             const card = document.createElement('div');
             card.className = `student-card ${s.isOffline ? 'is-offline' : ''}`;
-            card.onclick = (e) => { if (e.target.tagName !== 'BUTTON') addStar(i, isDoubleActive ? 2 : 1, false); };
-            card.innerHTML = `<div class="student-name">${s.name}</div><div class="star-count"><span class="yellow-star">★</span><span id="stars-${i}">${s.stars}</span></div>
-                <button class="timeout-btn" style="background:${s.isOffline ? 'var(--success)':'var(--danger)'}; color:white;" onclick="event.stopPropagation(); students[${i}].isOffline = !students[${i}].isOffline; renderGrid();">
-                    ${s.isOffline ? dictionary[currentLang].online : dictionary[currentLang].offline}
-                </button>`;
+            card.onclick = (e) => { if (!s.isOffline && !e.target.closest('.card-controls')) addStar(i, isDoubleActive ? 2 : 1, false); };
+            card.innerHTML = `
+                ${s.timeoutCount > 0 ? `<div class="timeout-counter">${s.timeoutCount}x ⛔</div>` : ''}
+                <div class="timeout-overlay">⛔</div>
+                <div class="student-name">${s.name}</div>
+                <div class="star-count"><span class="yellow-star">★</span><span id="stars-${i}">${s.stars}</span></div>
+                <div class="card-controls">
+                    <button class="action-btn" style="background:${s.isOffline ? 'var(--success)':'var(--danger)'};" onclick="event.stopPropagation(); toggleTimeout(${i});">${s.isOffline ? d.online : d.offline}</button>
+                    <button class="action-btn" style="background:#555;" onclick="event.stopPropagation(); toggleAbsent(${i});">${d.absent}</button>
+                </div>`;
             grid.appendChild(card);
         });
     }
 
     function gameLoop() {
         if (!gameActive) return;
-        const online = students.map((s, i) => ({...s, id: i})).filter(s => !s.isOffline);
+        const online = students.map((s, i) => ({...s, id: i})).filter(s => !s.isOffline && !s.isAbsent);
         if (online.length > 0) {
             const min = Math.min(...online.map(s => s.systemStars));
             const candidates = online.filter(s => s.systemStars === min);
@@ -229,21 +324,24 @@
     }
 
     function addStar(index, amount, isSys) {
-        if (students[index].isOffline) return;
+        if (students[index].isOffline || students[index].isAbsent) return;
         students[index].stars += amount; if (isSys) students[index].systemStars += amount;
-        const card = document.querySelectorAll('.student-card')[index];
-        if(card) {
+        const starSpan = document.getElementById(`stars-${index}`);
+        if(starSpan) {
+            starSpan.innerText = students[index].stars;
+            const card = starSpan.closest('.student-card');
             card.classList.add('active-star');
             const star = document.createElement('div'); star.className = 'floating-star'; star.innerText = amount >= 2 ? '★★' : '★';
-            card.appendChild(star); document.getElementById(`stars-${index}`).innerText = students[index].stars;
-            setTimeout(() => { star.remove(); card.classList.remove('active-star'); }, 700);
+            card.appendChild(star); 
+            setTimeout(() => { if(star) star.remove(); card.classList.remove('active-star'); }, 700);
         }
     }
 
     function endGame() {
         gameActive = false; clearInterval(mainTimer);
         const d = dictionary[currentLang];
-        const winner = [...students].sort((a,b) => b.stars - a.stars)[0];
+        const winner = [...students].filter(s => !s.isAbsent).sort((a,b) => b.stars - a.stars)[0];
+        const useRewards = document.getElementById('useRewards').checked;
         const screen = document.getElementById('end-screen');
         const card = document.getElementById('winner-card-content');
         
@@ -251,51 +349,63 @@
             <h1 style="color:var(--primary); font-family:'Bebas Neue'; font-size:2rem; margin:0;">${d.title}</h1>
             <h2 style="font-size:4.5rem; margin:10px 0; text-shadow:0 0 30px var(--primary);">${winner ? winner.name : '---'}</h2>
             <div style="font-size:3rem; color:var(--star-yellow); font-family:'Bebas Neue';">★ ${winner ? winner.stars : 0}</div>
-            <button class="main-btn" onclick="location.reload()" style="background:var(--secondary); color:#000; margin-top:20px; width:100%; font-size:1.4rem;">${d.menu}</button>
+            <div id="reward-display"></div>
+            ${useRewards ? `<button id="reward-btn" class="main-btn" onclick="spinRewards()" style="background:var(--primary); color:#000; margin-top:10px; width:100%; font-size:1.4rem;">${d.rewardBtn}</button>` : ''}
+            <button class="main-btn" onclick="location.reload()" style="background:rgba(255,255,255,0.1); color:#fff; margin-top:10px; width:100%; font-size:1.1rem;">${d.menu}</button>
         `;
         
         screen.style.display = 'flex';
+        startContinuousConfetti();
+    }
 
-        // --- VERBETERDE CONFETTI ---
-        setTimeout(() => {
-            const colors = ['#d4ff00', '#00f2ff', '#ffff00', '#ffffff'];
-            
-            // 1. De grote knal
+    function spinRewards() {
+        const rewardList = rewards.split('\n').filter(r => r.trim() !== "");
+        if (rewardList.length === 0) return;
+        const btn = document.getElementById('reward-btn');
+        const display = document.getElementById('reward-display');
+        btn.style.display = 'none';
+        display.classList.add('reward-spinning');
+        let counter = 0;
+        const interval = setInterval(() => {
+            display.innerText = rewardList[Math.floor(Math.random() * rewardList.length)];
+            counter++;
+            if (counter > 20) {
+                clearInterval(interval);
+                display.classList.remove('reward-spinning');
+                display.innerText = "🎁 " + rewardList[Math.floor(Math.random() * rewardList.length)];
+                display.style.fontSize = "3rem";
+                // Extra uitbarsting bij winnen beloning
+                confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, zIndex: 9999 });
+            }
+        }, 80);
+    }
+
+    function startContinuousConfetti() {
+        const end = Date.now() + (60 * 1000); // Gaat door voor 60 seconden, of tot reload
+        const colors = ['#d4ff00', '#00f2ff', '#ffff00', '#ffffff'];
+
+        (function frame() {
             confetti({
-                particleCount: 150,
-                spread: 70,
-                origin: { y: 0.6 },
+                particleCount: 3,
+                angle: 60,
+                spread: 55,
+                origin: { x: 0, y: 0.8 },
                 colors: colors,
-                zIndex: 999
+                zIndex: 9999
+            });
+            confetti({
+                particleCount: 3,
+                angle: 120,
+                spread: 55,
+                origin: { x: 1, y: 0.8 },
+                colors: colors,
+                zIndex: 9999
             });
 
-            // 2. De zij-kanonnen die even doorgaan
-            const duration = 3000;
-            const animationEnd = Date.now() + duration;
-
-            (function frame() {
-                confetti({
-                    particleCount: 2,
-                    angle: 60,
-                    spread: 55,
-                    origin: { x: 0, y: 0.8 },
-                    colors: colors,
-                    zIndex: 999
-                });
-                confetti({
-                    particleCount: 2,
-                    angle: 120,
-                    spread: 55,
-                    origin: { x: 1, y: 0.8 },
-                    colors: colors,
-                    zIndex: 999
-                });
-
-                if (Date.now() < animationEnd) {
-                    requestAnimationFrame(frame);
-                }
-            }());
-        }, 100); // Vertraging voor rendering
+            if (Date.now() < end) {
+                confettiInterval = requestAnimationFrame(frame);
+            }
+        }());
     }
 
     function toggleSidebar() { document.getElementById('sidebar').classList.toggle('collapsed'); }
@@ -304,4 +414,5 @@
 </script>
 </body>
 </html>
+
 
