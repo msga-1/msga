@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vocab Master - Colorful Edition</title>
+    <style>
+        :root {
+            --glass-bg: rgba(0, 0, 0, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-main: #ffffff;
+            --primary: #3498db;
+            --easy: #2ecc71;
+            --medium: #f1c40f;
+            --hard: #e74c3c;
+            --purple: #9b59b6;
+            --orange: #e67e22;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            min-height: 100vh;
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            color: var(--text-main);
+        }
+
+        #app { 
+            background: var(--glass-bg); 
+            backdrop-filter: blur(20px);
+            width: 100%; 
+            max-width: 550px; 
+            padding: 40px; 
+            border-radius: 25px; 
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            text-align: center; 
+        }
+        
+        h1 { font-size: 2em; margin-bottom: 10px; }
+        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        
+        .menu-btn { 
+            padding: 16px; border: none; 
+            border-radius: 12px; color: white; font-weight: bold; cursor: pointer; 
+            transition: all 0.3s; font-size: 0.95em;
+        }
+
+        .menu-btn:hover { transform: translateY(-3px); filter: brightness(1.2); }
+        
+        /* Kleuren voor de knoppen */
+        .btn-easy { background-color: var(--easy); }
+        .btn-mc-mixed { background-color: #27ae60; }
+        .btn-type { background-color: var(--primary); }
+        .btn-type-mixed { background-color: #2980b9; }
+        .btn-mixed-all { background-color: var(--purple); }
+
+        .full-width { grid-column: span 2; }
+        
+        .next-action-btn { 
+            background: var(--primary); 
+            width: 100%; border: none; border-radius: 12px; 
+            color: white; font-weight: bold; cursor: pointer; 
+            padding: 15px; font-size: 1.1em; margin-top: 15px;
+        }
+
+        .hidden { display: none !important; }
+
+        .option-btn { 
+            display: block; width: 100%; padding: 15px; margin: 12px 0; 
+            border: 1px solid var(--glass-border); border-radius: 12px; 
+            background: rgba(255, 255, 255, 0.1); color: #fff; cursor: pointer; font-size: 1.1em;
+        }
+        
+        input[type="text"] { 
+            width: 100%; padding: 15px; background: rgba(0, 0, 0, 0.3);
+            border: 2px solid var(--glass-border); border-radius: 12px; 
+            font-size: 1.3em; color: #fff; margin-bottom: 10px; outline: none; text-align: center;
+        }
+
+        .feedback-container { margin: 20px 0; min-height: 20px; }
+        .diff-display { 
+            font-family: 'Courier New', Courier, monospace; 
+            font-size: 1.8em; letter-spacing: 5px; margin-top: 15px; 
+            padding: 15px 25px; border-radius: 10px; display: none; 
+            background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border);
+        }
+        .diff-display.show { display: inline-block; }
+
+        .mc-correct-answer { font-size: 1.4em; color: var(--text-main); margin-top: 10px; font-weight: bold; }
+        .char-correct { color: var(--easy); font-weight: bold; }
+        .char-wrong { color: var(--hard); font-weight: bold; border-bottom: 2px solid var(--hard); }
+        
+        .progress { color: var(--primary); font-weight: bold; letter-spacing: 2px; margin-bottom: 10px; text-transform: uppercase; font-size: 0.8em; }
+        #question-text { margin-bottom: 25px; font-size: 1.6em; font-weight: 500; }
+
+        .review-list { text-align: left; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; margin: 20px 0; max-height: 200px; overflow-y: auto; }
+        .review-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div id="start-screen">
+        <h1>Vocab Master 🎓</h1>
+        <p>Kies je trainingsvorm:</p>
+        <div class="menu-grid">
+            <button class="menu-btn btn-easy" onclick="startQuiz('easy')">MC En ➔ Ne</button>
+            <button class="menu-btn btn-easy" onclick="startQuiz('medium')">MC Ne ➔ En</button>
+            <button class="menu-btn btn-mc-mixed full-width" onclick="startQuiz('mc-mixed')">🔄 MC Mixed (Beide kanten)</button>
+            <button class="menu-btn btn-type" onclick="startQuiz('type-en-ne')">Typen En ➔ Ne</button>
+            <button class="menu-btn btn-type" onclick="startQuiz('type-ne-en')">Typen Ne ➔ En</button>
+            <button class="menu-btn btn-type-mixed full-width" onclick="startQuiz('type-mixed')">⌨️ Typen Mixed (Beide kanten)</button>
+            <button class="menu-btn btn-mixed-all full-width" onclick="startQuiz('mixed')">🔀 Mixed Mode (Alles door elkaar)</button>
+        </div>
+    </div>
+
+    <div id="quiz-screen" class="hidden">
+        <div class="progress" id="progress">Vraag 1 van 10</div>
+        <h2 id="question-text">Vraag komt hier...</h2>
+        
+        <div id="options-container"></div>
+        <div id="input-container" class="hidden">
+            <input type="text" id="answer-input" placeholder="Typ je antwoord..." autocomplete="off">
+            <button class="next-action-btn" id="check-btn" onclick="checkTypeAnswer()">Controleer</button>
+        </div>
+
+        <div id="feedback-area" class="feedback-container">
+            <div id="feedback-text"></div>
+            <div id="diff-output" class="diff-display"></div>
+        </div>
+        
+        <button id="next-btn" class="next-action-btn hidden" onclick="nextQuestion()">Volgende Vraag ➔</button>
+    </div>
+
+    <div id="result-screen" class="hidden">
+        <h1 id="result-title">Klaar! 🎉</h1>
+        <p id="final-scoreText" style="font-size: 1.2em; margin-top: 10px;"></p>
+        
+        <div id="review-area" class="hidden">
+            <p style="margin-top: 20px; color: var(--hard);">Nog even leren:</p>
+            <div class="review-list" id="review-list"></div>
+            <button class="next-action-btn" onclick="retryWrongWords()" style="background: var(--purple);">Overhoring Foute Woorden (Typen)</button>
+        </div>
+
+        <button class="menu-btn btn-easy full-width" style="margin-top: 15px;" onclick="location.reload()">Terug naar Menu</button>
+    </div>
+</div>
+
+<script>
+    const wordList = [
+        { en: "leader", nl: "leider" }, { en: "race", nl: "wedstrijd" },
+        { en: "shore", nl: "kust / oever" }, { en: "sacrifice", nl: "offer" },
+        { en: "pain", nl: "pijn" }, { en: "legend", nl: "legende" },
+        { en: "identity", nl: "identiteit" }, { en: "flag", nl: "vlag" },
+        { en: "choice", nl: "keuze" }, { en: "protect", nl: "beschermen" },
+        { en: "generation", nl: "generatie" }, { en: "land", nl: "land" },
+        { en: "sea", nl: "zee" }, { en: "winner", nl: "winnaar" },
+        { en: "rule", nl: "regel" }
+    ];
+
+    let currentQuiz = [], currentIndex = 0, score = 0, currentMode = '', isTypingMode = false, wrongWords = [];
+
+    function startQuiz(mode, customWords = null) {
+        currentMode = mode;
+        currentQuiz = customWords ? customWords : [...wordList].sort(() => 0.5 - Math.random()).slice(0, 10);
+        currentIndex = 0; score = 0; wrongWords = [];
+        
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('result-screen').classList.add('hidden');
+        document.getElementById('quiz-screen').classList.remove('hidden');
+        showQuestion();
+    }
+
+    function showQuestion() {
+        const diffOutput = document.getElementById('diff-output');
+        document.getElementById('feedback-text').innerText = '';
+        diffOutput.innerHTML = '';
+        diffOutput.classList.remove('show');
+        document.getElementById('next-btn').classList.add('hidden');
+        document.getElementById('options-container').innerHTML = '';
+        document.getElementById('input-container').classList.add('hidden');
+        
+        document.getElementById('progress').innerText = `Vraag ${currentIndex + 1} van ${currentQuiz.length}`;
+        document.getElementById('answer-input').value = '';
+
+        let activeMode = currentMode;
+        
+        // Logica voor gemixte modes
+        if (activeMode === 'mixed') {
+            const allModes = ['easy', 'medium', 'type-en-ne', 'type-ne-en'];
+            activeMode = allModes[Math.floor(Math.random() * allModes.length)];
+        } else if (activeMode === 'mc-mixed') {
+            activeMode = Math.random() > 0.5 ? 'easy' : 'medium';
+        } else if (activeMode === 'type-mixed') {
+            activeMode = Math.random() > 0.5 ? 'type-en-ne' : 'type-ne-en';
+        }
+
+        isTypingMode = activeMode.startsWith('type');
+        const word = currentQuiz[currentIndex];
+
+        if (!isTypingMode) {
+            const isEnToNl = (activeMode === 'easy');
+            document.getElementById('question-text').innerText = isEnToNl ? `Wat betekent: "${word.en}"?` : `Vertaal naar Engels: "${word.nl}"`;
+            generateOptions(isEnToNl ? word.nl : word.en, isEnToNl ? 'nl' : 'en');
+            window.correctAnswer = isEnToNl ? word.nl : word.en;
+        } else {
+            const isNeToEn = (activeMode === 'type-ne-en');
+            document.getElementById('question-text').innerText = isNeToEn ? `Vertaal naar Engels: "${word.nl}"` : `Vertaal naar Nederlands: "${word.en}"`;
+            document.getElementById('input-container').classList.remove('hidden');
+            setTimeout(() => document.getElementById('answer-input').focus(), 100);
+            window.correctAnswer = isNeToEn ? word.en : word.nl;
+        }
+    }
+
+    function generateOptions(correct, lang) {
+        // Zorg dat de correcte optie één van de keuzes uit het woord-object is (bijv. "kust / oever")
+        let distractors = wordList
+            .filter(w => (lang === 'en' ? w.en : w.nl) !== correct)
+            .sort(() => 0.5 - Math.random())
+            .slice(0, 2)
+            .map(w => (lang === 'en' ? w.en : w.nl));
+        
+        let choices = [...distractors, correct].sort(() => 0.5 - Math.random());
+        
+        choices.forEach(choice => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = choice;
+            btn.onclick = () => checkAnswer(choice, correct);
+            document.getElementById('options-container').appendChild(btn);
+        });
+    }
+
+    function checkTypeAnswer() {
+        const val = document.getElementById('answer-input').value.trim();
+        if (val !== "") checkAnswer(val, window.correctAnswer);
+    }
+
+    function checkAnswer(selected, correct) {
+        const diffOutput = document.getElementById('diff-output');
+        const feedbackText = document.getElementById('feedback-text');
+        const currentWordObj = currentQuiz[currentIndex];
+        
+        const correctOptions = correct.split('/').map(s => s.trim().toLowerCase());
+        const userValue = selected.toLowerCase().trim();
+        const isCorrect = correctOptions.includes(userValue);
+
+        if (isCorrect) {
+            score++;
+            feedbackText.innerText = "✅ Goed zo!";
+            feedbackText.style.color = "var(--easy)";
+        } else {
+            feedbackText.innerText = `❌ Het juiste antwoord is:`;
+            feedbackText.style.color = "var(--hard)";
+            if (!wrongWords.includes(currentWordObj)) wrongWords.push(currentWordObj);
+            
+            if (isTypingMode) {
+                diffOutput.innerHTML = generateDiff(userValue, correctOptions[0]);
+                diffOutput.classList.add('show');
+            } else {
+                const mcDiv = document.createElement('div');
+                mcDiv.className = 'mc-correct-answer';
+                mcDiv.innerText = correctOptions[0];
+                feedbackText.appendChild(mcDiv);
+            }
+        }
+
+        document.getElementById('next-btn').classList.remove('hidden');
+        document.getElementById('input-container').classList.add('hidden');
+        document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+    }
+
+    function generateDiff(user, target) {
+        let output = "";
+        for (let i = 0; i < target.length; i++) {
+            const uChar = user[i] || "";
+            const tChar = target[i];
+            output += (uChar === tChar) ? `<span class="char-correct">${tChar}</span>` : `<span class="char-wrong">${tChar}</span>`;
+        }
+        return output;
+    }
+
+    document.getElementById('answer-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') checkTypeAnswer();
+    });
+
+    function nextQuestion() {
+        currentIndex++;
+        if (currentIndex < currentQuiz.length) showQuestion(); else showResults();
+    }
+
+    function showResults() {
+        document.getElementById('quiz-screen').classList.add('hidden');
+        document.getElementById('result-screen').classList.remove('hidden');
+        document.getElementById('final-scoreText').innerText = `Je score: ${score} / ${currentQuiz.length}`;
+        
+        const reviewArea = document.getElementById('review-area');
+        if (wrongWords.length > 0) {
+            reviewArea.classList.remove('hidden');
+            document.getElementById('review-list').innerHTML = wrongWords.map(w => `
+                <div class="review-item">
+                    <span>${w.en}</span><span>➔</span><span>${w.nl}</span>
+                </div>
+            `).join('');
+        } else {
+            reviewArea.classList.add('hidden');
+            document.getElementById('result-title').innerText = "Perfect gedaan! 🏆";
+        }
+    }
+
+    function retryWrongWords() {
+        startQuiz('type-mixed', [...wrongWords].sort(() => 0.5 - Math.random()));
+    }
+</script>
+</body>
+</html>
