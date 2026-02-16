@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mister Seb's Grammar Coach</title>
+    <style>
+        :root {
+            --whatsapp-bg: #e5ddd5;
+            --chat-green: #dcf8c6;
+            --white: #ffffff;
+            --accent: #075e54;
+            --success-blue: #007bff;
+            --text-gray: #667781;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #121b22;
+            display: flex; justify-content: center; align-items: center;
+            height: 100vh; margin: 0;
+        }
+
+        #app-container {
+            width: 100%; max-width: 450px; height: 90vh;
+            background: var(--whatsapp-bg);
+            display: flex; flex-direction: column;
+            border-radius: 12px; overflow: hidden; position: relative;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        header { 
+            background: var(--accent); color: white; padding: 12px 15px; 
+            font-weight: bold; display: flex; justify-content: space-between; align-items: center;
+            z-index: 30;
+        }
+
+        footer {
+            background: #f0f2f5; color: var(--text-gray); text-align: center;
+            padding: 8px; font-size: 11px; border-top: 1px solid #ddd;
+        }
+
+        .controls { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+        .switch { position: relative; display: inline-block; width: 40px; height: 22px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; inset: 0; background-color: #555; transition: .4s; border-radius: 20px; border: 1px solid #fff; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--success-blue); }
+        input:checked + .slider:before { transform: translateX(18px); }
+
+        #chat-window { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+
+        .message { max-width: 85%; padding: 10px 14px; border-radius: 10px; font-size: 15px; line-height: 1.5; position: relative; }
+        .bot-msg { background: var(--white); align-self: flex-start; border-top-left-radius: 0; }
+        .user-msg { background: var(--chat-green); align-self: flex-end; border-top-right-radius: 0; }
+
+        .timestamp { font-size: 10px; color: var(--text-gray); display: block; text-align: right; margin-top: 4px; }
+        
+        #level-select {
+            position: absolute; inset: 0; background: white; z-index: 50;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 20px;
+        }
+
+        #input-area { background: #f0f2f5; padding: 12px; display: flex; gap: 10px; }
+        input[type="text"] { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 25px; outline: none; }
+        button.action-btn { background: var(--accent); color: white; border: none; padding: 15px; border-radius: 35px; cursor: pointer; font-weight: bold; width: 260px; }
+        #send-btn { background: var(--accent); color: white; border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; }
+
+        .star { position: absolute; font-size: 40px; left: 50%; top: 50%; pointer-events: none; animation: starPop 0.8s ease-out forwards; z-index: 100; }
+        @keyframes starPop { 0% { transform: translate(-50%, -50%) scale(0); opacity: 1; } 100% { transform: translate(-50%, -150%) scale(1.5); opacity: 0; } }
+        
+        .confetti { position: absolute; width: 8px; height: 8px; top: -10px; animation: fall 3s linear forwards; z-index: 60; }
+        @keyframes fall { to { transform: translateY(90vh) rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <header>
+        <div style="font-size: 14px;">🟢 Coach <span id="progress" style="background:rgba(0,0,0,0.2); padding:2px 6px; border-radius:10px; margin-left:5px;">0/10</span></div>
+        <div class="controls">
+            <span>NL</span>
+            <label class="switch"><input type="checkbox" id="lang-toggle"><span class="slider"></span></label>
+            <span>EN</span>
+        </div>
+    </header>
+    
+    <div id="chat-window"></div>
+
+    <div id="level-select">
+        <h2 style="color: var(--accent); margin-bottom: 0;">Grammar Coach</h2>
+        <p style="color: #666; font-size: 14px; margin-bottom: 15px;">Word Order Practice</p>
+        <button class="action-btn" onclick="startGame(1)">Level 1: Easy</button>
+        <button class="action-btn" onclick="startGame(2)">Level 2: Medium</button>
+        <button class="action-btn" onclick="startGame(3)">Level 3: Hard</button>
+    </div>
+
+    <div id="input-area">
+        <input type="text" id="user-input" placeholder="Type here..." disabled>
+        <button onclick="checkAnswer()" id="send-btn" disabled>➤</button>
+    </div>
+
+    <footer>© Mister Seb's Grammar Apps</footer>
+</div>
+
+<script>
+    const masterDB = {
+       1: [
+    { s: "at / am / I / home", c: "I am at home.", p: "home", t: "am" },
+    { s: "here / the / cat / is", c: "The cat is here.", p: "here", t: "is" },
+    { s: "now / singing / is / she", c: "She is singing now.", p: "singing", t: "now" },
+    { s: "London / in / are / we", c: "We are in London.", p: "London", t: "are" },
+    { s: "today / late / is / he", c: "He is late today.", p: "late", t: "is" },
+    { s: "outside / is / it / cold", c: "It is cold outside.", p: "outside", t: "is" },
+    { s: "running / am / I / now", c: "I am running now.", p: "running", t: "now" },
+    { s: "there / play / dogs / the", c: "The dogs play there.", p: "there", t: "play" },
+    { s: "at / school / is / my / brother", c: "My brother is at school.", p: "school", t: "is" },
+    { s: "now / tea / drinking / am / I", c: "I am drinking tea now.", p: "tea", t: "now" },
+    { s: "I / kitchen / the / am / in", c: "I am in the kitchen.", p: "kitchen", t: "am" },
+    { s: "today / works / dad / my", c: "My dad works today.", p: "dad", t: "today" },
+    { s: "garden / in / the / is / she", c: "She is in the garden.", p: "garden", t: "is" },
+    { s: "now / jump / we", c: "We jump now.", p: "jump", t: "now" },
+    { s: "at / shop / the / is / he", c: "He is at the shop.", p: "shop", t: "at" },
+    { s: "I / tonight / cook", c: "I cook tonight.", p: "cook", t: "tonight" },
+    { s: "here / are / they", c: "They are here.", p: "here", t: "are" },
+    { s: "now / rains / it", c: "It rains now.", p: "rains", t: "now" },
+    { s: "Paris / in / am / I", c: "I am in Paris.", p: "Paris", t: "am" },
+    { s: "today / help / you", c: "You help today.", p: "help", t: "today" },
+    { s: "outside / play / we", c: "We play outside.", p: "outside", t: "play" },
+    { s: "now / sleeps / baby / the", c: "The baby sleeps now.", p: "sleeps", t: "now" },
+    { s: "at / park / the / am / I", c: "I am at the park.", p: "park", t: "am" },
+    { s: "today / dance / they", c: "They dance today.", p: "dance", t: "today" },
+    { s: "here / wait / I", c: "I wait here.", p: "here", t: "wait" },
+    { s: "now / leaves / train / the", c: "The train leaves now.", p: "leaves", t: "now" },
+    { s: "bed / in / is / she", c: "She is in bed.", p: "bed", t: "is" },
+    { s: "monday / on / work / I", c: "I work on Monday.", p: "work", t: "Monday" },
+    { s: "there / stands / he", c: "He stands there.", p: "there", t: "stands" },
+    { s: "now / eat / we", c: "We eat now.", p: "eat", t: "now" },
+    { s: "at / gym / the / am / I", c: "I am at the gym.", p: "gym", t: "am" },
+    { s: "today / smiles / she", c: "She smiles today.", p: "smiles", t: "today" },
+    { s: "upstairs / is / boy / the", c: "The boy is upstairs.", p: "upstairs", t: "is" },
+    { s: "now / call / I", c: "I call now.", p: "call", t: "now" },
+    { s: "school / in / are / they", c: "They are in school.", p: "school", t: "are" },
+    { s: "tonight / come / we", c: "We come tonight.", p: "come", t: "tonight" },
+    { s: "here / sits / dog / the", c: "The dog sits here.", p: "here", t: "sits" },
+    { s: "now / study / you", c: "You study now.", p: "study", t: "now" },
+    { s: "at / zoo / the / is / he", c: "He is at the zoo.", p: "zoo", t: "at" },
+    { s: "today / clean / I", c: "I clean today.", p: "clean", t: "today" },
+    { s: "downstairs / are / we", c: "We are downstairs.", p: "downstairs", t: "are" },
+    { s: "now / starts / game / the", c: "The game starts now.", p: "starts", t: "now" },
+    { s: "bus / on / the / am / I", c: "I am on the bus.", p: "bus", t: "am" },
+    { s: "today / rains / it / heavy", c: "It rains heavy today.", p: "heavy", t: "today" },
+    { s: "inside / stay / they", c: "They stay inside.", p: "inside", t: "stay" },
+    { s: "now / talk / we", c: "We talk now.", p: "talk", t: "now" },
+    { s: "at / desk / my / am / I", c: "I am at my desk.", p: "desk", t: "am" },
+    { s: "today / happy / is / she", c: "She is happy today.", p: "happy", t: "today" },
+    { s: "there / goes / he", c: "He goes there.", p: "there", t: "goes" },
+    { s: "now / watch / I", c: "I watch now.", p: "watch", t: "now" },
+    { s: "car / the / in / are / we", c: "We are in the car.", p: "car", t: "are" },
+    { s: "tonight / sings / she", c: "She sings tonight.", p: "sings", t: "tonight" },
+    { s: "here / play / I", c: "I play here.", p: "here", t: "play" },
+    { s: "now / drinks / cat / the", c: "The cat drinks now.", p: "drinks", t: "now" },
+    { s: "at / party / the / is / he", c: "He is at the party.", p: "party", t: "at" },
+    { s: "today / wash / I", c: "I wash today.", p: "wash", t: "today" },
+    { s: "outside / walks / she", c: "She walks outside.", p: "outside", t: "walks" },
+    { s: "now / listen / they", c: "They listen now.", p: "listen", t: "now" },
+    { s: "London / in / lives / he", c: "He lives in London.", p: "London", t: "lives" },
+    { s: "today / write / I", c: "I write today.", p: "write", t: "today" },
+    { s: "here / am / I", c: "I am here.", p: "here", t: "am" },
+    { s: "now / drive / we", c: "We drive now.", p: "drive", t: "now" },
+    { s: "at / table / the / sits / she", c: "She sits at the table.", p: "table", t: "at" },
+    { s: "today / win / they", c: "They win today.", p: "win", t: "today" },
+    { s: "there / is / bike / the", c: "The bike is there.", p: "there", t: "is" },
+    { s: "now / opens / he", c: "He opens now.", p: "opens", t: "now" },
+    { s: "forest / in / the / am / I", c: "I am in the forest.", p: "forest", t: "am" },
+    { s: "today / fix / you", c: "You fix today.", p: "fix", t: "today" },
+    { s: "outside / barks / dog / the", c: "The dog barks outside.", p: "outside", t: "barks" },
+    { s: "now / swim / we", c: "We swim now.", p: "swim", t: "now" },
+    { s: "at / door / the / is / she", c: "She is at the door.", p: "door", t: "is" },
+    { s: "tonight / rest / I", c: "I rest tonight.", p: "rest", t: "tonight" },
+    { s: "here / come / they", c: "They come here.", p: "here", t: "come" },
+    { s: "now / stops / it", c: "It stops now.", p: "stops", t: "now" },
+    { s: "class / in / am / I", c: "I am in class.", p: "class", t: "am" },
+    { s: "today / teaches / he", c: "He teaches today.", p: "teaches", t: "today" },
+    { s: "there / wait / we", c: "We wait there.", p: "there", t: "wait" },
+    { s: "now / looks / she", c: "She looks now.", p: "looks", t: "now" },
+    { s: "at / farm / the / are / they", c: "They are at the farm.", p: "farm", t: "are" },
+    { s: "today / buy / I", c: "I buy today.", p: "buy", t: "today" },
+    { s: "inside / plays / boy / the", c: "The boy plays inside.", p: "inside", t: "plays" },
+    { s: "now / finish / we", c: "We finish now.", p: "finish", t: "now" },
+    { s: "store / in / the / is / he", c: "He is in the store.", p: "store", t: "is" },
+    { s: "tonight / dance / I", c: "I dance tonight.", p: "dance", t: "tonight" },
+    { s: "here / stay / you", c: "You stay here.", p: "here", t: "stay" },
+    { s: "now / cries / she", c: "She cries now.", p: "cries", t: "now" },
+    { s: "at / beach / the / am / I", c: "I am at the beach.", p: "beach", t: "am" },
+    { s: "today / paint / they", c: "They paint today.", p: "paint", t: "today" },
+    { s: "there / works / she", c: "She works there.", p: "there", t: "works" },
+    { s: "now / laugh / we", c: "We laugh now.", p: "laugh", t: "now" },
+    { s: "at / lake / the / is / it", c: "It is at the lake.", p: "lake", t: "is" },
+    { s: "today / learn / I", c: "I learn today.", p: "learn", t: "today" },
+    { s: "outside / is / sister / my", c: "My sister is outside.", p: "outside", t: "is" },
+    { s: "now / move / they", c: "They move now.", p: "move", t: "now" },
+    { s: "sea / the / in / am / I", c: "I am in the sea.", p: "sea", t: "am" },
+    { s: "tonight / reads / he", c: "He reads tonight.", p: "reads", t: "tonight" },
+    { s: "here / is / friend / my", c: "My friend is here.", p: "here", t: "is" },
+    { s: "now / helps / she", c: "She helps now.", p: "helps", t: "now" },
+    { s: "at / airport / the / are / we", c: "We are at the airport.", p: "airport", t: "are" },
+    { s: "today / visits / he", c: "He visits today.", p: "visits", t: "today" },
+    { s: "there / run / I", c: "I run there.", p: "there", t: "run" },
+    { s: "now / begins / show / the", c: "The show begins now.", p: "begins", t: "now" },
+    { s: "at / pool / the / is / she", c: "She is at the pool.", p: "pool", t: "is" },
+    { s: "today / draw / we", c: "We draw today.", p: "draw", t: "today" },
+    { s: "inside / sit / they", c: "They sit inside.", p: "inside", t: "sit" },
+    { s: "now / rings / phone / the", c: "The phone rings now.", p: "rings", t: "now" },
+    { s: "bank / in / the / is / he", c: "He is in the bank.", p: "bank", t: "is" },
+    { s: "tonight / leave / you", c: "You leave tonight.", p: "leave", t: "tonight" },
+    { s: "here / sleep / I", c: "I sleep here.", p: "here", t: "sleep" },
+    { s: "now / walk / we", c: "We walk now.", p: "walk", t: "now" },
+    { s: "at / hotel / the / am / I", c: "I am at the hotel.", p: "hotel", t: "am" },
+    { s: "today / try / they", c: "They try today.", p: "try", t: "today" },
+    { s: "there / sits / boy / the", c: "The boy sits there.", p: "there", t: "sits" },
+    { s: "now / speaks / he", c: "He speaks now.", p: "speaks", t: "now" },
+    { s: "at / park / the / are / we", c: "We are at the park.", p: "park", t: "are" },
+    { s: "today / calls / she", c: "She calls today.", p: "calls", t: "today" },
+    { s: "here / jump / I", c: "I jump here.", p: "here", t: "jump" },
+    { s: "now / flies / bird / the", c: "The bird flies now.", p: "flies", t: "now" },
+    { s: "at / club / the / is / he", c: "He is at the club.", p: "club", t: "is" },
+    { s: "today / ask / we", c: "We ask today.", p: "ask", t: "today" },
+    { s: "inside / is / cat / the", c: "The cat is inside.", p: "inside", t: "is" },
+    { s: "now / pay / you", c: "You pay now.", p: "pay", t: "now" },
+    { s: "at / museum / the / am / I", c: "I am at the museum.", p: "museum", t: "am" },
+    { s: "tonight / works / she", c: "She works tonight.", p: "works", t: "tonight" },
+    { s: "there / play / they", c: "They play there.", p: "there", t: "play" },
+    { s: "now / ends / lesson / the", c: "The lesson ends now.", p: "ends", t: "now" },
+    { s: "in / garden / the / is / he", c: "He is in the garden.", p: "garden", t: "is" },
+    { s: "today / sing / I", c: "I sing today.", p: "sing", t: "today" },
+    { s: "here / wait / you", c: "You wait here.", p: "here", t: "wait" },
+    { s: "now / flows / water / the", c: "The water flows now.", p: "flows", t: "now" },
+    { s: "at / field / the / am / I", c: "I am at the field.", p: "field", t: "am" },
+    { s: "today / build / they", c: "They build today.", p: "build", t: "today" },
+    { s: "there / is / man / the", c: "The man is there.", p: "there", t: "is" },
+    { s: "now / teaches / she", c: "She teaches now.", p: "teaches", t: "now" },
+    { s: "at / office / the / are / we", c: "We are at the office.", p: "office", t: "are" },
+    { s: "today / watch / he", c: "He watches today.", p: "watches", t: "today" },
+    { s: "here / am / I / again", c: "I am here again.", p: "here", t: "am" },
+    { s: "now / hides / she", c: "She hides now.", p: "hides", t: "now" },
+    { s: "at / station / the / is / he", c: "He is at the station.", p: "station", t: "is" },
+    { s: "today / dance / you", c: "You dance today.", p: "dance", t: "today" },
+    { s: "outside / are / dogs / the", c: "The dogs are outside.", p: "outside", t: "are" },
+    { s: "now / listen / we", c: "We listen now.", p: "listen", t: "now" },
+    { s: "at / school / am / I", c: "I am at school.", p: "school", t: "am" },
+    { s: "tonight / eats / she", c: "She eats tonight.", p: "eats", t: "tonight" },
+    { s: "there / sits / I", c: "I sit there.", p: "there", t: "sit" },
+    { s: "now / rains / it / soft", c: "It rains soft now.", p: "soft", t: "now" },
+    { s: "at / hospital / the / is / he", c: "He is at the hospital.", p: "hospital", t: "is" },
+    { s: "today / cook / we", c: "We cook today.", p: "cook", t: "today" },
+    { s: "here / is / bag / my", c: "My bag is here.", p: "here", t: "is" },
+    { s: "now / falls / leaf / the", c: "The leaf falls now.", p: "falls", t: "now" },
+    { s: "at / bridge / the / am / I", c: "I am at the bridge.", p: "bridge", t: "am" },
+    { s: "today / speaks / she", c: "She speaks today.", p: "speaks", t: "today" }
+],
+        2: [
+    { s: "morning / every / I / at / tea / drink / home", c: "I drink tea at home every morning.", p: "home", t: "morning" },
+    { s: "now / music / in / to / room / she / her / listening / is", c: "She is listening to music in her room now.", p: "room", t: "now" },
+    { s: "garden / in / the / the / are / today / playing / dogs", c: "The dogs are playing in the garden today.", p: "garden", t: "today" },
+    { s: "moment / the / at / am / studying / I / library / the / at", c: "I am studying at the library at the moment.", p: "library", t: "moment" },
+    { s: "after / park / football / the / in / we / school / play", c: "We play football in the park after school.", p: "park", t: "after" },
+    { s: "kitchen / in / the / is / dinner / cooking / my / mum / now", c: "My mum is cooking dinner in the kitchen now.", p: "kitchen", t: "now" },
+    { s: "shining / today / sun / brightly / is / the", c: "The sun is shining brightly today.", p: "sun", t: "today" },
+    { s: "homework / doing / now / my / I / am / desk / my / at", c: "I am doing my homework at my desk now.", p: "desk", t: "now" },
+    { s: "at / am / I / morning / the / work / every", c: "I work at the office every morning.", p: "office", t: "morning" },
+    { s: "the / children / are / swimming / pool / in / tonight", c: "The children are swimming in the pool tonight.", p: "pool", t: "tonight" },
+    { s: "the / he / is / paper / reading / living / room / in / now", c: "He is reading the paper in the living room now.", p: "room", t: "now" },
+    { s: "lunch / we / at / eat / the / cafeteria / today", c: "We eat lunch at the cafeteria today.", p: "cafeteria", t: "today" },
+    { s: "sister / my / is / in / sleeping / bedroom / her / now", c: "My sister is sleeping in her bedroom now.", p: "bedroom", t: "now" },
+    { s: "I / pizza / am / at / the / eating / restaurant / tonight", c: "I am eating pizza at the restaurant tonight.", p: "restaurant", t: "tonight" },
+    { s: "park / in / the / is / walking / she / afternoon / every", c: "She is walking in the park every afternoon.", p: "park", t: "afternoon" },
+    { s: "at / they / are / bus / the / stop / standing / now", c: "They are standing at the bus stop now.", p: "stop", t: "now" },
+    { s: "morning / I / yoga / do / the / in / garden / every", c: "I do yoga in the garden every morning.", p: "garden", t: "morning" },
+    { s: "today / is / dad / my / at / car / the / washing / garage", c: "My dad is washing the car at the garage today.", p: "garage", t: "today" },
+    { s: "meeting / we / a / have / in / office / the / tomorrow", c: "We have a meeting in the office tomorrow.", p: "office", t: "tomorrow" },
+    { s: "now / she / piano / the / is / playing / hall / in / the", c: "She is playing the piano in the hall now.", p: "hall", t: "now" },
+    { s: "the / birds / are / in / flying / sky / the / evening / this", c: "The birds are flying in the sky this evening.", p: "sky", t: "evening" },
+    { s: "at / am / I / the / gym / hard / training / today", c: "I am training hard at the gym today.", p: "gym", t: "today" },
+    { s: "they / are / in / staying / a / hotel / week / this", c: "They are staying in a hotel this week.", p: "hotel", t: "week" },
+    { s: "morning / every / runs / he / forest / the / in", c: "He runs in the forest every morning.", p: "forest", t: "morning" },
+    { s: "now / mum / my / is / tea / drinking / on / balcony / the", c: "My mum is drinking tea on the balcony now.", p: "balcony", t: "now" },
+    { s: "I / books / at / buy / the / shop / Saturday / every", c: "I buy books at the shop every Saturday.", p: "shop", t: "Saturday" },
+    { s: "today / is / raining / it / heavily / London / in", c: "It is raining heavily in London today.", p: "London", t: "today" },
+    { s: "football / play / boys / the / field / the / on / tonight", c: "The boys play football on the field tonight.", p: "field", t: "tonight" },
+    { s: "moment / the / at / she / is / kitchen / the / in / cleaning", c: "She is cleaning in the kitchen at the moment.", p: "kitchen", t: "moment" },
+    { s: "meeting / are / we / friends / in / park / the / today", c: "We are meeting friends in the park today.", p: "park", t: "today" },
+    { s: "I / homework / my / do / at / table / the / tonight", c: "I do my homework at the table tonight.", p: "table", t: "tonight" },
+    { s: "work / they / every / at / factory / the / day", c: "They work at the factory every day.", p: "factory", t: "every" },
+    { s: "now / is / baby / the / floor / the / on / crawling", c: "The baby is crawling on the floor now.", p: "floor", t: "now" },
+    { s: "we / in / movie / a / watch / bed / tonight", c: "We watch a movie in bed tonight.", p: "bed", t: "tonight" },
+    { s: "at / she / is / bus / the / station / waiting / now", c: "She is waiting at the bus station now.", p: "station", t: "now" },
+    { s: "the / children / are / on / beach / the / today / playing", c: "The children are playing on the beach today.", p: "beach", t: "today" },
+    { s: "I / my / visit / grandmother / her / at / house / Sunday / every", c: "I visit my grandmother at her house every Sunday.", p: "house", t: "Sunday" },
+    { s: "the / cat / is / on / roof / the / now / sitting", c: "The cat is sitting on the roof now.", p: "roof", t: "now" },
+    { s: "lunch / have / we / garden / the / in / today", c: "We have lunch in the garden today.", p: "garden", t: "today" },
+    { s: "at / he / is / airport / the / morning / this", c: "He is at the airport this morning.", p: "airport", t: "morning" },
+    { s: "now / is / she / shop / the / in / working", c: "She is working in the shop now.", p: "shop", t: "now" },
+    { s: "they / are / boat / the / on / tonight / dancing", c: "They are dancing on the boat tonight.", p: "boat", t: "tonight" },
+    { s: "the / doctor / is / hospital / in / the / today / working", c: "The doctor is working in the hospital today.", p: "hospital", t: "today" },
+    { s: "morning / I / bike / my / ride / forest / the / in / every", c: "I ride my bike in the forest every morning.", p: "forest", t: "morning" },
+    { s: "now / are / we / museum / the / in / walking", c: "We are walking in the museum now.", p: "museum", t: "now" },
+    { s: "is / brother / my / at / school / day / every", c: "My brother is at school every day.", p: "school", t: "every" },
+    { s: "the / chef / is / kitchen / in / the / tonight / cooking", c: "The chef is cooking in the kitchen tonight.", p: "kitchen", t: "tonight" },
+    { s: "at / I / the / am / cinema / now / sitting", c: "I am sitting at the cinema now.", p: "cinema", t: "now" },
+    { s: "morning / they / the / coffee / in / drink / cafe / every", c: "They drink coffee in the cafe every morning.", p: "cafe", t: "morning" },
+    { s: "today / is / she / at / library / the / studying", c: "She is studying at the library today.", p: "library", t: "today" },
+    { s: "now / am / I / letters / writing / at / desk / my", c: "I am writing letters at my desk now.", p: "desk", t: "now" },
+    { s: "the / birds / are / morning / every / in / singing / trees / the", c: "The birds are singing in the trees every morning.", p: "trees", t: "morning" },
+    { s: "at / we / the / am / beach / running / today", c: "We are running at the beach today.", p: "beach", t: "today" },
+    { s: "now / is / he / car / the / in / driving", c: "He is driving in the car now.", p: "car", t: "now" },
+    { s: "the / students / are / in / class / afternoon / every", c: "The students are in class every afternoon.", p: "class", t: "afternoon" },
+    { s: "I / tonight / at / stay / home", c: "I stay at home tonight.", p: "home", t: "tonight" },
+    { s: "morning / she / in / the / runs / park / every", c: "She runs in the park every morning.", p: "park", t: "morning" },
+    { s: "they / are / bridge / the / on / now / standing", c: "They are standing on the bridge now.", p: "bridge", t: "now" },
+    { s: "today / is / he / field / the / on / working", c: "He is working on the field today.", p: "field", t: "today" },
+    { s: "now / are / we / house / the / in / painting", c: "We are painting in the house now.", p: "house", t: "now" },
+    { s: "I / morning / at / the / gym / exercise / every", c: "I exercise at the gym every morning.", p: "gym", t: "morning" },
+    { s: "tonight / is / she / the / cooking / kitchen / in", c: "She is cooking in the kitchen tonight.", p: "kitchen", t: "tonight" },
+    { s: "at / he / is / desk / his / today / sitting", c: "He is sitting at his desk today.", p: "desk", t: "today" },
+    { s: "now / are / they / in / pool / the / swimming", c: "They are swimming in the pool now.", p: "pool", t: "now" },
+    { s: "the / dog / is / garden / the / in / today / sleeping", c: "The dog is sleeping in the garden today.", p: "garden", t: "today" },
+    { s: "every / at / work / I / office / the / day", c: "I work at the office every day.", p: "office", t: "every" },
+    { s: "is / she / now / in / shop / the / buying / bread", c: "She is buying bread in the shop now.", p: "shop", t: "now" },
+    { s: "today / are / we / park / the / in / walking", c: "We are walking in the park today.", p: "park", t: "today" },
+    { s: "morning / every / he / news / the / reads / bed / in", c: "He reads the news in bed every morning.", p: "bed", t: "morning" },
+    { s: "now / am / I / at / the / station / waiting", c: "I am waiting at the station now.", p: "station", t: "now" },
+    { s: "the / tonight / girls / are / hall / the / in / dancing", c: "The girls are dancing in the hall tonight.", p: "hall", t: "tonight" },
+    { s: "in / are / they / classroom / the / today / studying", c: "They are studying in the classroom today.", p: "classroom", t: "today" },
+    { s: "now / is / she / her / cleaning / room / upstairs", c: "She is cleaning her room upstairs now.", p: "room", t: "now" },
+    { s: "morning / I / forest / the / in / walk / every", c: "I walk in the forest every morning.", p: "forest", t: "morning" },
+    { s: "today / are / we / the / on / playing / field", c: "We are playing on the field today.", p: "field", t: "today" },
+    { s: "now / is / he / at / cafe / the / drinking / juice", c: "He is drinking juice at the cafe now.", p: "cafe", t: "now" },
+    { s: "night / every / sleeps / she / in / bed / her", c: "She sleeps in her bed every night.", p: "bed", t: "every" },
+    { s: "at / am / I / the / library / tonight / reading", c: "I am reading at the library tonight.", p: "library", t: "tonight" },
+    { s: "the / today / are / swimming / sea / in / children", c: "The children are swimming in the sea today.", p: "sea", t: "today" },
+    { s: "now / is / she / kitchen / the / in / eating", c: "She is eating in the kitchen now.", p: "kitchen", t: "now" },
+    { s: "morning / every / he / at / park / the / runs", c: "He runs at the park every morning.", p: "park", t: "morning" },
+    { s: "now / are / we / at / airport / the / standing", c: "We are standing at the airport now.", p: "airport", t: "now" },
+    { s: "they / are / farm / the / on / tonight / working", c: "They are working on the farm tonight.", p: "farm", t: "tonight" },
+    { s: "today / is / she / garden / the / in / painting", c: "She is painting in the garden today.", p: "garden", t: "today" },
+    { s: "now / am / I / at / the / gym / lifting / weights", c: "I am lifting weights at the gym now.", p: "gym", t: "now" },
+    { s: "the / tonight / boys / are / park / the / in / playing", c: "The boys are playing in the park tonight.", p: "park", t: "tonight" },
+    { s: "in / are / they / museum / the / today / looking", c: "They are looking in the museum today.", p: "museum", t: "today" },
+    { s: "now / is / he / at / pool / the / swimming", c: "He is swimming at the pool now.", p: "pool", t: "now" },
+    { s: "morning / I / tea / every / in / drink / bed", c: "I drink tea in bed every morning.", p: "bed", t: "morning" },
+    { s: "now / is / she / the / shopping / mall / in / walking", c: "She is walking in the shopping mall now.", p: "mall", t: "now" },
+    { s: "today / are / we / the / on / sitting / beach", c: "We are sitting on the beach today.", p: "beach", t: "today" },
+    { s: "the / night / every / cat / in / kitchen / the / sits", c: "The cat sits in the kitchen every night.", p: "kitchen", t: "every" },
+    { s: "at / am / I / the / park / tonight / running", c: "I am running at the park tonight.", p: "park", t: "tonight" },
+    { s: "now / are / they / in / forest / the / hiding", c: "They are hiding in the forest now.", p: "forest", t: "now" },
+    { s: "today / is / she / kitchen / the / in / washing / dishes", c: "She is washing dishes in the kitchen today.", p: "kitchen", t: "today" },
+    { s: "now / is / he / desk / his / at / writing", c: "He is writing at his desk now.", p: "desk", t: "now" },
+    { s: "every / morning / runs / dog / the / in / garden / the", c: "The dog runs in the garden every morning.", p: "garden", t: "morning" },
+    { s: "now / are / we / bridge / the / over / driving", c: "We are driving over the bridge now.", p: "bridge", t: "now" },
+    { s: "tonight / is / she / the / piano / in / hall / the / playing", c: "She is playing the piano in the hall tonight.", p: "hall", t: "tonight" },
+    { s: "today / are / they / factory / the / in / working", c: "They are working in the factory today.", p: "factory", t: "today" },
+    { s: "now / am / I / bus / the / on / sitting", c: "I am sitting on the bus now.", p: "bus", t: "now" },
+    { s: "the / morning / every / students / are / in / school", c: "The students are in school every morning.", p: "school", t: "morning" },
+    { s: "now / is / he / at / shop / the / paying", c: "He is paying at the shop now.", p: "shop", t: "now" },
+    { s: "today / are / we / city / the / in / walking", c: "We are walking in the city today.", p: "city", t: "today" },
+    { s: "night / every / I / in / room / my / study", c: "I study in my room every night.", p: "room", t: "every" },
+    { s: "now / is / she / the / street / in / running", c: "She is running in the street now.", p: "street", t: "now" },
+    { s: "tonight / they / cinema / the / in / are / watching", c: "They are watching in the cinema tonight.", p: "cinema", t: "tonight" },
+    { s: "today / is / he / garden / the / in / digging", c: "He is digging in the garden today.", p: "garden", t: "today" },
+    { s: "now / are / we / library / the / in / sitting", c: "We are sitting in the library now.", p: "library", t: "now" },
+    { s: "morning / every / runs / he / forest / the / through", c: "He runs through the forest every morning.", p: "forest", t: "morning" },
+    { s: "now / is / she / table / the / at / eating", c: "She is eating at the table now.", p: "table", t: "now" },
+    { s: "today / are / we / pool / the / in / swimming", c: "We are swimming in the pool today.", p: "pool", t: "today" },
+    { s: "every / night / he / bed / in / sleeps", c: "He sleeps in bed every night.", p: "bed", t: "every" },
+    { s: "now / am / I / station / the / at / standing", c: "I am standing at the station now.", p: "station", t: "now" },
+    { s: "tonight / are / they / room / their / in / cleaning", c: "They are cleaning in their room tonight.", p: "room", t: "tonight" },
+    { s: "today / is / she / kitchen / the / in / cooking", c: "She is cooking in the kitchen today.", p: "kitchen", t: "today" },
+    { s: "now / is / he / car / his / in / sitting", c: "He is sitting in his car now.", p: "car", t: "now" },
+    { s: "morning / every / I / at / gym / the / train", c: "I train at the gym every morning.", p: "gym", t: "morning" },
+    { s: "now / are / we / garden / the / in / playing", c: "We are playing in the garden now.", p: "garden", t: "now" },
+    { s: "tonight / is / she / her / bed / in / reading", c: "She is reading in her bed tonight.", p: "bed", t: "tonight" },
+    { s: "today / are / they / at / zoo / the / looking", c: "They are looking at the zoo today.", p: "zoo", t: "today" },
+    { s: "now / am / I / office / the / in / working", c: "I am working in the office now.", p: "office", t: "now" },
+    { s: "morning / every / she / forest / the / in / walks", c: "She walks in the forest every morning.", p: "forest", t: "morning" },
+    { s: "now / is / he / kitchen / the / in / drinking", c: "He is drinking in the kitchen now.", p: "kitchen", t: "now" },
+    { s: "today / are / we / mountain / the / on / climbing", c: "We are climbing on the mountain today.", p: "mountain", t: "today" },
+    { s: "every / night / they / sofa / the / on / sit", c: "They sit on the sofa every night.", p: "sofa", t: "every" },
+    { s: "now / am / I / gym / the / at / running", c: "I am running at the gym now.", p: "gym", t: "now" },
+    { s: "tonight / is / she / room / her / in / singing", c: "She is singing in her room tonight.", p: "room", t: "tonight" },
+    { s: "today / are / they / park / the / in / sitting", c: "They are sitting in the park today.", p: "park", t: "today" },
+    { s: "now / is / he / airport / the / at / waiting", c: "He is waiting at the airport now.", p: "airport", t: "now" },
+    { s: "morning / every / I / garden / the / in / paint", c: "I paint in the garden every morning.", p: "garden", t: "morning" },
+    { s: "now / are / we / city / the / through / driving", c: "We are driving through the city now.", p: "city", t: "now" },
+    { s: "tonight / is / she / kitchen / the / in / washing", c: "She is washing in the kitchen tonight.", p: "kitchen", t: "tonight" },
+    { s: "today / are / they / shop / the / in / working", c: "They are working in the shop today.", p: "shop", t: "today" },
+    { s: "now / am / I / beach / the / on / walking", c: "I am walking on the beach now.", p: "beach", t: "now" },
+    { s: "morning / every / he / at / cafe / the / eats", c: "He eats at the cafe every morning.", p: "cafe", t: "morning" },
+    { s: "now / is / she / hospital / the / in / helping", c: "She is helping in the hospital now.", p: "hospital", t: "now" },
+    { s: "today / are / we / field / the / in / running", c: "We are running in the field today.", p: "field", t: "today" },
+    { s: "every / night / I / at / desk / my / write", c: "I write at my desk every night.", p: "desk", t: "every" },
+    { s: "now / is / he / museum / the / in / looking", c: "He is looking in the museum now.", p: "museum", t: "now" },
+    { s: "tonight / are / they / hall / the / in / playing", c: "They are playing in the hall tonight.", p: "hall", t: "tonight" },
+    { s: "today / is / she / forest / the / in / walking", c: "She is walking in the forest today.", p: "forest", t: "today" },
+    { s: "now / are / we / airport / the / at / sitting", c: "We are sitting at the airport now.", p: "airport", t: "now" },
+    { s: "morning / every / I / in / pool / the / swim", c: "I swim in the pool every morning.", p: "pool", t: "morning" },
+    { s: "now / is / he / table / the / at / sitting", c: "He is sitting at the table now.", p: "table", t: "now" },
+    { s: "today / are / we / station / the / at / waiting", c: "We are waiting at the station today.", p: "station", t: "today" },
+    { s: "every / night / she / in / kitchen / the / cooks", c: "She cooks in the kitchen every night.", p: "kitchen", t: "every" }
+],
+        3: [
+    { s: "playing / the / garden / in / is / my / happy / brother / now", c: "My happy brother is playing in the garden now.", p: "garden", t: "now" },
+    { s: "watches / father / my / evening / living / the / news / room / in / the / at", c: "My father watches the news in the living room at evening.", p: "room", t: "evening" },
+    { s: "learning / morning / desk / words / my / am / I / new / now / at / every", c: "I am learning new words at my desk every morning now.", p: "desk", t: "morning" },
+    { s: "classroom / the / in / day / helps / every / teacher / the / students / the", c: "The teacher helps the students in the classroom every day.", p: "classroom", t: "every" },
+    { s: "outside / are / the / park / in / running / children / the / now", c: "The children are running in the park now outside.", p: "park", t: "now" },
+    { s: "is / mother / my / kitchen / the / in / dinner / cooking / delicious / tonight", c: "My mother is cooking delicious dinner in the kitchen tonight.", p: "kitchen", t: "tonight" },
+    { s: "at / am / I / morning / every / gym / local / the / hard / training", c: "I am training hard at the local gym every morning.", p: "gym", t: "morning" },
+    { s: "is / sister / little / my / sleeping / bed / her / in / peacefully / now", c: "My little sister is sleeping peacefully in her bed now.", p: "bed", t: "now" },
+    { s: "football / play / we / friends / with / field / the / on / today", c: "We play football with friends on the field today.", p: "field", t: "today" },
+    { s: "the / reading / is / grandfather / old / my / garden / in / book / a / now", c: "My old grandfather is reading a book in the garden now.", p: "garden", t: "now" },
+    { s: "shining / today / sun / brightly / sky / blue / the / in / is / the", c: "The sun is shining brightly in the blue sky today.", p: "sky", t: "today" },
+    { s: "morning / every / coffee / drink / I / nice / kitchen / the / in / hot", c: "I drink nice hot coffee in the kitchen every morning.", p: "kitchen", t: "morning" },
+    { s: "at / am / I / moment / the / at / office / busy / the / working", c: "I am working at the busy office at the moment.", p: "office", t: "moment" },
+    { s: "song / a / singing / is / beautiful / she / stage / the / on / tonight", c: "She is singing a beautiful song on the stage tonight.", p: "stage", t: "tonight" },
+    { s: "around / are / running / garden / the / in / dogs / noisy / the / now", c: "The noisy dogs are running around in the garden now.", p: "garden", t: "now" },
+    { s: "breakfast / we / have / table / the / at / family / with / today", c: "We have breakfast with family at the table today.", p: "table", t: "today" },
+    { s: "now / room / his / in / guitar / his / playing / is / he / loud", c: "He is playing his loud guitar in his room now.", p: "room", t: "now" },
+    { s: "morning / every / I / forest / green / the / in / bike / my / ride", c: "I ride my bike in the green forest every morning.", p: "forest", t: "morning" },
+    { s: "at / am / I / night / every / desk / my / at / homework / doing", c: "I am doing homework at my desk at every night.", p: "desk", t: "night" },
+    { s: "the / doctor / is / hospital / the / in / patients / helping / today", c: "The doctor is helping patients in the hospital today.", p: "hospital", t: "today" },
+    { s: "now / park / the / in / together / walking / are / we / fast", c: "We are walking fast together in the park now.", p: "park", t: "now" },
+    { s: "the / cat / is / sofa / the / on / kitchen / the / in / sleeping / tonight", c: "The cat is sleeping on the sofa in the kitchen tonight.", p: "sofa", t: "tonight" },
+    { s: "at / she / is / bus / the / stop / cold / the / in / waiting / now", c: "She is waiting at the bus stop in the cold now.", p: "stop", t: "now" },
+    { s: "every / at / work / I / office / large / the / in / day", c: "I work in the large office at every day.", p: "office", t: "every" },
+    { s: "is / dad / my / garage / the / in / car / old / the / fixing / today", c: "My dad is fixing the old car in the garage today.", p: "garage", t: "today" },
+    { s: "sandcastle / a / building / are / we / beach / the / on / today", c: "We are building a sandcastle on the beach today.", p: "beach", t: "today" },
+    { s: "morning / every / tea / drink / they / cafe / small / the / in", c: "They drink tea in the small cafe every morning.", p: "cafe", t: "morning" },
+    { s: "now / school / the / in / piano / the / playing / is / she", c: "She is playing the piano in the school now.", p: "school", t: "now" },
+    { s: "night / every / moon / the / sky / dark / the / in / shines", c: "The moon shines in the dark sky every night.", p: "sky", t: "night" },
+    { s: "at / am / I / airport / the / morning / this / family / with / my", c: "I am with my family at the airport this morning.", p: "airport", t: "morning" },
+    { s: "now / street / the / in / house / the / near / running / are / they", c: "They are running in the street near the house now.", p: "street", t: "now" },
+    { s: "lunch / has / he / colleagues / with / canteen / the / in / today", c: "He has lunch with colleagues in the canteen today.", p: "canteen", t: "today" },
+    { s: "the / are / students / classroom / the / in / morning / every / studying", c: "The students are studying in the classroom every morning.", p: "classroom", t: "morning" },
+    { s: "now / station / the / at / train / the / for / waiting / am / I", c: "I am waiting for the train at the station now.", p: "station", t: "now" },
+    { s: "tonight / are / we / restaurant / the / in / pasta / eating", c: "We are eating pasta in the restaurant tonight.", p: "restaurant", t: "tonight" },
+    { s: "morning / every / she / forest / the / in / dog / her / walks", c: "She walks her dog in the forest every morning.", p: "forest", t: "morning" },
+    { s: "today / is / he / library / the / in / book / a / reading", c: "He is reading a book in the library today.", p: "library", t: "today" },
+    { s: "now / are / they / pool / the / in / water / cold / the / in / swimming", c: "They are swimming in the cold water in the pool now.", p: "pool", t: "now" },
+    { s: "at / am / I / gym / the / morning / this / friends / with", c: "I am with friends at the gym this morning.", p: "gym", t: "morning" },
+    { s: "every / morning / sings / bird / the / window / my / at", c: "The bird sings at my window every morning.", p: "window", t: "morning" },
+    { s: "the / are / we / museum / the / in / history / about / learning / today", c: "We are learning about history in the museum today.", p: "museum", t: "today" },
+    { s: "now / is / she / kitchen / the / in / apples / fresh / eating", c: "She is eating fresh apples in the kitchen now.", p: "kitchen", t: "now" },
+    { s: "night / every / I / room / my / in / music / to / listen", c: "I listen to music in my room every night.", p: "room", t: "night" },
+    { s: "at / is / he / desk / his / today / letters / writing", c: "He is writing letters at his desk today.", p: "desk", t: "today" },
+    { s: "morning / every / we / field / the / in / football / play", c: "We play football in the field every morning.", p: "field", t: "morning" },
+    { s: "now / are / they / shop / the / in / clothes / new / buying", c: "They are buying new clothes in the shop now.", p: "shop", t: "now" },
+    { s: "the / night / every / forest / the / in / owl / the / sits", c: "The owl sits in the forest every night.", p: "forest", t: "night" },
+    { s: "at / am / I / cinema / the / tonight / movie / a / watching", c: "I am watching a movie at the cinema tonight.", p: "cinema", t: "tonight" },
+    { s: "today / is / she / garden / the / in / flowers / planting", c: "She is planting flowers in the garden today.", p: "garden", t: "today" },
+    { s: "now / house / the / in / cleaning / are / we / together", c: "We are cleaning in the house together now.", p: "house", t: "now" },
+    { s: "every / morning / coffee / drinks / he / balcony / the / on", c: "He drinks coffee on the balcony every morning.", p: "balcony", t: "morning" },
+    { s: "now / is / she / her / room / upstairs / in / dancing", c: "She is dancing in her room upstairs now.", p: "room", t: "now" },
+    { s: "the / today / are / children / beach / the / on / playing", c: "The children are playing on the beach today.", p: "beach", t: "today" },
+    { s: "night / every / I / bed / my / in / dreams / have", c: "I have dreams in my bed every night.", p: "bed", t: "night" },
+    { s: "at / is / he / park / the / today / running / fast", c: "He is running fast at the park today.", p: "park", t: "today" },
+    { s: "now / are / we / kitchen / the / in / dinner / eating", c: "We are eating dinner in the kitchen now.", p: "kitchen", t: "now" },
+    { s: "the / morning / every / students / school / the / at / are", c: "The students are at the school every morning.", p: "school", t: "morning" },
+    { s: "now / is / she / bridge / the / near / river / the / in / swimming", c: "She is swimming in the river near the bridge now.", p: "river", t: "now" },
+    { s: "tonight / are / we / hall / the / in / together / dancing", c: "We are dancing together in the hall tonight.", p: "hall", t: "tonight" },
+    { s: "today / is / dad / my / garden / the / in / working", c: "My dad is working in the garden today.", p: "garden", t: "today" },
+    { s: "now / are / they / library / the / in / studying / hard", c: "They are studying hard in the library now.", p: "library", t: "now" },
+    { s: "morning / every / she / kitchen / the / in / tea / drinks", c: "She drinks tea in the kitchen every morning.", p: "kitchen", t: "morning" },
+    { s: "now / am / I / station / the / at / tickets / for / paying", c: "I am paying for tickets at the station now.", p: "station", t: "now" },
+    { s: "the / today / are / boys / field / the / in / playing", c: "The boys are playing in the field today.", p: "field", t: "today" },
+    { s: "night / every / cat / the / sofa / the / on / sleeps", c: "The cat sleeps on the sofa every night.", p: "sofa", t: "night" },
+    { s: "at / am / I / tonight / gym / the / training / hard", c: "I am training hard at the gym tonight.", p: "gym", t: "tonight" },
+    { s: "today / is / she / kitchen / the / in / soup / cooking", c: "She is cooking soup in the kitchen today.", p: "kitchen", t: "today" },
+    { s: "now / is / he / desk / his / at / sitting / alone", c: "He is sitting alone at his desk now.", p: "desk", t: "now" },
+    { s: "morning / every / we / forest / the / in / walk / long", c: "We walk long in the forest every morning.", p: "forest", t: "morning" },
+    { s: "now / are / they / park / the / in / together / playing", c: "They are playing together in the park now.", p: "park", t: "now" },
+    { s: "tonight / is / she / room / her / in / quiet / reading", c: "She is reading quiet in her room tonight.", p: "room", t: "tonight" },
+    { s: "today / are / we / zoo / the / in / animals / seeing", c: "We are seeing animals in the zoo today.", p: "zoo", t: "today" },
+    { s: "now / am / I / office / the / in / reports / writing", c: "I am writing reports in the office now.", p: "office", t: "now" },
+    { s: "morning / every / she / park / the / in / runs", c: "She runs in the park every morning.", p: "park", t: "morning" },
+    { s: "now / are / they / kitchen / the / in / drinking / juice", c: "They are drinking juice in the kitchen now.", p: "kitchen", t: "now" },
+    { s: "today / are / we / mountains / the / in / climbing / high", c: "We are climbing high in the mountains today.", p: "mountains", t: "today" },
+    { s: "every / night / they / bed / their / in / sleep", c: "They sleep in their bed every night.", p: "bed", t: "night" },
+    { s: "now / am / I / gym / the / at / running / fast", c: "I am running fast at the gym now.", p: "gym", t: "now" },
+    { s: "tonight / is / she / room / her / in / loudly / singing", c: "She is singing loudly in her room tonight.", p: "room", t: "tonight" },
+    { s: "today / are / they / park / the / in / happy / sitting", c: "They are sitting happy in the park today.", p: "park", t: "today" },
+    { s: "now / is / he / airport / the / at / waiting / long", c: "He is waiting long at the airport now.", p: "airport", t: "now" },
+    { s: "morning / every / I / garden / the / in / pictures / paint", c: "I paint pictures in the garden every morning.", p: "garden", t: "morning" },
+    { s: "now / are / we / city / the / through / fast / driving", c: "We are driving fast through the city now.", p: "city", t: "now" },
+    { s: "tonight / is / she / kitchen / the / in / dishes / washing", c: "She is washing dishes in the kitchen tonight.", p: "kitchen", t: "tonight" },
+    { s: "today / are / they / shop / the / in / busy / working", c: "They are working busy in the shop today.", p: "shop", t: "today" },
+    { s: "now / am / I / beach / the / on / alone / walking", c: "I am walking alone on the beach now.", p: "beach", t: "now" },
+    { s: "morning / every / he / cafe / the / at / breakfast / eats", c: "He eats breakfast at the cafe every morning.", p: "cafe", t: "morning" },
+    { s: "now / is / she / hospital / the / in / sick / helping", c: "She is helping sick in the hospital now.", p: "hospital", t: "now" },
+    { s: "today / are / we / field / the / in / together / running", c: "We are running together in the field today.", p: "field", t: "today" },
+    { s: "every / night / I / at / desk / my / stories / write", c: "I write stories at my desk every night.", p: "desk", t: "night" },
+    { s: "now / is / he / museum / the / in / paintings / looking", c: "He is looking paintings in the museum now.", p: "museum", t: "now" },
+    { s: "tonight / are / they / hall / the / in / games / playing", c: "They are playing games in the hall tonight.", p: "hall", t: "tonight" },
+    { s: "today / is / she / forest / the / in / flowers / walking", c: "She is walking flowers in the forest today.", p: "forest", t: "today" },
+    { s: "now / are / we / airport / the / at / quietly / sitting", c: "We are sitting quietly at the airport now.", p: "airport", t: "now" },
+    { s: "morning / every / I / pool / the / in / laps / swim", c: "I swim laps in the pool every morning.", p: "pool", t: "morning" },
+    { s: "now / is / he / table / the / at / dinner / eating", c: "He is eating dinner at the table now.", p: "table", t: "now" },
+    { s: "today / are / we / station / the / at / patiently / waiting", c: "We are waiting patiently at the station today.", p: "station", t: "today" },
+    { s: "every / night / she / in / kitchen / the / meals / cooks", c: "She cooks meals in the kitchen every night.", p: "kitchen", t: "night" },
+    { s: "now / am / I / bridge / the / near / standing", c: "I am standing near the bridge now.", p: "bridge", t: "now" },
+    { s: "tonight / are / we / room / our / in / boxes / packing", c: "We are packing boxes in our room tonight.", p: "room", t: "tonight" },
+    { s: "today / is / he / park / the / in / grass / the / cutting", c: "He is cutting the grass in the park today.", p: "park", t: "today" },
+    { s: "now / is / she / piano / her / in / room / the / playing", c: "She is playing the piano in her room now.", p: "room", t: "now" },
+    { s: "morning / every / I / garden / the / in / birds / the / feed", c: "I feed the birds in the garden every morning.", p: "garden", t: "morning" },
+    { s: "now / are / they / forest / the / in / wood / gathering", c: "They are gathering wood in the forest now.", p: "forest", t: "now" },
+    { s: "tonight / is / she / kitchen / the / in / cake / a / baking", c: "She is baking a cake in the kitchen tonight.", p: "kitchen", t: "tonight" },
+    { s: "today / are / we / zoo / the / in / monkeys / watching", c: "We are watching monkeys in the zoo today.", p: "zoo", t: "today" },
+    { s: "now / am / I / gym / the / at / yoga / doing", c: "I am doing yoga at the gym now.", p: "gym", t: "now" },
+    { s: "morning / every / he / forest / the / in / wood / cuts", c: "He cuts wood in the forest every morning.", p: "forest", t: "morning" },
+    { s: "now / is / she / table / the / at / water / drinking", c: "She is drinking water at the table now.", p: "table", t: "now" },
+    { s: "today / are / we / mountains / the / in / rocks / climbing", c: "We are climbing rocks in the mountains today.", p: "mountains", t: "today" },
+    { s: "every / night / they / room / their / in / talk", c: "They talk in their room every night.", p: "room", t: "night" },
+    { s: "now / am / I / library / the / in / quietly / reading", c: "I am reading quietly in the library now.", p: "library", t: "now" },
+    { s: "tonight / is / she / room / her / in / loud / singing", c: "She is singing loud in her room tonight.", p: "room", t: "tonight" },
+    { s: "today / are / they / field / the / on / running / happy", c: "They are running happy on the field today.", p: "field", t: "today" },
+    { s: "now / is / he / airport / the / at / flight / his / waiting", c: "He is waiting his flight at the airport now.", p: "airport", t: "now" },
+    { s: "morning / every / I / forest / the / in / flowers / pick", c: "I pick flowers in the forest every morning.", p: "forest", t: "morning" },
+    { s: "now / are / we / city / the / through / car / the / driving", c: "We are driving the car through the city now.", p: "city", t: "now" },
+    { s: "tonight / is / she / kitchen / the / in / floor / the / cleaning", c: "She is cleaning the floor in the kitchen tonight.", p: "kitchen", t: "tonight" },
+    { s: "today / are / they / shop / the / in / shoes / selling", c: "They are selling shoes in the shop today.", p: "shop", t: "today" },
+    { s: "now / am / I / beach / the / on / shells / looking", c: "I am looking shells on the beach now.", p: "beach", t: "now" },
+    { s: "morning / every / he / cafe / the / at / eggs / eats", c: "He eats eggs at the cafe every morning.", p: "cafe", t: "morning" },
+    { s: "now / is / she / hospital / the / in / doctor / the / helping", c: "She is helping the doctor in the hospital now.", p: "hospital", t: "now" },
+    { s: "today / are / we / field / the / in / together / playing", c: "We are playing together in the field today.", p: "field", t: "today" },
+    { s: "every / night / I / bed / my / in / book / a / read", c: "I read a book in my bed every night.", p: "bed", t: "night" },
+    { s: "now / is / he / museum / the / in / statues / looking", c: "He is looking statues in the museum now.", p: "museum", t: "now" },
+    { s: "tonight / are / they / hall / the / in / music / listening", c: "They are listening music in the hall tonight.", p: "hall", t: "tonight" },
+    { s: "today / is / she / forest / the / in / berries / picking", c: "She is picking berries in the forest today.", p: "forest", t: "today" },
+    { s: "now / are / we / airport / the / at / bags / our / waiting", c: "We are waiting our bags at the airport now.", p: "airport", t: "now" },
+    { s: "morning / every / I / pool / the / in / water / cold / swim", c: "I swim cold water in the pool every morning.", p: "pool", t: "morning" },
+    { s: "now / is / he / table / the / at / soup / eating", c: "He is eating soup at the table now.", p: "table", t: "now" },
+    { s: "today / are / we / station / the / at / friends / waiting", c: "We are waiting friends at the station today.", p: "station", t: "today" },
+    { s: "every / night / she / kitchen / the / in / dinner / makes", c: "She makes dinner in the kitchen every night.", p: "kitchen", t: "night" },
+    { s: "now / am / I / school / the / at / teacher / the / seeing", c: "I am seeing the teacher at the school now.", p: "school", t: "now" },
+    { s: "tonight / are / we / house / our / in / party / a / having", c: "We are having a party in our house tonight.", p: "house", t: "tonight" },
+    { s: "today / is / he / garden / the / in / trees / the / climbing", c: "He is climbing the trees in the garden today.", p: "garden", t: "today" },
+    { s: "now / is / she / piano / her / in / hall / the / playing", c: "She is playing the piano in the hall now.", p: "hall", t: "now" },
+    { s: "morning / every / I / garden / the / in / grass / the / walk", c: "I walk the grass in the garden every morning.", p: "garden", t: "morning" },
+    { s: "now / are / they / forest / the / in / paths / the / walking", c: "They are walking the paths in the forest now.", p: "forest", t: "now" },
+    { s: "tonight / is / she / kitchen / the / in / food / the / smelling", c: "She is smelling the food in the kitchen tonight.", p: "kitchen", t: "tonight" },
+    { s: "today / are / we / zoo / the / in / lions / the / watching", c: "We are watching the lions in the zoo today.", p: "zoo", t: "today" },
+    { s: "now / am / I / gym / the / at / friends / my / meeting", c: "I am meeting my friends at the gym now.", p: "gym", t: "now" },
+    { s: "morning / every / he / forest / the / in / wood / the / carries", c: "He carries the wood in the forest every morning.", p: "forest", t: "morning" },
+    { s: "now / is / she / table / the / at / tea / her / drinking", c: "She is drinking her tea at the table now.", p: "table", t: "now" },
+    { s: "today / are / we / mountains / the / in / snow / the / touching", c: "We are touching the snow in the mountains today.", p: "mountains", t: "today" },
+    { s: "every / night / they / room / their / in / stories / tell", c: "They tell stories in their room every night.", p: "room", t: "night" },
+    { s: "now / am / I / library / the / in / books / the / sorting", c: "I am sorting the books in the library now.", p: "library", t: "now" },
+    { s: "tonight / is / she / room / her / in / quiet / singing", c: "She is singing quiet in her room tonight.", p: "room", t: "tonight" },
+    { s: "today / are / they / field / the / on / soccer / the / playing", c: "They are playing the soccer on the field today.", p: "field", t: "today" },
+    { s: "now / is / he / airport / the / at / door / the / waiting", c: "He is waiting the door at the airport now.", p: "airport", t: "now" }
+]
+    };
+
+    let activeQuestions = [];
+    let currentIdx = 0;
+
+    const translations = {
+        nl: {
+            start: "Veel succes! Zet de zinnen in de juiste volgorde.",
+            unscramble: "Zet in de juiste volgorde:",
+            perfect: "Perfect! 🌟",
+            orderOk: "✅ Woordvolgorde is goed!",
+            orderWrong: "Woordvolgorde is nog niet goed.",
+            tipPlace: "• Tip: Plaats (Place) komt voor Tijd (Time).",
+            tipI: "• Tip: Schrijf 'I' altijd als hoofdletter.",
+            tipCap: "• Tip: Begin met een hoofdletter.",
+            tipStop: "• Tip: Eindig met een punt.",
+            tipSpell: "• Tip: Controleer de spelling.",
+            retry: "Verbeter de zin om door te gaan:",
+            complete: "🏆 Klaar! Je hebt 10 zinnen gehaald."
+        },
+        en: {
+            start: "Good luck! Put the sentences in the correct order.",
+            unscramble: "Unscramble:",
+            perfect: "Perfect! 🌟",
+            orderOk: "✅ Word order is correct!",
+            orderWrong: "Word order is incorrect.",
+            tipPlace: "• Tip: Place comes before Time.",
+            tipI: "• Tip: Always capitalize 'I'.",
+            tipCap: "• Tip: Start with a Capital letter.",
+            tipStop: "• Tip: End with a full stop.",
+            tipSpell: "• Tip: Check your spelling.",
+            retry: "Correct the sentence to continue:",
+            complete: "🏆 Well done! You finished 10 sentences."
+        }
+    };
+
+    function getLang() { return document.getElementById('lang-toggle').checked ? 'en' : 'nl'; }
+
+    function addMessage(content, sender) {
+        const win = document.getElementById('chat-window');
+        const div = document.createElement('div');
+        div.className = `message ${sender === 'bot' ? 'bot-msg' : 'user-msg'}`;
+        div.innerHTML = content + `<span class="timestamp">${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>`;
+        win.appendChild(div);
+        win.scrollTop = win.scrollHeight;
+    }
+
+    function startGame(lvl) {
+        activeQuestions = [...masterDB[lvl]].sort(() => 0.5 - Math.random()).slice(0, 10);
+        currentIdx = 0;
+        document.getElementById('level-select').style.display = 'none';
+        document.getElementById('user-input').disabled = false;
+        document.getElementById('send-btn').disabled = false;
+        addMessage(translations[getLang()].start, 'bot');
+        ask();
+    }
+
+    function ask() {
+        if (currentIdx < activeQuestions.length) {
+            document.getElementById('progress').textContent = `${currentIdx + 1}/10`;
+            addMessage(`${translations[getLang()].unscramble} <b>${activeQuestions[currentIdx].s}</b>`, 'bot');
+        } else {
+            addMessage(translations[getLang()].complete, 'bot');
+            celebrate();
+            setTimeout(() => { document.getElementById('level-select').style.display = 'flex'; }, 4000);
+        }
+    }
+
+    function checkAnswer() {
+        const inputField = document.getElementById('user-input');
+        const userVal = inputField.value.trim();
+        if (!userVal) return;
+        addMessage(userVal, 'user');
+        const q = activeQuestions[currentIdx];
+
+        if (userVal === q.c) {
+            addMessage(translations[getLang()].perfect, 'bot');
+            spawnStar();
+            currentIdx++;
+            setTimeout(ask, 1500);
+        } else {
+            analyzeFeedback(userVal, q.c, q.p, q.t);
+        }
+        inputField.value = '';
+    }
+
+    function analyzeFeedback(input, target, placeKey, timeKey) {
+        const lang = translations[getLang()];
+        let issues = [];
+        const lowInput = input.toLowerCase();
+        let pPos = lowInput.indexOf(placeKey.toLowerCase().substring(0, 2));
+        let tPos = lowInput.indexOf(timeKey.toLowerCase().substring(0, 2));
+        
+        let wordOrderOK = true;
+        if (pPos !== -1 && tPos !== -1 && pPos > tPos) {
+            wordOrderOK = false;
+        }
+
+        let feedbackHTML = wordOrderOK ? `<span style='color:var(--success-blue); font-weight:bold;'>${lang.orderOk}</span>` : `<span style='color:#d32f2f; font-weight:bold;'>${lang.orderWrong}</span>`;
+        if (!wordOrderOK) issues.push(lang.tipPlace);
+        if (/\bi\b/.test(input)) issues.push(lang.tipI);
+        if (input[0] && input[0] !== target[0]) issues.push(lang.tipCap);
+        if (!input.endsWith('.')) issues.push(lang.tipStop);
+        if (wordOrderOK && lowInput.replace(/[.]/g, "") !== target.toLowerCase().replace(/[.]/g, "")) issues.push(lang.tipSpell);
+
+        feedbackHTML += `<div style='border-top: 1px solid #eee; margin-top: 8px; padding-top: 8px; font-size: 13px; color: #444;'><b>Tips:</b><br>${issues.join("<br>")}</div><br><small><i>Correct: ${target}</i></small>`;
+        addMessage(feedbackHTML, 'bot');
+        addMessage(lang.retry, 'bot');
+    }
+
+    function celebrate() {
+        for(let i=0; i<30; i++) {
+            const conf = document.createElement('div');
+            conf.className = 'confetti';
+            conf.style.left = Math.random() * 100 + '%';
+            conf.style.backgroundColor = ['#f2d74e','#95c3de','#ff9a91'][Math.floor(Math.random()*3)];
+            conf.style.animationDelay = Math.random() * 2 + 's';
+            document.getElementById('app-container').appendChild(conf);
+            setTimeout(() => conf.remove(), 4000);
+        }
+    }
+
+    function spawnStar() {
+        const star = document.createElement('div');
+        star.className = 'star'; star.innerHTML = '⭐';
+        document.getElementById('app-container').appendChild(star);
+        setTimeout(() => star.remove(), 800);
+    }
+
+    document.getElementById('user-input').onkeypress = (e) => { if(e.key==='Enter') checkAnswer(); };
+</script>
+
+</body>
+</html>
