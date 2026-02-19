@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Taboo - Pro Edition</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap');
+
+        :root {
+            --accent-color: #ff9f43; 
+            --glass-bg: rgba(255, 255, 255, 0.12);
+            --glass-border: rgba(255, 255, 255, 0.2);
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            color: white;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .star { position: absolute; background: white; border-radius: 50%; opacity: 0.5; animation: twinkle var(--duration) infinite; pointer-events: none; }
+        @keyframes twinkle { 0%, 100% { opacity: 0.3; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.3); } }
+
+        .game-container {
+            background: var(--glass-bg);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid var(--glass-border);
+            padding: 1rem 1.5rem;
+            border-radius: 35px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            width: 85%;
+            max-width: 350px;
+            text-align: center;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* TIMER BAR */
+        .timer-container {
+            width: 100%;
+            height: 8px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            display: none;
+        }
+        #timer-bar {
+            height: 100%;
+            width: 100%;
+            background: var(--accent-color);
+            transition: width 1s linear, background 0.3s;
+        }
+
+        h1 { font-weight: 900; margin: 0 0 0.5rem 0; font-size: 1.8rem; }
+
+        .card {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 25px;
+            padding: 15px;
+            margin-bottom: 15px;
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border: 2px solid var(--accent-color);
+        }
+
+        .target-word { font-size: 2rem; margin: 0 0 10px 0; text-transform: uppercase; font-weight: 900; color: var(--accent-color); }
+        .forbidden-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 5px; }
+        .forbidden-list li { background: rgba(255, 255, 255, 0.1); padding: 8px; border-radius: 12px; font-weight: 600; border-left: 4px solid var(--accent-color); }
+
+        .time-options { display: flex; gap: 8px; justify-content: center; margin-top: 15px; }
+        .btn-time { background: rgba(255,255,255,0.2); font-size: 0.8rem; padding: 8px; }
+
+        .button-group { display: flex; gap: 12px; }
+        button { border: none; padding: 12px; font-size: 1rem; font-weight: 800; border-radius: 18px; cursor: pointer; transition: 0.2s; color: white; }
+        .btn-skip { background: rgba(255,255,255,0.15); flex: 1; }
+        .btn-correct { background: #2ecc71; flex: 1.5; box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3); }
+        button:active { transform: scale(0.95); }
+
+        .score-board { margin-top: 15px; font-size: 0.85rem; font-weight: 700; padding: 8px 15px; background: rgba(0,0,0,0.2); border-radius: 50px; display: inline-block; }
+        footer { margin-top: 15px; font-size: 0.7rem; color: rgba(255, 255, 255, 0.6); letter-spacing: 1px; font-weight: 600; }
+    </style>
+</head>
+<body>
+
+    <div id="star-container"></div>
+
+    <div class="game-container">
+        <div class="timer-container" id="t-cont"><div id="timer-bar"></div></div>
+        <h1>Food Taboo</h1>
+        
+        <div class="card" id="card">
+            <div id="setup-screen">
+                <p style="font-weight: 800; color: var(--accent-color);">CHOOSE YOUR TIME:</p>
+                <div class="time-options">
+                    <button class="btn-time" onclick="startGame(60)">1 MIN</button>
+                    <button class="btn-time" onclick="startGame(180)">3 MIN</button>
+                    <button class="btn-time" onclick="startGame(300)">5 MIN</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="button-group" id="controls" style="display: none;">
+            <button class="btn-skip" onclick="showNext(false)">Skip ⏭️</button>
+            <button class="btn-correct" onclick="showNext(true)">Correct ✅</button>
+        </div>
+        
+        <div class="score-board">
+            SCORE: <span id="score">0</span> &nbsp; | &nbsp; BEST: <span id="high-score">0</span>
+        </div>
+    </div>
+
+    <footer>© MISTER SEB'S GAME APPS</footer>
+
+    <script>
+        const words = [
+    // FRUITS & VEGGIES
+    { word: "Banana", forbidden: ["Yellow", "Fruit", "Monkey"] },
+    { word: "Apple", forbidden: ["Red", "Fruit", "Crunchy"] },
+    { word: "Carrot", forbidden: ["Orange", "Rabbit", "Vegetable"] },
+    { word: "Potato", forbidden: ["Fries", "Vegetable", "Brown"] },
+    { word: "Broccoli", forbidden: ["Green", "Vegetable", "Tree"] },
+    { word: "Corn", forbidden: ["Yellow", "Popcorn", "Grain"] },
+    { word: "Avocado", forbidden: ["Green", "Guacamole", "Toast"] },
+    { word: "Strawberry", forbidden: ["Red", "Summer", "Berry"] },
+    { word: "Pineapple", forbidden: ["Tropical", "Yellow", "Pizza"] },
+    { word: "Cucumber", forbidden: ["Green", "Salad", "Water"] },
+    { word: "Tomato", forbidden: ["Red", "Sauce", "Salad"] },
+    { word: "Onion", forbidden: ["Cry", "White", "Rings"] },
+    { word: "Garlic", forbidden: ["Smell", "Vampire", "White"] },
+    { word: "Watermelon", forbidden: ["Green", "Red", "Seeds"] },
+    { word: "Lemon", forbidden: ["Sour", "Yellow", "Juice"] },
+    { word: "Grape", forbidden: ["Wine", "Purple", "Fruit"] },
+    { word: "Mushroom", forbidden: ["Fungus", "Pizza", "White"] },
+    { word: "Spinach", forbidden: ["Green", "Popeye", "Leaves"] },
+    { word: "Pumpkin", forbidden: ["Orange", "Halloween", "Soup"] },
+    { word: "Blueberry", forbidden: ["Blue", "Muffin", "Berry"] },
+    { word: "Mango", forbidden: ["Orange", "Fruit", "Stone"] },
+    { word: "Eggplant", forbidden: ["Purple", "Vegetable", "Aubergine"] },
+    { word: "Peas", forbidden: ["Green", "Round", "Small"] },
+    { word: "Kiwi", forbidden: ["Green", "Brown", "New Zealand"] },
+    { word: "Cherry", forbidden: ["Red", "Stone", "Fruit"] },
+    { word: "Peach", forbidden: ["Soft", "Orange", "Fruit"] },
+    { word: "Pear", forbidden: ["Fruit", "Green", "Sweet"] },
+    { word: "Zucchini", forbidden: ["Green", "Vegetable", "Cucumber"] },
+    { word: "Bell Pepper", forbidden: ["Red", "Green", "Paprika"] },
+    { word: "Asparagus", forbidden: ["Green", "Stick", "Vegetable"] },
+
+    // MEALS & DISHES
+    { word: "Pizza", forbidden: ["Italy", "Cheese", "Tomato"] },
+    { word: "Burger", forbidden: ["Meat", "McDonald's", "Bun"] },
+    { word: "Sushi", forbidden: ["Japan", "Fish", "Rice"] },
+    { word: "Pasta", forbidden: ["Italy", "Spaghetti", "Noodles"] },
+    { word: "Hot Dog", forbidden: ["Sausage", "Bun", "Mustard"] },
+    { word: "Taco", forbidden: ["Mexico", "Shell", "Beef"] },
+    { word: "Burrito", forbidden: ["Mexico", "Wrap", "Beans"] },
+    { word: "Steak", forbidden: ["Meat", "Beef", "Grill"] },
+    { word: "Salad", forbidden: ["Green", "Healthy", "Lettuce"] },
+    { word: "Soup", forbidden: ["Hot", "Bowl", "Liquid"] },
+    { word: "Sandwich", forbidden: ["Bread", "Lunch", "Slice"] },
+    { word: "Lasagna", forbidden: ["Pasta", "Italy", "Layers"] },
+    { word: "Pancakes", forbidden: ["Syrup", "Breakfast", "Flour"] },
+    { word: "Waffle", forbidden: ["Syrup", "Breakfast", "Square"] },
+    { word: "Omelette", forbidden: ["Egg", "Breakfast", "Pan"] },
+    { word: "Fried Rice", forbidden: ["Chinese", "Pan", "Wok"] },
+    { word: "Noodles", forbidden: ["Asian", "Soup", "Long"] },
+    { word: "Curry", forbidden: ["India", "Spicy", "Rice"] },
+    { word: "Fish and Chips", forbidden: ["UK", "Fried", "Potato"] },
+    { word: "Ramen", forbidden: ["Japan", "Soup", "Noodles"] },
+    { word: "Kebab", forbidden: ["Meat", "Turkey", "Bread"] },
+    { word: "Meatballs", forbidden: ["Round", "IKEA", "Meat"] },
+    { word: "Quiche", forbidden: ["French", "Egg", "Pie"] },
+    { word: "Risotto", forbidden: ["Rice", "Italy", "Creamy"] },
+    { word: "Paella", forbidden: ["Spain", "Rice", "Seafood"] },
+    { word: "Dim Sum", forbidden: ["China", "Dumpling", "Small"] },
+    { word: "Poke Bowl", forbidden: ["Fish", "Rice", "Hawaii"] },
+    { word: "Nachos", forbidden: ["Cheese", "Mexican", "Chips"] },
+    { word: "Spring Roll", forbidden: ["Asian", "Fried", "Vegetable"] },
+    { word: "Couscous", forbidden: ["Morocco", "Grain", "Small"] },
+
+    // SNACKS & DESSERTS
+    { word: "Ice Cream", forbidden: ["Cold", "Sweet", "Cone"] },
+    { word: "Chocolate", forbidden: ["Brown", "Sweet", "Candy"] },
+    { word: "Donut", forbidden: ["Round", "Hole", "Sweet"] },
+    { word: "Popcorn", forbidden: ["Movie", "Corn", "Cinema"] },
+    { word: "Cookies", forbidden: ["Bake", "Milk", "Sweet"] },
+    { word: "Cake", forbidden: ["Birthday", "Sweet", "Party"] },
+    { word: "Brownie", forbidden: ["Chocolate", "Square", "Sweet"] },
+    { word: "Chips", forbidden: ["Potato", "Bag", "Salty"] },
+    { word: "French Fries", forbidden: ["Potato", "Salty", "Yellow"] },
+    { word: "Cheese", forbidden: ["Yellow", "Milk", "Mouse"] },
+    { word: "Yogurt", forbidden: ["Milk", "White", "Breakfast"] },
+    { word: "Honey", forbidden: ["Bee", "Sweet", "Yellow"] },
+    { word: "Jam", forbidden: ["Fruit", "Bread", "Sweet"] },
+    { word: "Butter", forbidden: ["Bread", "Yellow", "Milk"] },
+    { word: "Peanut Butter", forbidden: ["Nut", "Bread", "Brown"] },
+    { word: "Croissant", forbidden: ["French", "Bread", "Breakfast"] },
+    { word: "Bagel", forbidden: ["Round", "Bread", "Hole"] },
+    { word: "Pop-Tart", forbidden: ["Toaster", "Sweet", "Breakfast"] },
+    { word: "Pretzel", forbidden: ["Salty", "Knot", "Brown"] },
+    { word: "Candy", forbidden: ["Sugar", "Sweet", "Kids"] },
+    { word: "Lollipop", forbidden: ["Stick", "Candy", "Sugar"] },
+    { word: "Gummy Bear", forbidden: ["Candy", "Animal", "Sugar"] },
+    { word: "Pudding", forbidden: ["Creamy", "Sweet", "Dessert"] },
+    { word: "Apple Pie", forbidden: ["Fruit", "Dessert", "Bake"] },
+    { word: "Cheesecake", forbidden: ["Cheese", "Dessert", "Sweet"] },
+    { word: "Muffin", forbidden: ["Cake", "Breakfast", "Small"] },
+    { word: "Cupcake", forbidden: ["Cake", "Small", "Frosting"] },
+    { word: "Macarons", forbidden: ["French", "Colors", "Cookies"] },
+    { word: "S'mores", forbidden: ["Campfire", "Marshmallow", "Chocolate"] },
+    { word: "Marshmallow", forbidden: ["White", "Soft", "Candy"] },
+
+    // DRINKS
+    { word: "Milk", forbidden: ["White", "Cow", "Drink"] },
+    { word: "Coffee", forbidden: ["Black", "Morning", "Hot"] },
+    { word: "Tea", forbidden: ["Hot", "Water", "Leaves"] },
+    { word: "Water", forbidden: ["Drink", "Clear", "Bottle"] },
+    { word: "Beer", forbidden: ["Alcohol", "Drink", "Yellow"] },
+    { word: "Wine", forbidden: ["Alcohol", "Red", "Grapes"] },
+    { word: "Soda", forbidden: ["Coke", "Bubbles", "Sugar"] },
+    { word: "Juice", forbidden: ["Fruit", "Drink", "Orange"] },
+    { word: "Smoothie", forbidden: ["Fruit", "Drink", "Cold"] },
+    { word: "Hot Chocolate", forbidden: ["Milk", "Brown", "Winter"] },
+    { word: "Lemonade", forbidden: ["Sour", "Yellow", "Drink"] },
+    { word: "Milkshake", forbidden: ["Milk", "Ice Cream", "Drink"] },
+    { word: "Whiskey", forbidden: ["Alcohol", "Brown", "Drink"] },
+    { word: "Cocktail", forbidden: ["Alcohol", "Drink", "Glass"] },
+    { word: "Champagne", forbidden: ["Alcohol", "Bubbles", "Party"] },
+    { word: "Energy Drink", forbidden: ["Red Bull", "Caffeine", "Tired"] },
+    { word: "Espresso", forbidden: ["Coffee", "Small", "Strong"] },
+    { word: "Cappuccino", forbidden: ["Coffee", "Milk", "Foam"] },
+    { word: "Ginger Ale", forbidden: ["Soda", "Ginger", "Drink"] },
+    { word: "Iced Tea", forbidden: ["Cold", "Tea", "Lemon"] },
+
+    // INGREDIENTS & MORE
+    { word: "Egg", forbidden: ["Chicken", "Breakfast", "White"] },
+    { word: "Rice", forbidden: ["White", "China", "Grain"] },
+    { word: "Flour", forbidden: ["White", "Bake", "Bread"] },
+    { word: "Sugar", forbidden: ["Sweet", "White", "Coffee"] },
+    { word: "Salt", forbidden: ["White", "Salty", "Pepper"] },
+    { word: "Pepper", forbidden: ["Salt", "Black", "Spice"] },
+    { word: "Oil", forbidden: ["Fry", "Liquid", "Cooking"] },
+    { word: "Vinegar", forbidden: ["Sour", "Salad", "Liquid"] },
+    { word: "Cinnamon", forbidden: ["Spice", "Brown", "Smell"] },
+    { word: "Basil", forbidden: ["Green", "Pizza", "Herb"] },
+    { word: "Oregano", forbidden: ["Spice", "Pizza", "Herb"] },
+    { word: "Ketchup", forbidden: ["Red", "Tomato", "Fries"] },
+    { word: "Mustard", forbidden: ["Yellow", "Hot Dog", "Sauce"] },
+    { word: "Mayonnaise", forbidden: ["White", "Sauce", "Fries"] },
+    { word: "Soy Sauce", forbidden: ["Black", "Asian", "Salty"] },
+    { word: "BBQ Sauce", forbidden: ["Brown", "Meat", "Grill"] },
+    { word: "Bacon", forbidden: ["Pig", "Breakfast", "Meat"] },
+    { word: "Sausage", forbidden: ["Meat", "Hot Dog", "Breakfast"] },
+    { word: "Chicken", forbidden: ["Meat", "Bird", "Fried"] },
+    { word: "Shrimp", forbidden: ["Sea", "Pink", "Fish"] },
+    { word: "Salmon", forbidden: ["Fish", "Pink", "Sea"] },
+    { word: "Tuna", forbidden: ["Fish", "Can", "Sea"] },
+    { word: "Ham", forbidden: ["Pig", "Meat", "Sandwich"] },
+    { word: "Beef", forbidden: ["Cow", "Meat", "Burger"] },
+    { word: "Tofu", forbidden: ["Soy", "White", "Vegetarian"] },
+    { word: "Walnut", forbidden: ["Nut", "Brain", "Brown"] },
+    { word: "Almond", forbidden: ["Nut", "Milk", "White"] },
+    { word: "Peanut", forbidden: ["Nut", "Elephants", "Brown"] },
+    { word: "Coconut", forbidden: ["White", "Milk", "Tropical"] },
+    { word: "Bread", forbidden: ["Slice", "Toast", "Bakery"] },
+    { word: "Toast", forbidden: ["Bread", "Breakfast", "Brown"] },
+    { word: "Cereal", forbidden: ["Milk", "Breakfast", "Bowl"] },
+    { word: "Oatmeal", forbidden: ["Breakfast", "Health", "Grain"] },
+    { word: "Baguette", forbidden: ["French", "Bread", "Long"] },
+    { word: "Olive", forbidden: ["Green", "Oil", "Pizza"] },
+    { word: "Pickle", forbidden: ["Green", "Sour", "Cucumber"] },
+    { word: "Radish", forbidden: ["Red", "Small", "Vegetable"] },
+    { word: "Chili", forbidden: ["Spicy", "Red", "Hot"] },
+    { word: "Pesto", forbidden: ["Green", "Pasta", "Italy"] },
+    { word: "Guacamole", forbidden: ["Avocado", "Green", "Mexican"] }
+];
+
+        let score = 0;
+        let timeLeft;
+        let totalTime;
+        let timerInterval;
+        let highScore = localStorage.getItem('foodTabooHighScore') || 0;
+        document.getElementById('high-score').innerText = highScore;
+
+        const accentColors = ['#ff9f43', '#feca57', '#ff6b6b', '#48dbfb', '#1dd1a1', '#a29bfe'];
+
+        function startGame(seconds) {
+            score = 0;
+            timeLeft = seconds;
+            totalTime = seconds;
+            document.getElementById('score').innerText = score;
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('controls').style.display = 'flex';
+            document.getElementById('t-cont').style.display = 'block';
+            
+            showNext(null);
+            startTimer();
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                const percentage = (timeLeft / totalTime) * 100;
+                document.getElementById('timer-bar').style.width = percentage + "%";
+                
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        function showNext(isCorrect) {
+            if (timeLeft <= 0) return;
+
+            const newAccent = accentColors[Math.floor(Math.random() * accentColors.length)];
+            document.documentElement.style.setProperty('--accent-color', newAccent);
+
+            if (isCorrect === true) {
+                score++;
+                document.getElementById('score').innerText = score;
+                confetti({ particleCount: 50, spread: 60, origin: { y: 0.8 }, colors: [newAccent, '#ffffff'] });
+            }
+
+            const randomIndex = Math.floor(Math.random() * words.length);
+            const selected = words[randomIndex];
+            document.getElementById('card').innerHTML = `
+                <h2 class="target-word">${selected.word}</h2>
+                <ul class="forbidden-list">
+                    <li>${selected.forbidden[0]}</li>
+                    <li>${selected.forbidden[1]}</li>
+                    <li>${selected.forbidden[2]}</li>
+                </ul>
+            `;
+        }
+
+        function endGame() {
+            clearInterval(timerInterval);
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('foodTabooHighScore', highScore);
+                document.getElementById('high-score').innerText = highScore;
+            }
+            document.getElementById('controls').style.display = 'none';
+            document.getElementById('card').innerHTML = `
+                <h2 style="margin:0">TIME'S UP!</h2>
+                <p>Final Score: <span style="font-size:1.5rem; font-weight:900">${score}</span></p>
+                <button onclick="location.reload()" style="background:var(--accent-color); width:100%">Play Again 🔄</button>
+            `;
+        }
+
+        // Star Background
+        const container = document.getElementById('star-container');
+        for (let i = 0; i < 30; i++) {
+            const star = document.createElement('div');
+            star.className = 'star';
+            star.style.left = Math.random() * 100 + 'vw';
+            star.style.top = Math.random() * 100 + 'vh';
+            const size = Math.random() * 2 + 1 + 'px';
+            star.style.width = size; star.style.height = size;
+            star.style.setProperty('--duration', (Math.random() * 3 + 2) + 's');
+            container.appendChild(star);
+        }
+    </script>
+</body>
+</html>
