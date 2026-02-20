@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neon ESL Dilemmas</title>
+    <title>Neon ESL Dilemmas - Full Sentences</title>
     <style>
         :root {
             --neon-cyan: #00f3ff;
@@ -15,16 +15,16 @@
         body {
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             margin: 0;
             background: radial-gradient(circle at center, #1a1a2e 0%, #0f0f1b 100%);
             color: white;
-            overflow: hidden;
+            overflow-x: hidden;
         }
 
-        /* Glazen container */
         .container {
             text-align: center;
             background: var(--glass-bg);
@@ -34,14 +34,14 @@
             border-radius: 30px;
             border: 1px solid var(--glass-border);
             box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
-            max-width: 1000px;
+            max-width: 1100px;
             width: 90%;
+            margin: 20px;
         }
 
         h1 { 
             font-size: 3rem;
             margin-bottom: 0.5rem;
-            color: white;
             text-shadow: 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan);
             letter-spacing: 2px;
         }
@@ -60,7 +60,6 @@
             margin-bottom: 3rem; 
         }
         
-        /* Grote leesbare dilemma's */
         .dilemma-wrapper {
             display: flex;
             flex-direction: column;
@@ -75,9 +74,9 @@
 
         .option-box {
             flex: 1;
-            font-size: 2.2rem; /* Extra groot voor achterin de klas */
-            font-weight: 800;
-            min-height: 200px;
+            font-size: 1.8rem; /* Iets kleiner font omdat de zinnen nu langer zijn */
+            font-weight: 700;
+            min-height: 220px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -85,30 +84,29 @@
             border-radius: 20px;
             background: rgba(0, 0, 0, 0.3);
             border: 2px solid var(--glass-border);
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            line-height: 1.2;
+            transition: all 0.4s ease;
+            line-height: 1.3;
         }
 
-        #option-a { border-color: var(--neon-cyan); box-shadow: inset 0 0 15px rgba(0, 243, 255, 0.2); color: white; }
-        #option-b { border-color: var(--neon-pink); box-shadow: inset 0 0 15px rgba(255, 0, 255, 0.2); color: white; }
+        #option-a { border-color: var(--neon-cyan); box-shadow: inset 0 0 15px rgba(0, 243, 255, 0.1); }
+        #option-b { border-color: var(--neon-pink); box-shadow: inset 0 0 15px rgba(255, 0, 255, 0.1); }
 
         .or-divider {
             font-weight: 900;
-            color: white;
             font-size: 2rem;
             padding: 10px;
             background: #000;
             border-radius: 50%;
-            width: 60px;
-            height: 60px;
+            width: 70px;
+            height: 70px;
             display: flex;
             align-items: center;
             justify-content: center;
             border: 2px solid white;
-            box-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+            z-index: 2;
         }
 
-        /* Neon Button */
         button {
             background: transparent;
             color: white;
@@ -127,17 +125,8 @@
             background: var(--neon-cyan);
             color: black;
             box-shadow: 0 0 30px var(--neon-cyan);
-            transform: translateY(-3px);
         }
 
-        button:disabled { 
-            border-color: #555; 
-            color: #555; 
-            box-shadow: none; 
-            cursor: not-allowed; 
-        }
-
-        /* Hulpzinnen onderaan */
         .useful-phrases {
             margin-top: 3rem;
             font-size: 1.1rem;
@@ -148,8 +137,13 @@
             border-left: 5px solid var(--neon-pink);
         }
 
-        li { margin-bottom: 8px; color: #ddd; }
-        strong { color: var(--neon-pink); }
+        footer {
+            margin-top: auto;
+            padding: 20px;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.4);
+            text-shadow: 0 0 5px var(--neon-cyan);
+        }
     </style>
 </head>
 <body>
@@ -157,12 +151,12 @@
 <div class="container">
     <h1>Would You Rather?</h1>
     <div class="counter" id="remaining">Dilemmas left: 100</div>
-    <p class="instruction">Speak clearly and explain <b>why</b>!</p>
+    <p class="instruction">Choose one and explain your answer in a full sentence!</p>
     
     <div class="dilemma-wrapper">
-        <div class="option-box" id="option-a">START</div>
-        <div class="or-divider">VS</div>
-        <div class="option-box" id="option-b">START</div>
+        <div class="option-box" id="option-a">Option A</div>
+        <div class="or-divider">OR</div>
+        <div class="option-box" id="option-b">Option B</div>
     </div>
 
     <button id="next-btn" onclick="generateDilemma()">Next Dilemma</button>
@@ -170,115 +164,119 @@
     <div class="useful-phrases">
         <strong>Sentence Helpers:</strong>
         <ul style="margin: 10px 0 0 20px;">
-            <li>"I choose Option A because..."</li>
-            <li>"I think ... is more fun than ..."</li>
-            <li>"In my opinion, ... is better."</li>
+            <li>"I would rather have ... because ..."</li>
+            <li>"I think it would be better to ... because ..."</li>
+            <li>"Option A sounds more interesting because ..."</li>
         </ul>
     </div>
 </div>
 
+<footer>
+    Mister Seb's Teacher Apps &copy; 2026
+</footer>
+
 <script>
     let dilemmas = [
-        ["Have spaghetti for hair", "Have maple syrup for sweat"],
-        ["Always hop like a bunny", "Always walk backwards"],
-        ["Talk like a pirate", "Sing everything you say"],
-        ["Have a nose like an elephant", "Have a neck like a giraffe"],
-        ["Wear a winter coat in summer", "Wear a swimsuit in winter"],
-        ["Eat a raw onion", "Eat a whole lemon"],
-        ["Have cheese for fingers", "Have sausages for toes"],
-        ["Only be able to crawl", "Only be able to dance"],
-        ["Live in a giant shoe", "Live in a giant toilet"],
-        ["100 mosquitoes in your room", "1 tiger in your room"],
-        ["Smell like old onions", "Smell like a wet dog"],
-        ["Have a flying carpet", "Have a car that goes underwater"],
-        ["Be as small as an ant", "Be as tall as a skyscraper"],
-        ["Have a purple face", "Have green hair"],
-        ["Only eat cold food", "Only eat spicy food"],
-        ["Sleep on a bed of LEGOs", "Sleep on a bed of cactus"],
-        ["Bark to say 'hello'", "Meow to say 'goodbye'"],
-        ["Wear clown shoes every day", "Wear a tutu every day"],
-        ["Have no teeth", "Have no hair"],
-        ["Talk to dogs", "Talk to cats"],
-        ["Pizza with chocolate", "Burger with marshmallows"],
-        ["Always have itchy ears", "Always have a itchy nose"],
-        ["Have 10 siblings", "Be an only child"],
-        ["Famous but bad singer", "Great but secret singer"],
-        ["Live in the dark", "Live with bright pink lights"],
-        ["Have a pet dragon", "Have a pet unicorn"],
-        ["Always wear a helmet", "Always wear flippers"],
-        ["Use a fork for soup", "Use a straw for steak"],
-        ["Have a robot servant", "Have a magic wand"],
-        ["Travel to the moon", "Travel to the ocean floor"],
-        ["Always have to rhyme", "Always have to whisper"],
-        ["Be a ninja", "Be a wizard"],
-        ["Have a tail", "Have wings"],
-        ["Only watch horror movies", "Only watch cartoons"],
-        ["Be super strong", "Be super fast"],
-        ["Sticky hands forever", "Slippery feet forever"],
-        ["Everything in 3D", "Everything in black and white"],
-        ["Eat a spider", "Eat a giant cockroach"],
-        ["Theme song when you walk", "Rain when you are sad"],
-        ["Live without internet", "Live without a shower"],
-        ["Master of every instrument", "Master of every sport"],
-        ["Always lose your keys", "Always lose your phone"],
-        ["Win the lottery", "Live for 200 years"],
-        ["Have a golden tooth", "Have a silver tongue"],
-        ["Pause time", "Rewind time"],
-        ["World with no music", "World with no movies"],
-        ["Always tell the truth", "Always have to lie"],
-        ["Be a police officer", "Be a firefighter"],
-        ["Have giant hands", "Have giant feet"],
-        ["Eat only yellow food", "Eat only green food"],
-        ["Diaper over your clothes", "Hat made of fruit"],
-        ["Have a baby's face", "Have a grandpa's beard"],
-        ["Smell colors", "Taste sounds"],
-        ["Bird on your head", "Monkey on your back"],
-        ["House made of glass", "House made of mud"],
-        ["Forget your name", "Forget how to speak"],
-        ["Smartest person", "Funniest person"],
-        ["Never use a computer", "Never use a car"],
-        ["Have a pet dinosaur", "Have a pet alien"],
-        ["Be a ghost", "Be a vampire"],
-        ["Only sleep 2 hours", "Sleep 15 hours"],
-        ["Head like a pumpkin", "Head like a grape"],
-        ["Always need to sneeze", "Always have a hiccup"],
-        ["Breathe underwater", "Walk through walls"],
-        ["Eat a bowl of worms", "Eat a bowl of crickets"],
-        ["House is always moving", "House is upside down"],
-        ["Only drink milk", "Only drink juice"],
-        ["Have 4 arms", "Have 4 legs"],
-        ["Always have a wet shirt", "Always have wet socks"],
-        ["King 500 years ago", "Normal person in 500 years"],
-        ["Clothes from the 1920s", "Clothes from the future"],
-        ["2 eyes on back of head", "2 ears on your chest"],
-        ["Expert at video games", "Expert at cooking"],
-        ["Find $1000", "Find a box of puppies"],
-        ["Always have blue skin", "Always have orange skin"],
-        ["Car that runs on trash", "Bike that flies"],
-        ["Only use a typewriter", "Only use a quill and ink"],
-        ["Friend with a shark", "Friend with a lion"],
-        ["Never have to sleep", "Never have to eat"],
-        ["Always 5 minutes late", "Always 45 minutes early"],
-        ["Glow-in-the-dark nose", "Flapping ears"],
-        ["Live in a treehouse", "Live in a houseboat"],
-        ["Jump as high as a house", "Run as fast as a train"],
-        ["Songs stuck in your head", "Movies stuck in your head"],
-        ["Wear a superhero cape", "Wear a crown"],
-        ["Eat food starting with 'B'", "Eat food starting with 'S'"],
-        ["Pet giant rock", "Pet invisible dog"],
-        ["Change hair color", "Change eye color"],
-        ["Talk in questions?", "Talk in exclamations!"],
-        ["Famous YouTuber", "Famous movie star"],
-        ["Permanent sunburn", "Permanent brain freeze"],
-        ["Popcorn in your teeth", "Sand in your shoes"],
-        ["Summon a rain cloud", "Summon a rainbow"],
-        ["Broccoli-tasting cake", "Cake-tasting broccoli"],
-        ["Desert island", "Crowded city"],
-        ["Be a detective", "Be a secret agent"],
-        ["Laugh like a donkey", "Sneeze like a horn"],
-        ["Wear pajamas to school", "Wear a tuxedo to school"],
-        ["No social media", "No TV"],
-        ["Pocket with always $1", "Fridge never empty"]
+        ["Would you rather have spaghetti for hair?", "Would you rather have maple syrup for sweat?"],
+        ["Would you rather always hop like a bunny?", "Would you rather always walk backwards?"],
+        ["Would you rather talk like a pirate?", "Would you rather sing everything you say?"],
+        ["Would you rather have a nose like an elephant?", "Would you rather have a neck like a giraffe?"],
+        ["Would you rather wear a winter coat in summer?", "Would you rather wear a swimsuit in winter?"],
+        ["Would you rather eat a raw onion?", "Would you rather eat a whole lemon?"],
+        ["Would you rather have cheese for fingers?", "Would you rather have sausages for toes?"],
+        ["Would you rather only be able to crawl?", "Would you rather only be able to dance?"],
+        ["Would you rather live in a giant shoe?", "Would you rather live in a giant (clean) toilet?"],
+        ["Would you rather have 100 mosquitoes in your room?", "Would you rather have 1 tiger in your room?"],
+        ["Would you rather always smell like old onions?", "Would you rather always smell like a wet dog?"],
+        ["Would you rather have a flying carpet?", "Would you rather have a car that goes underwater?"],
+        ["Would you rather be as small as an ant?", "Would you rather be as tall as a skyscraper?"],
+        ["Would you rather have a purple face?", "Would you rather have green hair?"],
+        ["Would you rather only eat cold food?", "Would you rather only eat spicy food?"],
+        ["Would you rather sleep on a bed of LEGOs?", "Would you rather sleep on a bed of cactus?"],
+        ["Would you rather bark to say hello?", "Would you rather meow to say goodbye?"],
+        ["Would you rather wear clown shoes every day?", "Would you rather wear a tutu every day?"],
+        ["Would you rather have no teeth?", "Would you rather have no hair?"],
+        ["Would you rather be able to talk to dogs?", "Would you rather be able to talk to cats?"],
+        ["Would you rather eat a pizza with chocolate?", "Would you rather eat a burger with marshmallows?"],
+        ["Would you rather always have itchy ears?", "Would you rather always have an itchy nose?"],
+        ["Would you rather have 10 siblings?", "Would you rather be an only child?"],
+        ["Would you rather be a famous but bad singer?", "Would you rather be a great but secret singer?"],
+        ["Would you rather live in total darkness?", "Would you rather live with bright pink lights?"],
+        ["Would you rather have a pet dragon?", "Would you rather have a pet unicorn?"],
+        ["Would you rather always wear a helmet?", "Would you rather always wear flippers?"],
+        ["Would you rather use a fork for soup?", "Would you rather use a straw for steak?"],
+        ["Would you rather have a robot servant?", "Would you rather have a magic wand?"],
+        ["Would you rather travel to the moon?", "Would you rather travel to the ocean floor?"],
+        ["Would you rather always have to rhyme?", "Would you rather always have to whisper?"],
+        ["Would you rather be a ninja?", "Would you rather be a wizard?"],
+        ["Would you rather have a tail?", "Would you rather have wings?"],
+        ["Would you rather only watch horror movies?", "Would you rather only watch cartoons?"],
+        ["Would you rather be super strong?", "Would you rather be super fast?"],
+        ["Would you rather have sticky hands forever?", "Would you rather have slippery feet forever?"],
+        ["Would you rather see everything in 3D?", "Would you rather see everything in black and white?"],
+        ["Would you rather eat a spider?", "Would you rather eat a giant cockroach?"],
+        ["Would you rather have a theme song when you walk?", "Would you rather have rain fall when you are sad?"],
+        ["Would you rather live without the internet?", "Would you rather live without a shower?"],
+        ["Would you rather be a master of every instrument?", "Would you rather be a master of every sport?"],
+        ["Would you rather always lose your keys?", "Would you rather always lose your phone?"],
+        ["Would you rather win the lottery today?", "Would you rather live for 200 years?"],
+        ["Would you rather have a golden tooth?", "Would you rather have a silver tongue?"],
+        ["Would you rather be able to pause time?", "Would you rather be able to rewind time?"],
+        ["Would you rather live in a world with no music?", "Would you rather live in a world with no movies?"],
+        ["Would you rather always have to tell the truth?", "Would you rather always have to lie?"],
+        ["Would you rather be a police officer?", "Would you rather be a firefighter?"],
+        ["Would you rather have giant hands?", "Would you rather have giant feet?"],
+        ["Would you rather eat only yellow food?", "Would you rather eat only green food?"],
+        ["Would you rather wear a diaper over your clothes?", "Would you rather wear a hat made of fruit?"],
+        ["Would you rather have a baby's face?", "Would you rather have a grandpa's beard?"],
+        ["Would you rather be able to smell colors?", "Would you rather be able to taste sounds?"],
+        ["Would you rather have a bird on your head?", "Would you rather have a monkey on your back?"],
+        ["Would you rather live in a glass house?", "Would you rather live in a mud house?"],
+        ["Would you rather forget your own name?", "Would you rather forget how to speak?"],
+        ["Would you rather be the smartest person?", "Would you rather be the funniest person?"],
+        ["Would you rather never use a computer again?", "Would you rather never use a car again?"],
+        ["Would you rather have a pet dinosaur?", "Would you rather have a pet alien?"],
+        ["Would you rather be a ghost?", "Would you rather be a vampire?"],
+        ["Would you rather only sleep for 2 hours?", "Would you rather sleep for 15 hours every day?"],
+        ["Would you rather have a head the size of a pumpkin?", "Would you rather have a head the size of a grape?"],
+        ["Would you rather always feel like you need to sneeze?", "Would you rather always have the hiccups?"],
+        ["Would you rather be able to breathe underwater?", "Would you rather be able to walk through walls?"],
+        ["Would you rather eat a bowl of worms?", "Would you rather eat a bowl of crickets?"],
+        ["Would you rather live in a moving house?", "Would you rather live in an upside-down house?"],
+        ["Would you rather only drink milk?", "Would you rather only drink juice?"],
+        ["Would you rather have 4 arms?", "Would you rather have 4 legs?"],
+        ["Would you rather always have a wet shirt?", "Would you rather always have wet socks?"],
+        ["Would you rather be a king 500 years ago?", "Would you rather be a normal person in 500 years?"],
+        ["Would you rather wear clothes from the 1920s?", "Would you rather wear clothes from the future?"],
+        ["Would you rather have 2 extra eyes on your back?", "Would you rather have 2 extra ears on your chest?"],
+        ["Would you rather be an expert at video games?", "Would you rather be an expert at cooking?"],
+        ["Would you rather find $1000 on the street?", "Would you rather find a box of puppies?"],
+        ["Would you rather always have blue skin?", "Would you rather always have orange skin?"],
+        ["Would you rather have a car that runs on trash?", "Would you rather have a bike that flies?"],
+        ["Would you rather only use a typewriter?", "Would you rather only use a quill and ink?"],
+        ["Would you rather be friends with a shark?", "Would you rather be friends with a lion?"],
+        ["Would you rather never have to sleep again?", "Would you rather never have to eat again?"],
+        ["Would you rather always be 5 minutes late?", "Would you rather always be 45 minutes early?"],
+        ["Would you rather have a glowing nose?", "Would you rather have flapping ears?"],
+        ["Would you rather live in a treehouse?", "Would you rather live in a houseboat?"],
+        ["Would you rather jump as high as a house?", "Would you rather run as fast as a train?"],
+        ["Would you rather have songs stuck in your head?", "Would you rather have movies stuck in your head?"],
+        ["Would you rather always wear a superhero cape?", "Would you rather always wear a crown?"],
+        ["Would you rather eat food starting with 'B'?", "Would you rather eat food starting with 'S'?"],
+        ["Would you rather have a pet rock?", "Would you rather have an invisible dog?"],
+        ["Would you rather change your hair color with your mind?", "Would you rather change your eye color with your mind?"],
+        ["Would you rather only talk in questions?", "Would you rather only talk in exclamations!"],
+        ["Would you rather be a famous YouTuber?", "Would you rather be a famous movie star?"],
+        ["Would you rather have a permanent sunburn?", "Would you rather have a permanent brain freeze?"],
+        ["Would you rather have popcorn in your teeth?", "Would you rather have sand in your shoes?"],
+        ["Would you rather be able to summon a rain cloud?", "Would you rather be able to summon a rainbow?"],
+        ["Would you rather eat a cake that tastes like broccoli?", "Would you rather eat broccoli that tastes like cake?"],
+        ["Would you rather live on a desert island?", "Would you rather live in a crowded city?"],
+        ["Would you rather be a detective?", "Would you rather be a secret agent?"],
+        ["Would you rather laugh like a donkey?", "Would you rather sneeze like a horn?"],
+        ["Would you rather wear pajamas to school?", "Would you rather wear a tuxedo to school?"],
+        ["Would you rather never use social media again?", "Would you rather never watch TV again?"],
+        ["Would you rather always have $1 in your pocket?", "Would you rather have a fridge that is never empty?"]
     ];
 
     function generateDilemma() {
@@ -297,7 +295,6 @@
         const randomIndex = Math.floor(Math.random() * dilemmas.length);
         const choice = dilemmas[randomIndex];
         
-        // Animatie bij veranderen
         boxA.style.opacity = "0";
         boxB.style.opacity = "0";
         
@@ -315,3 +312,4 @@
 
 </body>
 </html>
+
