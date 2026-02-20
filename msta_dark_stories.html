@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dark Stories - Teacher's Ultimate Edition</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --neon-red: #ff3131;
+            --neon-orange: #ff914d;
+            --neon-blue: #00d4ff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: radial-gradient(circle at center, #2b0000 0%, #000000 100%);
+            color: white;
+            overflow: hidden;
+        }
+
+        .container {
+            text-align: center;
+            width: 98%;
+            max-width: 1100px;
+        }
+
+        h1 { 
+            font-size: 3.5rem;
+            color: var(--neon-red);
+            text-shadow: 0 0 15px var(--neon-red);
+            text-transform: uppercase;
+            margin: 0 0 10px 0;
+        }
+
+        #remaining {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        .card-container {
+            perspective: 1500px;
+            width: 100%;
+            height: 550px;
+            margin: 1rem 0;
+            cursor: pointer;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+
+        .card-inner.is-flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3.5rem;
+            box-sizing: border-box;
+            border-radius: 30px;
+            border: 6px solid;
+            box-shadow: 0 0 40px rgba(0,0,0,0.9);
+            overflow: hidden;
+        }
+
+        .card-front {
+            background: #1a0000;
+            border-color: var(--neon-red);
+            color: #fff;
+            font-size: 2.4rem;
+            font-weight: 600;
+            line-height: 1.4;
+        }
+
+        .card-back {
+            background: #1a1000;
+            border-color: var(--neon-orange);
+            color: var(--neon-orange);
+            transform: rotateY(180deg);
+            font-style: italic;
+            font-size: 2.1rem;
+            font-weight: 500;
+            line-height: 1.4;
+            text-align: center;
+        }
+
+        .controls {
+            display: flex;
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        button {
+            background: transparent;
+            color: white;
+            border: 3px solid;
+            padding: 20px 50px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border-radius: 60px;
+            cursor: pointer;
+            transition: 0.3s;
+            text-transform: uppercase;
+        }
+
+        .btn-next { border-color: var(--neon-red); }
+        .btn-next:hover { background: var(--neon-red); box-shadow: 0 0 30px var(--neon-red); }
+
+        footer { margin-top: 40px; color: #777; font-size: 1.1rem; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Dark Stories</h1>
+    <div id="remaining" style="color: var(--neon-orange); font-weight: bold;">Mysteries left: ...</div>
+    
+    <div class="card-container" onclick="toggleFlip()">
+        <div class="card-inner" id="card">
+            <div class="card-front">
+                <div id="mystery-text">Click 'Next Story' to start.</div>
+            </div>
+            <div class="card-back">
+                <div id="solution-text"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn-next" onclick="nextStory(event)">Next Story</button>
+    </div>
+</div>
+
+<footer>
+    &copy; Mister Seb's Teacher Apps
+</footer>
+
+<script>
+    const stories = [
+        { mystery: "A man lives on the 10th floor. He takes the elevator down every day. But when he returns, he goes to the 7th floor and walks the rest. Why?", solution: "The man is a dwarf. He cannot reach the button for the 10th floor. On rainy days, he uses his umbrella to reach it!" },
+        { mystery: "Five pieces of coal, a carrot, and a scarf are lying on a lawn. Nobody put them there. Why are they there?", solution: "They were used to make a snowman. The snow has now melted." },
+        { mystery: "A man is hanging in an empty wooden barn. His feet are 3 feet off the ground. There are no objects on the floor. How did he do it?", solution: "He stood on a big block of ice. He waited for it to melt, and then he was hanging in the air." },
+        { mystery: "A man died and went to Heaven. He saw a man and a woman and knew immediately they were Adam and Eve. How?", solution: "He saw they were the only people without a navel (belly button). They were never born from a mother." },
+        { mystery: "Why is it better to have round manhole covers than square ones?", solution: "A square cover can fall through the hole if you turn it sideways. A round cover can never fall through the hole." },
+        { mystery: "The music stopped. A woman died. What happened?", solution: "She was a koorddanser (tight-rope walker). The music was her signal to stop. The conductor stopped the music too early, and she stepped into the air." },
+        { mystery: "A blind beggar had a brother who died. But the man who died had no brother. How?", solution: "The blind beggar was his sister." },
+        { mystery: "Terry and Kerry are twins born in the same hour, but they have birthdays two days apart. How?", solution: "They were born on a boat. The first twin was born on March 1st. Then they crossed a time zone line, and the second was born on February 28th." },
+        { mystery: "A woman bought new shoes. Soon after, she died from a knife wound. How?", solution: "She was a knife-thrower's assistant. Her new high heels made her taller, so the knife hit her head." },
+        { mystery: "A man was pushed out of an airplane without a parachute, but he survived. How?", solution: "The airplane was not flying; it was sitting on the runway at the airport." },
+        { mystery: "A woman was in an elevator. The lights went out and she started to cry. She knew her husband was dead. How?", solution: "They were in a hospital. Her husband was on life support. When the power went out, the machine stopped working." },
+        { mystery: "A man saw a large goose through a window. Soon, both the man and the goose were dead. Why?", solution: "He was looking out of an airplane window. The goose was sucked into the engine, which caused the plane to crash." },
+        { mystery: "A man passed three cars going 70 mph, while he was only going 60 mph. How?", solution: "The other cars were driving in the opposite direction." },
+        { mystery: "Why did running out of gas save Jack's life?", solution: "He was in his car in a closed garage with the engine running to kill himself. Because the gas ran out, the engine stopped." },
+        { mystery: "A woman tries to throw her husband into the ocean, but he blows back into the boat. How?", solution: "Her husband was cremated. She tried to pour his ashes into the sea, but the wind blew them back." },
+        { mystery: "A man was working when his clothes tore. Ten seconds later, he was dead. Why?", solution: "He worked in a factory. His clothes got caught in a machine, which pulled him in and killed him." },
+        { mystery: "A man was found dead in a ditch with an unopened box next to him. What happened?", solution: "He was skydiving. The box was his parachute, but he failed to open it." },
+        { mystery: "A woman took too many pills to end her life. Then she heard the phone ring and felt regret. Why?", solution: "She thought a disaster killed everyone on Earth and she was alone. The phone ringing proved someone else was alive." },
+        { mystery: "A man was at a family meeting. He hadn't seen his father in 5 years. When he started to speak, he died. How?", solution: "He was a criminal on death row. It was his execution day and his family came to say goodbye." },
+        { mystery: "A man defeated his rival in a long battle, but died moments later. How?", solution: "He was playing video games for 26 hours without a break. He died of a heart attack from exhaustion." },
+        { mystery: "A naked man is found dead on a mountain with only half a match. What happened?", solution: "He was in a hot air balloon that was crashing because it was too heavy. They took off their clothes to lose weight, but they were still too heavy. They drew matches to see who had to jump out to save the others. He lost." },
+        { mystery: "Two men died at the same time because they wanted fresh air. How?", solution: "They were driving in thick fog. They both stuck their heads out of the window to breathe. Their heads hit each other when they passed." },
+        { mystery: "A man falls 50 meters. He survives the fall but dies 5 hours later. How?", solution: "He fell from an oil rig into the cold ocean. He couldn't climb up the pillars and died of hypothermia." },
+        { mystery: "A man in the Wild West died during a shootout, but not from a bullet. What happened?", solution: "He was getting a shave. The barber was so scared by the gunshots that his hand slipped and he cut the man's throat." },
+        { mystery: "A hunter fired his gun. Seconds later he realized his mistake. Minutes later he was dead. How?", solution: "He was in the mountains. The sound of the gun caused an avalanche that buried him." },
+        { mystery: "Three men found a severed arm in a box. They were satisfied and threw it into the sea. Why?", solution: "They were stranded on an island. They agreed to eat their arms. Two did it, but help arrived before the third man did. Later, he had to cut it off to respect the deal." },
+        { mystery: "A woman stands in front of a hotel. She takes two steps and loses everything. How?", solution: "She was playing Monopoly. She landed on a hotel and lost all her money." },
+        { mystery: "A woman dies in a car crash while talking on the phone. Why?", solution: "The mechanic forgot to tighten her wheel. He tried to call her to warn her, but her phone was busy because she was talking to a friend." },
+        { mystery: "A man is dead in a red liquid. He fell over tomatoes. How did he die?", solution: "He was very allergic to tomatoes. He fell, crushed them, and died because he couldn't breathe." },
+        { mystery: "A Queen died after dinner. If the guests were boring, she would have lived. Why?", solution: "She was a model who always vomited after eating. Her guests were so fun she didn't leave the table. Her stomach ruptured." },
+        { mystery: "A naked woman is found dead in a tree, 20 miles from water. What happened?", solution: "A firefighting plane scooped her up, while she was skinny dipping from a lake and dropped her over a forest fire." },
+        { mystery: "A man eats boar steak, pays, and then shoots himself. Why?", solution: "He was once stranded and ate 'boar' to survive. In the restaurant, real boar tasted different. He realized he had actually eaten his son." },
+        { mystery: "A man asks for water. The bartender points a gun at him. The man says 'thanks' and leaves.", solution: "The man had the hiccups. The bartender scared him to cure them." },
+        { mystery: "A woman meeting a man at a funeral decided to kill her sister. Why?", solution: "She fell in love with the man but didn't have his number. She killed her sister so there would be another funeral to see him again." },
+        { mystery: "A man turned off a light, went to bed, then woke up and was killed. Why?", solution: "He was a lighthouse keeper. Turning off the light caused a ship to crash and many people died." },
+        { mystery: "A person is hit in the head during a duel, but is happy. Why?", solution: "It was a football match and the 'duel' was a penalty kick. He saved the ball with his head." },
+        { mystery: "If Karl had a different hairstyle, he would be alive. Why?", solution: "Karl was bald. An eagle mistook his head for a rock and dropped a turtle on it to crack the shell." },
+        { mystery: "Ben was attacked on his way home. He stabbed the attacker but died himself. How?", solution: "Ben was a bee. When a bee stings someone, it dies." },
+        { mystery: "A man murdered his wife after prison, but he was not punished. How?", solution: "She faked her death to send him to prison. Because he was already convicted for her 'murder', he couldn't be tried twice." },
+        { mystery: "Bob and Sally are dead in a puddle of water. There is no weapon. What happened?", solution: "They were goldfish. Their bowl broke and they died without water." },
+        { mystery: "Bob murders Joe with a knife, but Joe dies three weeks later. How?", solution: "Bob cut a hole in Joe's mosquito net in the jungle. Joe was bitten and died of malaria weeks later." },
+        { mystery: "A man would be alive if he was a little bit stupider. How?", solution: "He was on death row. People with low IQ cannot be executed. He studied, his IQ went up, and then he was executed." },
+        { mystery: "A dead man lies near stones, a book, and a beetle. What happened?", solution: "He was fixing his VW Beetle car. The stones holding it up broke and he was crushed." },
+        { mystery: "Two men are in a room with an empty gun and a chess set. One is shot, one has no wounds. Both are dead.", solution: "They were in a submarine with no oxygen. The winner of the game got to shoot himself to die quickly instead of suffocating." },
+        { mystery: "80 guests had dinner. 4 hours later, 70 of them vomited. Why?", solution: "They were on a cruise ship and a storm started. They all got seasick." },
+        { mystery: "A bear goes into a cave with white stalactites and is torn to pieces.", solution: "It was a gummy bear being eaten in a mouth by teeth." },
+        { mystery: "Beth tied her key to a bell to save her life. Why?", solution: "Beth is a sleepwalker. She tied her key to a bell so the sound would wake her husband if she tried to leave the house during a storm." },
+        { mystery: "A hunter accidentally killed a man while losing his prey. How?", solution: "An eagle dropped a heavy fish it was carrying. It hit a man's car windshield and caused a crash." },
+        { mystery: "A man drank punch at a party and left early. Everyone else died. Why?", solution: "The poison was in the ice. When the man drank, the ice was still frozen. Later it melted and poisoned the rest." },
+        { mystery: "Two sons were born in the same hour on the same day, but they are not twins. How?", solution: "They were two of a set of triplets (three babies)." },
+        { mystery: "A man rode into town on Friday. He stayed for three nights and left on Friday. How?", solution: "His horse was named Friday." },
+        { mystery: "A man pushed his car to a hotel and knew he was bankrupt. Why?", solution: "He was playing Monopoly." },
+        { mystery: "A man stepped out of his tent on a very sunny morning and went straight back inside. He stayed there all day and only came out after sunset. He was not ill. Why?", solution: "He arrived at the campsite after dark and did not see the sign. In the morning, he saw that he was at a naturist campsite. He waited until sunset, when most people put their clothes on." },
+        { mystery: "A student does a digital test with 20 questions. He gets 0 questions wrong. But, his grade is the lowest possible (a 1.0). The computer is not broken. How?", solution: "The student did not answer any questions. He had 0 wrong, but also 0 correct." },
+    ];
+
+    let currentList = [...stories];
+    let activeStory = null;
+
+    function updateRemaining() {
+        document.getElementById('remaining').innerText = "Mysteries left: " + currentList.length;
+    }
+
+    function nextStory(event) {
+        if(event) event.stopPropagation();
+        
+        const card = document.getElementById('card');
+        const delay = card.classList.contains('is-flipped') ? 400 : 0;
+        
+        card.classList.remove('is-flipped');
+
+        setTimeout(() => {
+            if (currentList.length === 0) {
+                document.getElementById('mystery-text').innerText = "Great job! All mysteries solved.";
+                document.getElementById('solution-text').innerText = "";
+                return;
+            }
+
+            const index = Math.floor(Math.random() * currentList.length);
+            activeStory = currentList[index];
+
+            document.getElementById('mystery-text').innerText = activeStory.mystery;
+            
+            const solutionElem = document.getElementById('solution-text');
+            solutionElem.innerText = activeStory.solution;
+            
+            if (activeStory.solution.length > 200) {
+                solutionElem.style.fontSize = "1.6rem";
+            } else {
+                solutionElem.style.fontSize = "2.1rem";
+            }
+            
+            currentList.splice(index, 1);
+            updateRemaining();
+        }, delay);
+    }
+
+    function toggleFlip() {
+        const card = document.getElementById('card');
+        if (activeStory === null && !card.classList.contains('is-flipped')) return;
+
+        card.classList.toggle('is-flipped');
+        
+        if (card.classList.contains('is-flipped')) {
+            confetti({
+                particleCount: 200,
+                spread: 90,
+                origin: { y: 0.6 },
+                colors: ['#ff3131', '#ff914d', '#ffffff']
+            });
+        }
+    }
+
+    updateRemaining();
+</script>
+
+</body>
+</html>
