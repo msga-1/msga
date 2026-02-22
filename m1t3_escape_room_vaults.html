@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover">
+    <title>Neon Vaults - Mission: English A2</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --primary: #4fc3f7; --accent: #ff4081; --success: #00e676; --error: #ff5252;
+            --locked: #1e293b; --glass-border: rgba(255, 255, 255, 0.2); --gold: #ffd700;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif; background: #0f172a;
+            margin: 0; height: 100dvh; width: 100vw; overflow: hidden; color: white;
+            display: flex; justify-content: center; align-items: center; position: fixed;
+        }
+        #main-ui { text-align: center; width: 100%; z-index: 10; }
+        #map-container { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; width: 95vw; max-width: 800px; margin: 0 auto; padding: 10px; }
+        .vault-node {
+            background: var(--locked); border: 2px solid var(--glass-border); border-radius: 15px;
+            aspect-ratio: 1/1; display: flex; justify-content: center; align-items: center; 
+            transition: 0.3s; cursor: pointer; font-size: 2rem;
+        }
+        .active-blink { animation: pulse 1.2s infinite; border-color: var(--primary) !important; color: var(--primary) !important; box-shadow: 0 0 15px var(--primary); }
+        .completed { border-color: var(--success); color: var(--success); opacity: 0.3; pointer-events: none; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        .overlay { position: fixed; inset: 0; display: none; justify-content: center; align-items: center; background: #0f172a; z-index: 1000; }
+        .glass-panel { background: #0f172a; border: 2px solid var(--glass-border); border-radius: 40px; padding: 35px; width: 90vw; max-width: 500px; text-align: center; }
+        .padlock-display { background: black; color: var(--primary); font-size: 2.5rem; padding: 15px; border: 3px solid var(--primary); border-radius: 20px; margin-bottom: 10px; font-family: monospace; letter-spacing: 5px; height: 60px; line-height: 60px; }
+        .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .numpad button { padding: 18px; font-size: 1.8rem; background: rgba(255,255,255,0.05); color: white; border: 1px solid var(--glass-border); border-radius: 15px; cursor: pointer; }
+        .btn-main { background: var(--primary); color: #0f172a; padding: 20px; border: none; border-radius: 20px; font-weight: 900; cursor: pointer; font-size: 1.2rem; text-transform: uppercase; margin-top: 15px; width: 100%; }
+        input[type="text"] { width: 100%; padding: 15px; font-size: 1.5rem; background: black; color: white; border: 2px solid var(--primary); border-radius: 15px; text-align: center; margin-bottom: 15px; box-sizing: border-box; }
+        .progress-bar { width: 100%; height: 10px; background: rgba(255,255,255,0.1); border-radius: 5px; margin: 15px 0; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--success); width: 0%; transition: 0.3s; }
+    </style>
+</head>
+<body>
+
+    <div id="start-screen" class="overlay" style="display: flex;">
+        <div class="glass-panel">
+            <h1>NEON VAULTS</h1>
+            <p style="text-align: left;">
+                • <b>Vaults 1-9:</b> 10 questions per topic.<br>
+                • <b>Vault 10:</b> Final Exam (15 random questions).<br>
+                • <b>Vault 11:</b> The Master Vault.<br>
+                • Note down every code! You will need them.
+            </p>
+            <button class="btn-main" onclick="initGame()">Start Mission</button>
+        </div>
+    </div>
+
+    <div id="main-ui" style="display:none;">
+        <div id="timer" style="font-family: monospace; font-size: 1.5rem; color: var(--primary); margin: 15px;">TIME: 00:00</div>
+        <div id="map-container"></div>
+        <div id="master-area" style="margin-top:20px;"><div id="master-vault" style="font-size:3rem; opacity:0.1; cursor:pointer;">🔒</div></div>
+    </div>
+
+    <div id="padlock-overlay" class="overlay">
+        <div class="glass-panel">
+            <h3 id="padlock-title">ENTER ACCESS CODE</h3>
+            <div class="padlock-display" id="code-display">---</div>
+            <div class="numpad">
+                <button onclick="press(1)">1</button><button onclick="press(2)">2</button><button onclick="press(3)">3</button>
+                <button onclick="press(4)">4</button><button onclick="press(5)">5</button><button onclick="press(6)">6</button>
+                <button onclick="press(7)">7</button><button onclick="press(8)">8</button><button onclick="press(9)">9</button>
+                <button onclick="clearCode()" style="color:var(--error)">C</button>
+                <button onclick="press(0)">0</button>
+                <button onclick="checkCode()" style="color:var(--success)">OK</button>
+            </div>
+            <p onclick="closeOverlays()" style="margin-top:20px; cursor:pointer; opacity:0.5;">BACK TO MAP</p>
+        </div>
+    </div>
+
+    <div id="quiz-overlay" class="overlay">
+        <div class="glass-panel" id="quiz-content"></div>
+    </div>
+
+<script>
+    const oefeningen = [
+        { titel: "1: Translate the word in brackets.", type: "open", pool: [
+    {q: "This grammar rule is very (ingewikkeld).", c: "complicated"},
+    {q: "Which (land) do you come from?", c: "country"},
+    {q: "The exam was quite (moeilijk).", c: "difficult"},
+    {q: "I don't know (precies) what happened.", c: "exactly"},
+    {q: "Ah, (ik snap het) now!", c: "i get it"},
+    {q: "The (regering) makes new laws.", c: "government"},
+    {q: "Great Britain is a large (eiland).", c: "island"},
+    {q: "I like to buy food at the (lokaal) market.", c: "local"},
+    {q: "We are a proud (natie).", c: "nation"},
+    {q: "California is a (staat) in the USA.", c: "state"},
+    {q: "London is the capital of the (Verenigd Koninkrijk).", c: ["united kingdom", "uk"]},
+    {q: "Scotland is part of (Groot Brittannië).", c: ["great britain", "gb"]},
+    {q: "You must (onthouden) to bring your book.", c: "remember"},
+    {q: "I (heb liever) tea to coffee.", c: "prefer"},
+    {q: "Can you (uitleggen) this to me?", c: "explain"},
+    {q: "What time does the train (aankomen)?", c: "arrive"},
+    {q: "I want to (verbeteren) my English.", c: "improve"},
+    {q: "The (bevolking) of London is huge.", c: "population"},
+    {q: "This building looks very (modern).", c: "modern"},
+    {q: "We (vieren) Christmas in December.", c: "celebrate"},
+    {q: "I want to (reizen) around the world.", c: "travel"},
+    {q: "The Scottish (landschap) is beautiful.", c: "landscape"},
+    {q: "There is a river in the (vallei).", c: "valley"},
+    {q: "We walked along the (kustlijn).", c: "coastline"},
+    {q: "The (boer) has many cows.", c: "farmer"},
+    {q: "This old road was built by a (Romein).", c: "roman"},
+    {q: "The (leger) protected the city.", c: "army"},
+    {q: "The soldiers lived in a (fort).", c: "fort"},
+    {q: "It is a (traditie) to eat turkey.", c: "tradition"},
+    {q: "The red rose is a (symbool) of England.", c: "symbol"},
+    {q: "There is a (draak) on the Welsh flag.", c: "dragon"},
+    {q: "The (kasteel) is on top of the hill.", c: "castle"},
+    {q: "The (koning) lives in a palace.", c: "king"},
+    {q: "The (prins) will be king one day.", c: "prince"},
+    {q: "The (slag) was fought a long time ago.", c: "battle"},
+    {q: "It is hard to (overleven) in the desert.", c: "survive"},
+    {q: "I find (geschiedenis) very interesting.", c: "history"},
+    {q: "The knight was very (dapper).", c: "brave"},
+    {q: "The (stam) lived in the forest.", c: "tribe"},
+    {q: "The countries were at (oorlog).", c: "war"},
+    {q: "People fought for their (vrijheid).", c: "freedom"},
+    {q: "He saved the child and became a (held).", c: "hero"},
+    {q: "I love learning about British (cultuur).", c: "culture"},
+    {q: "We must protect our (erfgoed).", c: "heritage"},
+    {q: "The (soldaat) wore a green uniform.", c: "soldier"},
+    {q: "He lives in a small (dorp).", c: "village"},
+    {q: "Paris is a famous (hoofdstad).", c: "capital city"},
+    {q: "No one knows what happens in the (toekomst).", c: "future"},
+    {q: "He is the (leider) of the group.", c: "leader"},
+    {q: "I won the swimming (wedstrijd).", c: "race"},
+    {q: "The waves crashed on the (kust).", c: "shore"},
+    {q: "Winning the war was a great (offer).", c: "sacrifice"},
+    {q: "He felt a lot of (pijn) in his leg.", c: "pain"},
+    {q: "Have you heard the (legende) of King Arthur?", c: "legend"},
+    {q: "A passport proves your (identiteit).", c: "identity"},
+    {q: "The (vlag) has three colours.", c: "flag"},
+    {q: "You have a (keuze): stay or go.", c: "choice"},
+    {q: "A helmet will (beschermen) your head.", c: "protect"},
+    {q: "This story is passed to the next (generatie).", c: "generation"},
+    {q: "They live on the (land), far from the city.", c: "land"},
+    {q: "The (zee) is very blue today.", c: "sea"},
+    {q: "The (winnaar) gets a gold medal.", c: "winner"},
+    {q: "What is the first (regel) of the game?", c: "rule"}] },
+       
+ { titel: "2: Translate the word in brackets.", type: "open", pool: [
+    {q: "This grammar rule is very (complicated).", c: "ingewikkeld"},
+    {q: "Which (country) do you come from?", c: "land"},
+    {q: "The exam was quite (difficult).", c: "moeilijk"},
+    {q: "I don't know (exactly) what happened.", c: "precies"},
+    {q: "Ah, (I get it) now!", c: "ik snap het"},
+    {q: "The (government) makes new laws.", c: "regering"},
+    {q: "Great Britain is a large (island).", c: "eiland"},
+    {q: "I like to buy food at the (local) market.", c: ["lokaal", "plaatselijk"]},
+    {q: "We are a proud (nation).", c: ["natie", "land"]},
+    {q: "California is a (state) in the USA.", c: "staat"},
+    {q: "London is the capital of the (United Kingdom).", c: "verenigd koninkrijk"},
+    {q: "Scotland is part of (Great Britain).", c: "groot brittannië"},
+    {q: "You must (remember) to bring your book.", c: "onthouden"},
+    {q: "I (prefer) tea to coffee.", c: "liever hebben"},
+    {q: "Can you (explain) this to me?", c: "uitleggen"},
+    {q: "What time does the train (arrive)?", c: "aankomen"},
+    {q: "I want to (improve) my English.", c: "verbeteren"},
+    {q: "The (population) of London is huge.", c: "bevolking"},
+    {q: "This building looks very (modern).", c: "modern"},
+    {q: "We (celebrate) Christmas in December.", c: "vieren"},
+    {q: "I want to (travel) around the world.", c: "reizen"},
+    {q: "The Scottish (landscape) is beautiful.", c: "landschap"},
+    {q: "There is a river in the (valley).", c: ["vallei", "dal"]},
+    {q: "We walked along the (coastline).", c: ["kustlijn", "kust"]},
+    {q: "The (farmer) has many cows.", c: "boer"},
+    {q: "This old road was built by a (Roman).", c: "romein"},
+    {q: "The (army) protected the city.", c: "leger"},
+    {q: "The soldiers lived in a (fort).", c: ["fort", "vesting"]},
+    {q: "It is a (tradition) to eat turkey.", c: "traditie"},
+    {q: "The red rose is a (symbol) of England.", c: "symbool"},
+    {q: "There is a (dragon) on the Welsh flag.", c: "draak"},
+    {q: "The (castle) is on top of the hill.", c: "kasteel"},
+    {q: "The (king) lives in a palace.", c: "koning"},
+    {q: "The (prince) will be king one day.", c: "prins"},
+    {q: "The (battle) was fought a long time ago.", c: ["slag", "gevecht"]},
+    {q: "It is hard to (survive) in the desert.", c: "overleven"},
+    {q: "I find (history) very interesting.", c: "geschiedenis"},
+    {q: "The knight was very (brave).", c: "dapper"},
+    {q: "The (tribe) lived in the forest.", c: "stam"},
+    {q: "The countries were at (war).", c: "oorlog"},
+    {q: "People fought for their (freedom).", c: "vrijheid"},
+    {q: "He saved the child and became a (hero).", c: "held"},
+    {q: "I love learning about British (culture).", c: "cultuur"},
+    {q: "We must protect our (heritage).", c: "erfgoed"},
+    {q: "The (soldier) wore a green uniform.", c: "soldaat"},
+    {q: "He lives in a small (village).", c: "dorp"},
+    {q: "Paris is a famous (capital city).", c: "hoofdstad"},
+    {q: "No one knows what happens in the (future).", c: "toekomst"},
+    {q: "He is the (leader) of the group.", c: "leider"},
+    {q: "I won the swimming (race).", c: "wedstrijd"},
+    {q: "The waves crashed on the (shore).", c: ["kust", "oever"]},
+    {q: "Winning the war was a great (sacrifice).", c: "offer"},
+    {q: "He felt a lot of (pain) in his leg.", c: "pijn"},
+    {q: "Have you heard the (legend) of King Arthur?", c: "legende"},
+    {q: "A passport proves your (identity).", c: "identiteit"},
+    {q: "The (flag) has three colours.", c: "vlag"},
+    {q: "You have a (choice): stay or go.", c: "keuze"},
+    {q: "A helmet will (protect) your head.", c: "beschermen"},
+    {q: "This story is passed to the next (generation).", c: "generatie"},
+    {q: "They live on the (land), far from the city.", c: "land"},
+    {q: "The (sea) is very blue today.", c: "zee"},
+    {q: "The (winner) gets a gold medal.", c: "winnaar"},
+    {q: "What is the first (rule) of the game?", c: "regel"}] },
+
+   { titel: "3: Fill in the correct form of the present continuous.", type: "open", pool: [
+    {q: "Look! The cat ________ (climb) that tree. (Present Continuous)", c: ["is climbing", "'s climbing"]},
+    {q: "Listen! They ________ (sing) my favourite song. (Present Continuous)", c: ["are singing", "'re singing"]},
+    {q: "I ________ (eat) my breakfast right now. (Present Continuous)", c: ["am eating", "'m eating"]},
+    {q: "Wait a minute, I ________ (put) on my shoes. (Present Continuous)", c: ["am putting", "'m putting"]},
+    {q: "The children ________ (play) in the garden. (Present Continuous)", c: ["are playing", "'re playing"]},
+    {q: "She ________ (write) an email to her friend. (Present Continuous)", c: ["is writing", "'s writing"]},
+    {q: "Quiet! The baby ________ (sleep) in the bedroom. (Present Continuous)", c: ["is sleeping", "'s sleeping"]},
+    {q: "We ________ (watch) a very exciting film. (Present Continuous)", c: ["are watching", "'re watching"]},
+    {q: "Look at him! He ________ (dance) like a pro. (Present Continuous)", c: ["is dancing", "'s dancing"]},
+    {q: "It ________ (rain) very hard outside. (Present Continuous)", c: ["is raining", "'s raining"]},
+    {q: "You ________ (make) a lot of noise! (Present Continuous)", c: ["are making", "'re making"]},
+    {q: "My dad ________ (cook) dinner in the kitchen. (Present Continuous)", c: ["is cooking", "'s cooking"]},
+    {q: "Look, the bus ________ (come) now. (Present Continuous)", c: ["is coming", "'s coming"]},
+    {q: "I ________ (study) for my English test. (Present Continuous)", c: ["am studying", "'m studying"]},
+    {q: "We ________ (have) a great time at the party. (Present Continuous)", c: ["are having", "'re having"]},
+    {q: "The sun ________ (shine) today. (Present Continuous)", c: ["is shining", "'s shining"]},
+    {q: "They ________ (run) to catch the train. (Present Continuous)", c: ["are running", "'re running"]},
+    {q: "He ________ (clean) his room at the moment. (Present Continuous)", c: ["is cleaning", "'s cleaning"]},
+    {q: "My sister ________ (listen) to music. (Present Continuous)", c: ["is listening", "'s listening"]},
+    {q: "I ________ (wait) for the doctor. (Present Continuous)", c: ["am waiting", "'m waiting"]},
+    {q: "The dogs ________ (bark) at the postman. (Present Continuous)", c: ["are barking", "'re barking"]},
+    {q: "She ________ (drink) a glass of orange juice. (Present Continuous)", c: ["is drinking", "'s drinking"]},
+    {q: "We ________ (sit) on the sofa. (Present Continuous)", c: ["are sitting", "'re sitting"]},
+    {q: "He ________ (wash) his car in the street. (Present Continuous)", c: ["is washing", "'s washing"]},
+    {q: "I ________ (read) a very interesting book. (Present Continuous)", c: ["am reading", "'m reading"]},
+    {q: "They ________ (talk) about their holiday. (Present Continuous)", c: ["are talking", "'re talking"]},
+    {q: "Look! A plane ________ (fly) over our house. (Present Continuous)", c: ["is flying", "'s flying"]},
+    {q: "Someone ________ (knock) on the door. (Present Continuous)", c: ["is knocking", "'s knocking"]},
+    {q: "The teacher ________ (explain) the grammar. (Present Continuous)", c: ["is explaining", "'s explaining"]},
+    {q: "I ________ (try) to fix my bike. (Present Continuous)", c: ["am trying", "'m trying"]},
+    {q: "We ________ (walk) to the supermarket. (Present Continuous)", c: ["are walking", "'re walking"]},
+    {q: "She ________ (brush) her teeth. (Present Continuous)", c: ["is brushing", "'s brushing"]},
+    {q: "The birds ________ (build) a nest. (Present Continuous)", c: ["are building", "'re building"]},
+    {q: "He ________ (buy) some milk at the shop. (Present Continuous)", c: ["is buying", "'s buying"]},
+    {q: "It ________ (get) dark outside. (Present Continuous)", c: ["is getting", "'s getting"]},
+    {q: "I ________ (wear) my new jacket today. (Present Continuous)", c: ["am wearing", "'m wearing"]},
+    {q: "They ________ (swim) in the pool. (Present Continuous)", c: ["are swimming", "'re swimming"]},
+    {q: "My brother ________ (work) in London this week. (Present Continuous)", c: ["is working", "'s working"]},
+    {q: "She ________ (smile) at the camera. (Present Continuous)", c: ["is smiling", "'s smiling"]},
+    {q: "We ________ (learn) how to speak English. (Present Continuous)", c: ["are learning", "'re learning"]},
+    {q: "He ________ (carry) a heavy bag. (Present Continuous)", c: ["is carrying", "'s carrying"]},
+    {q: "I ________ (help) my mom with the dishes. (Present Continuous)", c: ["am helping", "'m helping"]},
+    {q: "The phone ________ (ring) again! (Present Continuous)", c: ["is ringing", "'s ringing"]},
+    {q: "They ________ (laugh) at a funny joke. (Present Continuous)", c: ["are laughing", "'re laughing"]},
+    {q: "She ________ (take) a photo of the flowers. (Present Continuous)", c: ["is taking", "'s taking"]},
+    {q: "We ________ (prepare) a surprise for him. (Present Continuous)", c: ["are preparing", "'re preparing"]},
+    {q: "He ________ (ride) his bike to work. (Present Continuous)", c: ["is riding", "'s riding"]},
+    {q: "I ________ (look) for my keys. (Present Continuous)", c: ["am looking", "'m looking"]},
+    {q: "The students ________ (do) their homework. (Present Continuous)", c: ["are doing", "'re doing"]},
+    {q: "Look! It ________ (snow) in the mountains. (Present Continuous)", c: ["is snowing", "'s snowing"]},
+    {q: "She ________ (wait) for the bus at the stop. (Present Continuous)", c: ["is waiting", "'s waiting"]},
+    {q: "We ________ (go) to the cinema tonight. (Present Continuous)", c: ["are going", "'re going"]},
+    {q: "I ________ (listen) to a podcast. (Present Continuous)", c: ["am listening", "'m listening"]},
+    {q: "They ________ (paint) the living room. (Present Continuous)", c: ["are painting", "'re painting"]},
+    {q: "He ________ (drive) his dad's car. (Present Continuous)", c: ["is driving", "'s driving"]},
+    {q: "The wind ________ (blow) very hard. (Present Continuous)", c: ["is blowing", "'s blowing"]},
+    {q: "I ________ (think) about my future. (Present Continuous)", c: ["am thinking", "'m thinking"]},
+    {q: "She ________ (cut) the bread. (Present Continuous)", c: ["is cutting", "'s cutting"]},
+    {q: "We ________ (use) the computer right now. (Present Continuous)", c: ["are using", "'re using"]},
+    {q: "They ________ (visit) their grandparents. (Present Continuous)", c: ["are visiting", "'re visiting"]},
+    {q: "The chef ________ (fry) some onions. (Present Continuous)", c: ["is frying", "'s frying"]},
+    {q: "I ________ (send) a message to my brother. (Present Continuous)", c: ["am sending", "'m sending"]},
+    {q: "He ________ (jump) on the trampoline. (Present Continuous)", c: ["is jumping", "'s jumping"]},
+    {q: "She ________ (draw) a beautiful picture. (Present Continuous)", c: ["is drawing", "'s drawing"]},
+    {q: "We ________ (stand) in a long queue. (Present Continuous)", c: ["are standing", "'re standing"]},
+    {q: "They ________ (shop) for new clothes. (Present Continuous)", c: ["are shopping", "'re shopping"]},
+    {q: "I ________ (open) the window for some air. (Present Continuous)", c: ["am opening", "'m opening"]},
+    {q: "The cat ________ (sleep) on my bed. (Present Continuous)", c: ["is sleeping", "'s sleeping"]},
+    {q: "He ________ (wash) his hair. (Present Continuous)", c: ["is washing", "'s washing"]},
+    {q: "She ________ (tell) us a story. (Present Continuous)", c: ["is telling", "'s telling"]},
+    {q: "We ________ (plan) our next trip. (Present Continuous)", c: ["are planning", "'re planning"]},
+    {q: "They ________ (carry) the boxes upstairs. (Present Continuous)", c: ["are carrying", "'re carrying"]},
+    {q: "I ________ (fix) my broken computer. (Present Continuous)", c: ["am fixing", "'m fixing"]},
+    {q: "Look! The moon ________ (rise). (Present Continuous)", c: ["is rising", "'s rising"]},
+    {q: "The water ________ (boil) on the stove. (Present Continuous)", c: ["is boiling", "'s boiling"]},
+    {q: "She ________ (look) at the menu. (Present Continuous)", c: ["is looking", "'s looking"]},
+    {q: "We ________ (order) some pizza. (Present Continuous)", c: ["are ordering", "'re ordering"]},
+    {q: "He ________ (wear) a blue shirt today. (Present Continuous)", c: ["is wearing", "'s wearing"]},
+    {q: "I ________ (drink) a cup of tea. (Present Continuous)", c: ["am drinking", "'m drinking"]},
+    {q: "They ________ (wait) for the results. (Present Continuous)", c: ["are waiting", "'re waiting"]},
+    {q: "The baby ________ (cry) because he is hungry. (Present Continuous)", c: ["is crying", "'s crying"]},
+    {q: "She ________ (show) me her new car. (Present Continuous)", c: ["is showing", "'s showing"]},
+    {q: "We ________ (clean) the whole house. (Present Continuous)", c: ["are cleaning", "'re cleaning"]},
+    {q: "He ________ (shout) at the dog. (Present Continuous)", c: ["is shouting", "'s shouting"]},
+    {q: "I ________ (listen) to the news. (Present Continuous)", c: ["am listening", "'m listening"]},
+    {q: "They ________ (dance) in the street. (Present Continuous)", c: ["are dancing", "'re dancing"]},
+    {q: "She ________ (walk) the dog in the park. (Present Continuous)", c: ["is walking", "'s walking"]},
+    {q: "We ________ (travel) through Europe. (Present Continuous)", c: ["are traveling", "'re traveling", "are travelling", "'re travelling"]},
+    {q: "He ________ (smoke) outside. (Present Continuous)", c: ["is smoking", "'s smoking"]},
+    {q: "I ________ (check) my bank account. (Present Continuous)", c: ["am checking", "'m checking"]},
+    {q: "They ________ (work) on a new project. (Present Continuous)", c: ["are working", "'re working"]},
+    {q: "She ________ (play) the piano beautifully. (Present Continuous)", c: ["is playing", "'s playing"]},
+    {q: "We ________ (watch) the sunset. (Present Continuous)", c: ["are watching", "'re watching"]},
+    {q: "He ________ (look) out of the window. (Present Continuous)", c: ["is looking", "'s looking"]},
+    {q: "I ________ (search) for my glasses. (Present Continuous)", c: ["am searching", "'m searching"]},
+    {q: "They ________ (celebrate) their anniversary. (Present Continuous)", c: ["are celebrating", "'re celebrating"]},
+    {q: "She ________ (prepare) for her exam. (Present Continuous)", c: ["is preparing", "'s preparing"]},
+    {q: "We ________ (eat) lunch in the garden. (Present Continuous)", c: ["are eating", "'re eating"]},
+    {q: "It ________ (get) very cold now. (Present Continuous)", c: ["is getting", "'s getting"]},
+    {q: "I ________ (finish) my work. (Present Continuous)", c: ["am finishing", "'m finishing"]}] },
+
+    { titel: "4: Choose much or many", type: "choice", pool: [
+    {q: "How ____ water do you drink?", c: "much", opts: ["much", "many"]},
+    {q: "How ____ friends do you have?", c: "many", opts: ["much", "many"]},
+    {q: "There isn't ____ milk in the fridge.", c: "much", opts: ["much", "many"]},
+    {q: "How ____ people live in this city?", c: "many", opts: ["much", "many"]},
+    {q: "I don't have ____ money with me.", c: "much", opts: ["much", "many"]},
+    {q: "How ____ brothers do you have?", c: "many", opts: ["much", "many"]},
+    {q: "We don't have ____ time left.", c: "much", opts: ["much", "many"]},
+    {q: "How ____ books did you read?", c: "many", opts: ["much", "many"]},
+    {q: "There are ____ apples in the basket.", c: "many", opts: ["much", "many"]},
+    {q: "How ____ sugar do you want in your tea?", c: "much", opts: ["much", "many"]},
+    {q: "How ____ students are in the class?", c: "many", opts: ["much", "many"]},
+    {q: "There isn't ____ snow this winter.", c: "much", opts: ["much", "many"]},
+    {q: "How ____ languages can you speak?", c: "many", opts: ["much", "many"]},
+    {q: "I don't eat ____ meat.", c: "much", opts: ["much", "many"]},
+    {q: "How ____ days are in a week?", c: "many", opts: ["much", "many"]},
+    {q: "Is there ____ salt in the soup?", c: "much", opts: ["much", "many"]},
+    {q: "How ____ cars are in the street?", c: "many", opts: ["much", "many"]},
+    {q: "There aren't ____ trees in the desert.", c: "many", opts: ["much", "many"]},
+    {q: "How ____ homework do you have?", c: "much", opts: ["much", "many"]},
+    {q: "How ____ chairs do we need?", c: "many", opts: ["much", "many"]},
+    {q: "I haven't seen ____ films lately.", c: "many", opts: ["much", "many"]},
+    {q: "How ____ butter is on the bread?", c: "much", opts: ["much", "many"]},
+    {q: "There are ____ birds in the sky.", c: "many", opts: ["much", "many"]},
+    {q: "How ____ rice is in the bowl?", c: "much", opts: ["much", "many"]},
+    {q: "Are there ____ pictures on the wall?", c: "many", opts: ["much", "many"]},
+    {q: "I don't have ____ energy today.", c: "much", opts: ["much", "many"]},
+    {q: "How ____ hours did you sleep?", c: "many", opts: ["much", "many"]},
+    {q: "There is too ____ rain today.", c: "much", opts: ["much", "many"]},
+    {q: "How ____ questions are on the test?", c: "many", opts: ["much", "many"]},
+    {q: "We don't buy ____ bread.", c: "much", opts: ["much", "many"]},
+    {q: "How ____ cities did you visit?", c: "many", opts: ["much", "many"]},
+    {q: "There isn't ____ information about it.", c: "much", opts: ["much", "many"]},
+    {q: "How ____ pairs of shoes do you have?", c: "many", opts: ["much", "many"]},
+    {q: "How ____ juice is in the bottle?", c: "much", opts: ["much", "many"]},
+    {q: "There aren't ____ flowers in the garden.", c: "many", opts: ["much", "many"]},
+    {q: "I don't need ____ help.", c: "much", opts: ["much", "many"]},
+    {q: "How ____ mistakes did I make?", c: "many", opts: ["much", "many"]},
+    {q: "Is there ____ traffic on the road?", c: "much", opts: ["much", "many"]},
+    {q: "How ____ pencils are in the box?", c: "many", opts: ["much", "many"]},
+    {q: "There isn't ____ space in the car.", c: "much", opts: ["much", "many"]},
+    {q: "How ____ matches did they win?", c: "many", opts: ["much", "many"]},
+    {q: "I don't spend ____ time on social media.", c: "much", opts: ["much", "many"]},
+    {q: "How ____ stars can you see?", c: "many", opts: ["much", "many"]},
+    {q: "There is ____ coffee in my cup.", c: "much", opts: ["much", "many"]},
+    {q: "How ____ lessons do we have today?", c: "many", opts: ["much", "many"]},
+    {q: "We didn't have ____ luck.", c: "much", opts: ["much", "many"]},
+    {q: "How ____ cookies did you eat?", c: "many", opts: ["much", "many"]},
+    {q: "There isn't ____ oil in the pan.", c: "much", opts: ["much", "many"]},
+    {q: "How ____ bottles of water are there?", c: "many", opts: ["much", "many"]},
+    {q: "I don't have ____ work to do.", c: "much", opts: ["much", "many"]},
+    {q: "How ____ windows are in the house?", c: "many", opts: ["much", "many"]},
+    {q: "There isn't ____ cheese on the pizza.", c: "much", opts: ["much", "many"]},
+    {q: "How ____ pens did you buy?", c: "many", opts: ["much", "many"]},
+    {q: "Is there ____ news about the game?", c: "much", opts: ["much", "many"]},
+    {q: "How ____ eggs are in the fridge?", c: "many", opts: ["much", "many"]},
+    {q: "There isn't ____ air in the ball.", c: "much", opts: ["much", "many"]},
+    {q: "How ____ countries are in Europe?", c: "many", opts: ["much", "many"]},
+    {q: "I don't drink ____ tea.", c: "much", opts: ["much", "many"]},
+    {q: "How ____ months are in a year?", c: "many", opts: ["much", "many"]},
+    {q: "There isn't ____ fun at this party.", c: "much", opts: ["much", "many"]},
+    {q: "How ____ songs are on your phone?", c: "many", opts: ["much", "many"]},
+    {q: "How ____ petrol is in the car?", c: "much", opts: ["much", "many"]},
+    {q: "There aren't ____ buses on Sundays.", c: "many", opts: ["much", "many"]},
+    {q: "How ____ soup did you eat?", c: "much", opts: ["much", "many"]},
+    {q: "Are there ____ computers at school?", c: "many", opts: ["much", "many"]},
+    {q: "I don't have ____ patience.", c: "much", opts: ["much", "many"]},
+    {q: "How ____ bags are you carrying?", c: "many", opts: ["much", "many"]},
+    {q: "There isn't ____ light in this room.", c: "much", opts: ["much", "many"]},
+    {q: "How ____ cousins do you have?", c: "many", opts: ["much", "many"]},
+    {q: "There is too ____ dust here.", c: "much", opts: ["much", "many"]},
+    {q: "How ____ pages is the book?", c: "many", opts: ["much", "many"]},
+    {q: "We don't need ____ furniture.", c: "much", opts: ["much", "many"]},
+    {q: "How ____ shirts do you own?", c: "many", opts: ["much", "many"]},
+    {q: "Is there ____ ice in the drink?", c: "much", opts: ["much", "many"]},
+    {q: "How ____ shoes did you try on?", c: "many", opts: ["much", "many"]},
+    {q: "There isn't ____ hope left.", c: "much", opts: ["much", "many"]},
+    {q: "How ____ videos did you watch?", c: "many", opts: ["much", "many"]},
+    {q: "I don't eat ____ fruit.", c: "much", opts: ["much", "many"]},
+    {q: "How ____ coins are in your pocket?", c: "many", opts: ["much", "many"]},
+    {q: "There is ____ noise outside.", c: "much", opts: ["much", "many"]},
+    {q: "How ____ gifts did you get?", c: "many", opts: ["much", "many"]},
+    {q: "Is there ____ soup left?", c: "much", opts: ["much", "many"]},
+    {q: "How ____ points did you score?", c: "many", opts: ["much", "many"]},
+    {q: "There aren't ____ clouds today.", c: "many", opts: ["much", "many"]},
+    {q: "How ____ luggage do you have?", c: "much", opts: ["much", "many"]},
+    {q: "Are there ____ bikes in the shed?", c: "many", opts: ["much", "many"]},
+    {q: "I don't have ____ interest in football.", c: "much", opts: ["much", "many"]},
+    {q: "How ____ photos did you take?", c: "many", opts: ["much", "many"]},
+    {q: "There aren't ____ fish in the lake.", c: "many", opts: ["much", "many"]},
+    {q: "How ____ keys are on your ring?", c: "many", opts: ["much", "many"]},
+    {q: "Is there ____ honey in the jar?", c: "much", opts: ["much", "many"]},
+    {q: "How ____ planes are at the airport?", c: "many", opts: ["much", "many"]},
+    {q: "I don't need ____ advice.", c: "much", opts: ["much", "many"]},
+    {q: "How ____ glasses of milk?", c: "many", opts: ["much", "many"]},
+    {q: "There isn't ____ wind today.", c: "much", opts: ["much", "many"]},
+    {q: "How ____ games do you play?", c: "many", opts: ["much", "many"]},
+    {q: "Is there ____ ham on the sandwich?", c: "much", opts: ["much", "many"]},
+    {q: "How ____ teeth does a shark have?", c: "many", opts: ["much", "many"]},
+    {q: "There isn't ____ grass in the park.", c: "much", opts: ["much", "many"]},
+    {q: "How ____ stars are in the sky?", c: "many", opts: ["much", "many"]}] },
+
+       { titel: "5: Fill in the correct plural form.", type: "open", pool: [
+    {q: "One book, two ________.", c: "books"}, {q: "One car, two ________.", c: "cars"},
+    {q: "One dog, two ________.", c: "dogs"}, {q: "One apple, two ________.", c: "apples"},
+    {q: "One friend, two ________.", c: "friends"}, {q: "One pen, two ________.", c: "pens"},
+    {q: "One chair, two ________.", c: "chairs"}, {q: "One door, two ________.", c: "doors"},
+    {q: "One school, two ________.", c: "schools"}, {q: "One computer, two ________.", c: "computers"},
+    {q: "One bus, two ________.", c: "buses"}, {q: "One glass, two ________.", c: "glasses"},
+    {q: "One brush, two ________.", c: "brushes"}, {q: "One watch, two ________.", c: "watches"},
+    {q: "One box, two ________.", c: "boxes"}, {q: "One sandwich, two ________.", c: "sandwiches"},
+    {q: "One match, two ________.", c: "matches"}, {q: "One kiss, two ________.", c: "kisses"},
+    {q: "One dish, two ________.", c: "dishes"}, {q: "One beach, two ________.", c: "beaches"},
+    {q: "One potato, two ________.", c: "potatoes"}, {q: "One tomato, two ________.", c: "tomatoes"},
+    {q: "One hero, two ________.", c: "heroes"}, {q: "One volcano, two ________.", c: "volcanoes"},
+    {q: "One echo, two ________.", c: "echoes"},
+    {q: "One baby, two ________.", c: "babies"}, {q: "One city, two ________.", c: "cities"},
+    {q: "One country, two ________.", c: "countries"}, {q: "One party, two ________.", c: "parties"},
+    {q: "One family, two ________.", c: "families"}, {q: "One fly, two ________.", c: "flies"},
+    {q: "One lady, two ________.", c: "ladies"}, {q: "One story, two ________.", c: "stories"},
+    {q: "One strawberry, two ________.", c: "strawberries"}, {q: "One library, two ________.", c: "libraries"},
+    {q: "One leaf, two ________.", c: "leaves"}, {q: "One knife, two ________.", c: "knives"},
+    {q: "One life, two ________.", c: "lives"}, {q: "One wife, two ________.", c: "wives"},
+    {q: "One shelf, two ________.", c: "shelves"}, {q: "One wolf, two ________.", c: "wolves"},
+    {q: "One thief, two ________.", c: "thieves"}, {q: "One scarf, two ________.", c: "scarves"},
+    {q: "One half, two ________.", c: "halves"}, {q: "One calf, two ________.", c: "calves"},
+    {q: "One child, two ________.", c: "children"}, {q: "One man, two ________.", c: "men"},
+    {q: "One woman, two ________.", c: "women"}, {q: "One person, two ________.", c: "people"},
+    {q: "One foot, two ________.", c: "feet"}, {q: "One tooth, two ________.", c: "teeth"},
+    {q: "One mouse, two ________.", c: "mice"}, {q: "One goose, two ________.", c: "geese"},
+    {q: "One policeman, two ________.", c: "policemen"}, {q: "One fireman, two ________.", c: "firemen"},
+    {q: "What's the plural form of information?", c: "information"}, {q: "What's the plural form of hair?", c: "hair"},
+    {q: "What's the plural form of homework?.", c: "homework"}, {q: What's the plural form of furniture?, c: "furniture"},
+    {q: "What's the plural form of weather?.", c: "weather"}, {q: "What's the plural form of advice?.", c: "advice"},
+    {q: "What's the plural form of water?.", c: "water"},
+    {q: "What's the plural form of money?", c: "money"}, {q: "What's the plural form of news?.", c: "news"},
+    {q: "What's the plural form of scissors?", c: "scissors"}, {q: "What's the plural form of trousers?", c: "trousers"},
+    {q: "What's the plural form of glasses?", c: "glasses"}, {q: "What's the plural form of jeans?", c: "jeans"},
+    {q: "What's the plural form of shorts?", c: "shorts"}, {q: "What's the plural form of clothes?", c: "clothes"},
+    {q: "What's the plural form of binoculars?", c: "binoculars"},
+    {q: "What's the plural form of stairs?", c: "stairs"}, {q: "What's the plural form of pyjamas?", c: "pyjamas"},
+    {q: "One boy, two ________.", c: "boys"}, {q: "One day, two ________.", c: "days"},
+    {q: "One key, two ________.", c: "keys"}, {q: "One toy, two ________.", c: "toys"},
+    {q: "One monkey, two ________.", c: "monkeys"}, {q: "One sheep, two ________. (no change)", c: "sheep"},
+    {q: "One fish, two ________. (no change)", c: "fish"}, {q: "One deer, two ________.", c: "deer"},
+    {q: "One series, two ________.", c: "series"}, {q: "One species, two ________.", c: "species"},
+    {q: "One bus, two ________.", c: "buses"},
+    {q: "One quiz, two ________.", c: "quizzes"}, {q: "One army, two ________.", c: "armies"},
+    {q: "One enemy, two ________.", c: "enemies"},
+    {q: "One hobby, two ________.", c: "hobbies"}, {q: "One dictionary, two ________.", c: "dictionaries"},
+    {q: "One hand, two ________.", c: "hands"}, {q: "One arm, two ________.", c: "arms"},
+    {q: "One leg, two ________.", c: "legs"}, {q: "One eye, two ________.", c: "eyes"}] },
+       
+   { titel: "6: Fill in the correct possessive adjective or possessive pronoun", type: "open", pool: [
+    {q: "That pen belongs to me. It is ________ (possessive).", c: "mine"},
+    {q: "Those shoes belong to you. They are ________ (possessive).", c: "yours"},
+    {q: "That car belongs to Peter. It is ________ (possessive).", c: "his"},
+    {q: "This bag belongs to Sarah. It is ________ (possessive).", c: "hers"},
+    {q: "That house belongs to us. It is ________ (possessive).", c: "ours"},
+    {q: "Those books belong to them. They are ________ (possessive).", c: "theirs"},
+    {q: "This bike belongs to me. It is ________ (possessive).", c: "mine"},
+    {q: "That laptop belongs to her. It is ________ (possessive).", c: "hers"},
+    {q: "Those keys belong to him. They are ________ (possessive).", c: "his"},
+    {q: "This garden belongs to us. It is ________ (possessive).", c: "ours"},
+    {q: "The toys belong to the children. They are ________ (possessive).", c: "theirs"},
+    {q: "This seat belongs to you. It is ________ (possessive).", c: "yours"},
+    {q: "That phone belongs to me. It is ________ (possessive).", c: "mine"},
+    {q: "These coats belong to us. They are ________ (possessive).", c: "ours"},
+    {q: "That cat belongs to my sister. It is ________ (possessive).", c: "hers"},
+    {q: "The ball belongs to the dog. It is ________ (possessive).", c: "its"},
+    {q: "This room belongs to me. It is ________ (possessive).", c: "mine"},
+    {q: "That money belongs to you. It is ________ (possessive).", c: "yours"},
+    {q: "The boat belongs to my parents. It is ________ (possessive).", c: "theirs"},
+    {q: "This desk belongs to him. It is ________ (possessive).", c: "his"},
+    {q: "I have a book. It is ________ book. (possessive)", c: "my"},
+    {q: "You have a car. It is ________ car. (possessive)", c: "your"},
+    {q: "He has a dog. It is ________ dog. (possessive)", c: "his"},
+    {q: "She has a cat. It is ________ cat. (possessive)", c: "her"},
+    {q: "The dog has a bone. It is ________ bone. (possessive)", c: "its"},
+    {q: "We have a house. It is ________ house. (possessive)", c: "our"},
+    {q: "They have a problem. It is ________ problem. (possessive)", c: "their"},
+    {q: "I have a sister. ________ name is Lisa. (possessive)", c: "her"},
+    {q: "You have a brother. ________ name is Tom. (possessive)", c: "his"},
+    {q: "Tom has a sister. ________ name is Mary. (possessive)", c: "her"},
+    {q: "Mary has a brother. ________ name is Tom. (possessive)", c: "his"},
+    {q: "The tree has leaves. ________ leaves are green. (possessive)", c: "its"},
+    {q: "We have a teacher. ________ name is Mr. Jones. (possessive)", c: "our"},
+    {q: "They have a car. ________ car is blue. (possessive)", c: "their"},
+    {q: "I have a headache. ________ head hurts. (possessive)", c: "my"},
+    {q: "You have new shoes. ________ shoes are cool. (possessive)", c: "your"},
+    {q: "He has a bike. ________ bike is fast. (possessive)", c: "his"},
+    {q: "She has a dress. ________ dress is red. (possessive)", c: "her"},
+    {q: "We have a garden. ________ garden is big. (possessive)", c: "our"},
+    {q: "They have a test. ________ test is difficult. (possessive)", c: "their"},
+    {q: "It is my book. The book is ________. (possessive)", c: "mine"},
+    {q: "They are your keys. The keys are ________. (possessive)", c: "yours"},
+    {q: "It is his mistake. The mistake is ________. (possessive)", c: "his"},
+    {q: "It is her secret. The secret is ________. (possessive)", c: "hers"},
+    {q: "It is our classroom. The classroom is ________. (possessive)", c: "ours"},
+    {q: "They are their sandwiches. The sandwiches are ________. (possessive)", c: "theirs"},
+    {q: "It is my turn. The turn is ________. (possessive)", c: "mine"},
+    {q: "They are her flowers. The flowers are ________. (possessive)", c: "hers"},
+    {q: "It is his idea. The idea is ________. (possessive)", c: "his"},
+    {q: "It is our country. The country is ________. (possessive)", c: "ours"},
+    {q: "They are your glasses. The glasses are ________. (possessive)", c: "yours"},
+    {q: "It is their house. The house is ________. (possessive)", c: "theirs"},
+    {q: "It is my photo. The photo is ________. (possessive)", c: "mine"},
+    {q: "They are her pens. The pens are ________. (possessive)", c: "hers"},
+    {q: "It is his ball. The ball is ________. (possessive)", c: "his"},
+    {q: "It is our team. The team is ________. (possessive)", c: "ours"},
+    {q: "They are your coins. The coins are ________. (possessive)", c: "yours"},
+    {q: "It is their party. The party is ________. (possessive)", c: "theirs"},
+    {q: "It is my pizza. The pizza is ________. (possessive)", c: "mine"},
+    {q: "They are her bags. The bags are ________. (possessive)", c: "hers"},
+    {q: "I can see ________ house from here. (Possession: I)", c: "my"},
+    {q: "Is this ________ pen? (Possession: You)", c: "your"},
+    {q: "John lives here. This is ________ house. (possessive)", c: "his"},
+    {q: "Amy is eating ________ lunch. (possessive)", c: "her"},
+    {q: "The cat is licking ________ paw. (possessive)", c: "its"},
+    {q: "We are doing ________ homework. (possessive)", c: "our"},
+    {q: "The students are in ________ classroom. (possessive)", c: "their"},
+    {q: "This phone isn't mine. Is it ________? (Possession: You)", c: "yours"},
+    {q: "I found a hat. Is it ________? (Possession: He)", c: "his"},
+    {q: "The red car is ________. (Possession: She)", c: "hers"},
+    {q: "The victory is ________! (Possession: We)", c: "ours"},
+    {q: "The decision was ________. (Possession: They)", c: "theirs"},
+    {q: "Where is ________ coat? (Possession: I)", c: "my"},
+    {q: "Hey Mike, what does ________ father do? (possessive)", c: "your"},
+    {q: "He washed ________ hands. (possessive)", c: "his"},
+    {q: "She brushed ________ hair. (possessive)", c: "her"},
+    {q: "The bird built ________ nest. (possessive)", c: "its"},
+    {q: "We love ________ school. (possessive)", c: "our"},
+    {q: "They lost ________ keys. (possessive)", c: "their"},
+    {q: "Is this book yours or ________? (Possession: I)", c: "mine"},
+    {q: "This is my drink, and that is ________. (Possession: You)", c: "yours"},
+    {q: "I have my ticket, does he have ________? (possessive)", c: "his"},
+    {q: "I have my umbrella, does she have ________? (possessive)", c: "hers"},
+    {q: "The house is ________, we bought it together. (Possession: We)", c: "ours"},
+    {q: "They have a dog. The dog is ________. (possessive)", c: "theirs"},
+    {q: "You have a new haircut. I like ________ new haircut. (possessive)", c: "your"},
+    {q: "He forgot ________ wallet at home. (possessive)", c: "his"},
+    {q: "She told me ________ name is Julia. (possessive)", c: "her"},
+    {q: "The robot lost ________ arm in the crash. (possessive)", c: "its"},
+    {q: "We should clean ________ room now. (possessive)", c: "our"},
+    {q: "They are proud of ________ children. (possessive)", c: "their"},
+    {q: "This money is ________, I earned it myself. (Possession: I)", c: "mine"},
+    {q: "Can I use ________ phone? (Possession: You)", c: "your"},
+    {q: "It's not my fault, it's ________. (Possession: He)", c: "his"},
+    {q: "I don't have a pen. Can I borrow ________? (Possession: She)", c: "hers"},
+    {q: "The world is ________ to explore. (Possession: We)", c: "ours"},
+    {q: "That goal was ________. (Possession: They)", c: "theirs"},
+    {q: "I love ________ mother very much. (possessive)", c: "my"},
+    {q: "Did you finish ________ breakfast, Tim? (possessive)", c: "your"},
+    {q: "He is wearing ________ new watch today. (possessive)", c: "his"}]},
+
+       { titel: "7. Have and have got", type: "open", pool: [
+    {q: "I have got a sister. (Negative)", c: ["I have not got a sister.", "I haven't got a sister.", "I've not got a sister."]},
+    {q: "He has got a bike. (Negative)", c: ["He has not got a bike.", "He hasn't got a bike.", "He's not got a bike."]},
+    {q: "We have got time. (Negative)", c: ["We have not got time.", "We haven't got time.", "We've not got time."]},
+    {q: "She has got a car. (Negative)", c: ["She has not got a car.", "She hasn't got a car.", "She's not got a car."]},
+    {q: "They have got pets. (Negative)", c: ["They have not got pets.", "They haven't got pets.", "They've not got pets."]},
+    {q: "You have got a map. (Negative)", c: ["You have not got a map.", "You haven't got a map.", "You've not got a map."]},
+    {q: "It has got a tail. (Negative)", c: ["It has not got a tail.", "It hasn't got a tail.", "It's not got a tail."]},
+    {q: "I have got your key. (Negative)", c: ["I have not got your key.", "I haven't got your key.", "I've not got your key."]},
+    {q: "Sarah has got a phone. (Negative)", c: ["Sarah has not got a phone.", "Sarah hasn't got a phone."]},
+    {q: "The boys have got a ball. (Negative)", c: ["The boys have not got a ball.", "The boys haven't got a ball."]},
+    {q: "I have a sister. (Negative)", c: ["I do not have a sister.", "I don't have a sister."]},
+    {q: "He has a bike. (Negative)", c: ["He does not have a bike.", "He doesn't have a bike."]},
+    {q: "We have time. (Negative)", c: ["We do not have time.", "We don't have time."]},
+    {q: "She has a car. (Negative)", c: ["She does not have a car.", "She doesn't have a car."]},
+    {q: "They have pets. (Negative)", c: ["They do not have pets.", "They don't have pets."]},
+    {q: "You have a map. (Negative)", c: ["You do not have a map.", "You don't have a map."]},
+    {q: "It has a tail. (Negative)", c: ["It does not have a tail.", "It doesn't have a tail."]},
+    {q: "I have your key. (Negative)", c: ["I do not have your key.", "I don't have your key."]},
+    {q: "Sarah has a phone. (Negative)", c: ["Sarah does not have a phone.", "Sarah doesn't have a phone."]},
+    {q: "The boys have a ball. (Negative)", c: ["The boys do not have a ball.", "The boys don't have a ball."]},
+    {q: "You have got a pen. (Question)", c: "Have you got a pen?"},
+    {q: "She has got a brother. (Question)", c: "Has she got a brother?"},
+    {q: "They have got money. (Question)", c: "Have they got money?"},
+    {q: "He has got a plan. (Question)", c: "Has he got a plan?"},
+    {q: "We have got a test. (Question)", c: "Have we got a test?"},
+    {q: "I have got a chance. (Question)", c: "Have I got a chance?"},
+    {q: "It has got a battery. (Question)", c: "Has it got a battery?"},
+    {q: "The house has got a garden. (Question)", c: "Has the house got a garden?"},
+    {q: "Your parents have got a car. (Question)", c: "Have your parents got a car?"},
+    {q: "Lisa has got a secret. (Question)", c: "Has Lisa got a secret?"},
+    {q: "You have a pen. (Question)", c: "Do you have a pen?"},
+    {q: "She has a brother. (Question)", c: "Does she have a brother?"},
+    {q: "They have money. (Question)", c: "Do they have money?"},
+    {q: "He has a plan. (Question)", c: "Does he have a plan?"},
+    {q: "We have a test. (Question)", c: "Do we have a test?"},
+    {q: "I have a chance. (Question)", c: "Do I have a chance?"},
+    {q: "It has a battery. (Question)", c: "Does it have a battery?"},
+    {q: "The house has a garden. (Question)", c: "Does the house have a garden?"},
+    {q: "Your parents have a car. (Question)", c: "Do your parents have a car?"},
+    {q: "Lisa has a secret. (Question)", c: "Does Lisa have a secret?"},
+    {q: "I have got a headache. (Negative)", c: ["I have not got a headache.", "I haven't got a headache."]},
+    {q: "They have a lot of work. (Negative)", c: ["They do not have a lot of work.", "They don't have a lot of work."]},
+    {q: "He has got enough money. (Question)", c: "Has he got enough money?"},
+    {q: "She has a new job. (Question)", c: "Does she have a new job?"},
+    {q: "We have got a problem. (Negative)", c: ["We have not got a problem.", "We haven't got a problem."]},
+    {q: "You have an idea. (Question)", c: "Do you have an idea?"},
+    {q: "It has got a blue cover. (Negative)", c: ["It has not got a blue cover.", "It hasn't got a blue cover."]},
+    {q: "They have lunch at 12:00. (Negative)", c: ["They do not have lunch at 12:00.", "They don't have lunch at 12:00."]},
+    {q: "Tom has got a cold. (Question)", c: "Has Tom got a cold?"},
+    {q: "My dog has a bone. (Question)", c: "Does my dog have a bone?"},
+    {q: "I have got your number. (Negative)", c: ["I have not got your number.", "I haven't got your number."]},
+    {q: "She has breakfast. (Negative)", c: ["She does not have breakfast.", "She doesn't have breakfast."]},
+    {q: "We have got a map. (Question)", c: "Have we got a map?"},
+    {q: "They have children. (Question)", c: "Do they have children?"},
+    {q: "He has got a lot of friends. (Negative)", c: ["He has not got a lot of friends.", "He hasn't got a lot of friends."]},
+    {q: "I have a question. (Question)", c: "Do I have a question?"},
+    {q: "You have got a message. (Question)", c: "Have you got a message?"},
+    {q: "The car has four doors. (Negative)", c: ["The car does not have four doors.", "The car doesn't have four doors."]},
+    {q: "It has got a long neck. (Question)", c: "Has it got a long neck?"},
+    {q: "We have a holiday. (Negative)", c: ["We do not have a holiday.", "We don't have a holiday."]},
+    {q: "They have got a big house. (Question)", c: "Have they got a big house?"},
+    {q: "Sarah has a cat. (Question)", c: "Does Sarah have a cat?"},
+    {q: "I have got a flat tire. (Negative)", c: ["I have not got a flat tire.", "I haven't got a flat tire."]},
+    {q: "He has a lot of energy. (Negative)", c: ["He does not have a lot of energy.", "He doesn't have a lot of energy."]},
+    {q: "She has got long hair. (Question)", c: "Has she got long hair?"},
+    {q: "We have dinner together. (Question)", c: "Do we have dinner together?"},
+    {q: "You have got my keys. (Negative)", c: ["You have not got my keys.", "You haven't got my keys."]},
+    {q: "They have a swimming pool. (Negative)", c: ["They do not have a swimming pool.", "They don't have a swimming pool."]},
+    {q: "It has got a sharp beak. (Question)", c: "Has it got a sharp beak?"},
+    {q: "I have a meeting. (Question)", c: "Do I have a meeting?"},
+    {q: "He has got a green shirt. (Question)", c: "Has he got a green shirt?"},
+    {q: "She has a guitar. (Negative)", c: ["She does not have a guitar.", "She doesn't have a guitar."]},
+    {q: "We have got a surprise. (Negative)", c: ["We have not got a surprise.", "We haven't got a surprise."]},
+    {q: "They have many books. (Question)", c: "Do they have many books?"},
+    {q: "You have got mail. (Question)", c: "Have you got mail?"},
+    {q: "It has a special taste. (Negative)", c: ["It does not have a special taste.", "It doesn't have a special taste."]},
+    {q: "I have got an umbrella. (Question)", c: "Have I got an umbrella?"},
+    {q: "He has a shower every day. (Negative)", c: ["He does not have a shower every day.", "He doesn't have a shower every day."]},
+    {q: "She has got a nice smile. (Negative)", c: ["She has not got a nice smile.", "She hasn't got a nice smile."]},
+    {q: "We have a garden. (Question)", c: "Do we have a garden?"},
+    {q: "They have got tickets. (Negative)", c: ["They have not got tickets.", "They haven't got tickets."]},
+    {q: "You have a beautiful voice. (Question)", c: "Do you have a beautiful voice?"},
+    {q: "The cat has got green eyes. (Question)", c: "Has the cat got green eyes?"},
+    {q: "I have a lot of time. (Negative)", c: ["I do not have a lot of time.", "I don't have a lot of time."]},
+    {q: "He has got a fast car. (Negative)", c: ["He has not got a fast car.", "He hasn't got a fast car."]},
+    {q: "She has a diary. (Question)", c: "Does she have a diary?"},
+    {q: "We have got good news. (Question)", c: "Have we got good news?"},
+    {q: "They have a party. (Negative)", c: ["They do not have a party.", "They don't have a party."]},
+    {q: "You have got a laptop. (Negative)", c: ["You have not got a laptop.", "You haven't got a laptop."]},
+    {q: "It has a loud noise. (Question)", c: "Does it have a loud noise?"},
+    {q: "I have got a fever. (Negative)", c: ["I have not got a fever.", "I haven't got a fever."]},
+    {q: "He has a great family. (Question)", c: "Does he have a great family?"},
+    {q: "She has got a secret. (Negative)", c: ["She has not got a secret.", "She hasn't got a secret."]},
+    {q: "We have a lesson now. (Negative)", c: ["We do not have a lesson now.", "We don't have a lesson now."]},
+    {q: "They have got a boat. (Question)", c: "Have they got a boat?"},
+    {q: "You have an exam tomorrow. (Question)", c: "Do you have an exam tomorrow?"},
+    {q: "It has got a small screen. (Negative)", c: ["It has not got a small screen.", "It hasn't got a small screen."]},
+    {q: "I have a break. (Negative)", c: ["I do not have a break.", "I don't have a break."]},
+    {q: "He has got a brother. (Question)", c: "Has he got a brother?"},
+    {q: "She has a hobby. (Question)", c: "Does she have a hobby?"}]},
+
+        { titel: "8. Comparatives", type: "open", pool: [
+    {q: "The blue whale is the ________ (large) animal in the world.", c: "largest"},
+    {q: "Mount Everest is the ________ (high) mountain.", c: "highest"},
+    {q: "This is the ________ (cheap) shirt in the shop.", c: "cheapest"},
+    {q: "August is often the ________ (warm) month.", c: "warmest"},
+    {q: "January is the ________ (cold) month.", c: "coldest"},
+    {q: "He is the ________ (strong) man I know.", c: "strongest"},
+    {q: "This is the ________ (long) bridge in the country.", c: "longest"},
+    {q: "My dad is the ________ (tall) person in our family.", c: "tallest"},
+    {q: "Which ocean is the ________ (deep)?", c: "deepest"},
+    {q: "This is the ________ (sharp) knife in the kitchen.", c: "sharpest"},
+    {q: "Sirius is the ________ (bright) star in the sky.", c: "brightest"},
+    {q: "This is the ________ (light) box of all.", c: "lightest"},
+    {q: "The snail is the ________ (slow) animal here.", c: "slowest"},
+    {q: "That is the ________ (old) tree in the park.", c: "oldest"},
+    {q: "I am the ________ (young) student in the class.", c: "youngest"},
+    {q: "His room is always the ________ (clean).", c: "cleanest"},
+    {q: "This is the ________ (fresh) bread I could find.", c: "freshest"},
+    {q: "Diamond is the ________ (hard) material.", c: "hardest"},
+    {q: "The fog is the ________ (thick) in the morning.", c: "thickest"},
+    {q: "This is the ________ (dark) room in the house.", c: "darkest"},
+    {q: "That was the ________ (nice) thing to do.", c: "nicest"},
+    {q: "The street is the ________ (wide) at the end.", c: "widest"},
+    {q: "This is the ________ (rare) stamp in my collection.", c: "rarest"},
+    {q: "He is the ________ (wise) man in the village.", c: "wisest"},
+    {q: "This is the ________ (safe) way to travel.", c: "safest"},
+    {q: "The ________ (fine) sand is on that beach.", c: "finest"},
+    {q: "She is the ________ (tame) bird we have.", c: "tamest"},
+    {q: "This is the ________ (pure) water.", c: "purest"},
+    {q: "Russia is the ________ (big) country in the world.", c: "biggest"},
+    {q: "July was the ________ (hot) month last year.", c: "hottest"},
+    {q: "Who has the ________ (wet) coat?", c: "wettest"},
+    {q: "That is the ________ (fat) cat I have ever seen.", c: "fattest"},
+    {q: "This was the ________ (sad) day of my life.", c: "saddest"},
+    {q: "He is the ________ (thin) boy in the group.", c: "thinnest"},
+    {q: "The ________ (red) apple is the sweetest.", c: "reddest"},
+    {q: "He is the ________ (fit) player on the team.", c: "fittest"},
+    {q: "You are my ________ (good) friend.", c: "best"},
+    {q: "This is the ________ (bad) cake ever!", c: "worst"},
+    {q: "Who is the ________ (good) singer in the class?", c: "best"},
+    {q: "That was the ________ (bad) movie this year.", c: "worst"},
+    {q: "I want the ________ (good) seat in the bus.", c: "best"},
+    {q: "A plane is faster than a car, but a rocket is the ________ (fast).", c: "fastest"},
+    {q: "My bike is old, but his bike is ________ (old) than mine.", c: "older"},
+    {q: "This is the ________ (short) path to school.", c: "shortest"},
+    {q: "The sun is ________ (big) than the earth.", c: "bigger"},
+    {q: "The Pacific is the ________ (great) ocean.", c: "greatest"},
+    {q: "A mouse is ________ (small) than a rat.", c: "smaller"},
+    {q: "This is the ________ (small) box I have.", c: "smallest"},
+    {q: "Gold is ________ (heavy) than silver.", c: "heavier"},
+    {q: "The ________ (rich) man bought a boat.", c: "richest"},
+    {q: "Is the moon ________ (near) than the sun?", c: "nearer"},
+    {q: "The ________ (near) gas station is 5 km away.", c: "nearest"},
+    {q: "This water is ________ (cold) than the sea.", c: "colder"},
+    {q: "It was the ________ (cold) night of the year.", c: "coldest"},
+    {q: "The kitchen is ________ (warm) than the hall.", c: "warmer"},
+    {q: "This is the ________ (warm) coat I have.", c: "warmest"},
+    {q: "The ________ (new) model is very expensive.", c: "newest"},
+    {q: "Your car is ________ (new) than mine.", c: "newer"},
+    {q: "The ________ (high) jump won the medal.", c: "highest"},
+    {q: "The wall is ________ (thick) than the door.", c: "thicker"},
+    {q: "This is the ________ (thick) book in the library.", c: "thickest"},
+    {q: "She is ________ (smart) than her sister.", c: "smarter"},
+    {q: "He is the ________ (smart) kid in school.", c: "smartest"},
+    {q: "The ________ (low) price is 10 euros.", c: "lowest"},
+    {q: "The ________ (loud) sound scared the cat.", c: "loudest"},
+    {q: "His voice is ________ (loud) than mine.", c: "louder"},
+    {q: "The ________ (soft) pillow is on my bed.", c: "softest"},
+    {q: "The ________ (sweet) fruit is the mango.", c: "sweetest"},
+    {q: "This tea is ________ (sweet) than that one.", c: "sweeter"},
+    {q: "The ________ (late) bus arrives at midnight.", c: "latest"},
+    {q: "You are ________ (late) than yesterday.", c: "later"},
+    {q: "This is the ________ (hard) task of all.", c: "hardest"},
+    {q: "The ________ (fast) runner gets a trophy.", c: "fastest"},
+    {q: "An eagle is ________ (strong) than a hawk.", c: "stronger"},
+    {q: "The ________ (strong) wind blew the roof off.", c: "strongest"},
+    {q: "The ________ (deep) part of the lake is over there.", c: "deepest"},
+    {q: "The soup is ________ (hot) than the bread.", c: "hotter"},
+    {q: "This is the ________ (hot) day of the week.", c: "hottest"},
+    {q: "My bag is ________ (light) than yours.", c: "lighter"},
+    {q: "The ________ (light) bag belongs to me.", c: "lightest"},
+    {q: "The ________ (wild) animal lives in the jungle.", c: "wildest"},
+    {q: "The weather is ________ (good) than last week.", c: "better"},
+    {q: "The ________ (good) player won the game.", c: "best"},
+    {q: "The ________ (cheap) ticket is 5 pounds.", c: "cheapest"},
+    {q: "The ________ (long) river is the Nile.", c: "longest"},
+    {q: "A skyscraper is ________ (tall) than a house.", c: "taller"},
+    {q: "Who is the ________ (tall) boy in class?", c: "tallest"},
+    {q: "The ________ (small) room is the bathroom.", c: "smallest"},
+    {q: "The ice is ________ (thin) here.", c: "thinner"},
+    {q: "This is the ________ (thin) slice of bread.", c: "thinnest"},
+    {q: "The ________ (old) man in the village is 100.", c: "oldest"},
+    {q: "My shirt is ________ (clean) than yours.", c: "cleaner"},
+    {q: "This is the ________ (clean) shirt I have.", c: "cleanest"},
+    {q: "The ________ (clear) water is in the pool.", c: "clearest"},
+    {q: "The ________ (bold) person spoke first.", c: "boldest"},
+    {q: "The ________ (proud) father smiled at his son.", c: "proudest"},
+    {q: "The ________ (mean) dog barked at me.", c: "meanest"},
+    {q: "This joke is ________ (poor) than the last one.", c: "poorer"},
+    {q: "The ________ (grand) palace is in London.", c: "grandest"},
+    {q: "The ________ (bright) light is the sun.", c: "brightest"},
+    {q: "The ________ (fresh) fruit is in the bowl.", c: "freshest"}]},
+
+        { titel: "9. This/That", type: "choice", pool: [
+    {q: "Look at ________ ring on my finger (here).", c: "this", opts: ["this", "that", "these", "those"]},
+    {q: "I like ________ book in my hand.", c: "this", opts: ["this", "that", "these", "those"]},
+    {q: "________ apple I am eating is delicious.", c: "this", opts: ["this", "that", "these", "those"]},
+    {q: "Is ________ your pen here on the desk?", c: "this", opts: ["this", "that", "these", "those"]},
+    {q: "________ chair I am sitting on is comfortable.", c: "this", opts: ["this", "that", "these", "those"]},
+    {q: "Listen to ________ song on my phone now.", c: "this", opts: ["this", "that", "these", "those"]},
+    {q: "________ coffee here is too hot to drink.", c: "this", opts: ["this", "that", "these", "those"]},
+    {q: "Who is ________ boy standing next to me?", c: "this", opts: ["this", "that", "these", "those"]},
+    {q: "________ map in my hands is very old.", c: "this", opts: ["this", "that", "these", "those"]},
+    {q: "I can't open ________ door right here.", c: "this", opts: ["this", "that", "these", "those"]},
+    {q: "Look at ________ star far away in the sky.", c: "that", opts: ["this", "that", "these", "those"]},
+    {q: "Who is ________ man over there across the street?", c: "that", opts: ["this", "that", "these", "those"]},
+    {q: "I want ________ toy on the top shelf.", c: "that", opts: ["this", "that", "these", "those"]},
+    {q: "Can you see ________ bird in the tree over there?", c: "that", opts: ["this", "that", "these", "those"]},
+    {q: "________ car at the end of the road is fast.", c: "that", opts: ["this", "that", "these", "those"]},
+    {q: "Do you remember ________ house we saw yesterday?", c: "that", opts: ["this", "that", "these", "those"]},
+    {q: "________ plane in the clouds is very large.", c: "that", opts: ["this", "that", "these", "those"]},
+    {q: "Hand me ________ hammer on the table over there.", c: "that", opts: ["this", "that", "these", "those"]},
+    {q: "________ boat on the horizon is a ferry.", c: "that", opts: ["this", "that", "these", "those"]},
+    {q: "What is ________ noise in the garden?", c: "that", opts: ["this", "that", "these", "those"]},
+    {q: "________ shoes on my feet are new.", c: "these", opts: ["this", "that", "these", "those"]},
+    {q: "Are ________ keys in my hand yours?", c: "these", opts: ["this", "that", "these", "those"]},
+    {q: "________ flowers in this vase smell great.", c: "these", opts: ["this", "that", "these", "those"]},
+    {q: "I love ________ cookies on my plate.", c: "these", opts: ["this", "that", "these", "those"]},
+    {q: "________ people here in the room are my friends.", c: "these", opts: ["this", "that", "these", "those"]},
+    {q: "Can you hold ________ bags for a second?", c: "these", opts: ["this", "that", "these", "those"]},
+    {q: "________ pens in my pocket don't work.", c: "these", opts: ["this", "that", "these", "those"]},
+    {q: "I am wearing ________ glasses to see better.", c: "these", opts: ["this", "that", "these", "those"]},
+    {q: "Look at ________ pictures in my photo album.", c: "these", opts: ["this", "that", "these", "those"]},
+    {q: "________ grapes I'm eating are sweet.", c: "these", opts: ["this", "that", "these", "those"]},
+    {q: "Look at ________ mountains in the distance.", c: "those", opts: ["this", "that", "these", "those"]},
+    {q: "Who are ________ children playing over there?", c: "those", opts: ["this", "that", "these", "those"]},
+    {q: "Can you see ________ clouds on the horizon?", c: "those", opts: ["this", "that", "these", "those"]},
+    {q: "________ houses across the river are expensive.", c: "those", opts: ["this", "that", "these", "those"]},
+    {q: "I want to buy ________ shoes in the window.", c: "those", opts: ["this", "that", "these", "those"]},
+    {q: "Look at ________ birds flying south.", c: "those", opts: ["this", "that", "these", "those"]},
+    {q: "________ stars are millions of miles away.", c: "those", opts: ["this", "that", "these", "those"]},
+    {q: "Do you see ________ ships in the harbor?", c: "those", opts: ["this", "that", "these", "those"]},
+    {q: "________ sheep on the hill look small.", c: "those", opts: ["this", "that", "these", "those"]},
+    {q: "Don't eat ________ berries over there; they are poisonous.", c: "those", opts: ["this", "that", "these", "those"]},
+    {q: "Is ________ dog over there friendly?", c: "that", opts: ["this", "that", "these", "those"]},
+    {q: "________ cat on my lap is sleeping.", c: "this", opts: ["this", "that", "these", "those"]},
+    {q: "________ posters on that wall are cool.", c: "those", opts: ["this", "that", "these", "those"]},
+    {q: "Are ________ your socks here on the floor?", c: "these", opts: ["this", "that", "these", "those"]},
+    {q: "________ light in the sky is a planet.", c: "that", opts: ["this", "that", "these", "those"]},
+    {q: "________ kids here are very noisy.", c: "these", opts: ["this", "that", "these", "those"]},
+    {q: "I want ________ sandwich on your plate.", c: "that", opts: ["this", "that", "these", "those"]},
+    {q: "________ earrings I am wearing were a gift.", c: "these", opts: ["this", "that", "these", "those"]},
+    {q: "Look at ________ plane landing over there.", c: "that", opts: ["this", "that", "these", "those"]},
+    {q: "________ students at the back of the class are talking.", c: "those", opts: ["this", "that", "these", "those"]},
+    {q: "Is ________ seat here taken?", c: "this", opts: ["this", "that", "these", "those"]},
+    {q: "________ trees across the field are oaks.", c: "those", opts: ["this", "that", "these", "those"]},
+    {q: "I don't like ________ hat you are wearing.", c: "that", opts: ["this", "that", "these", "those"]},
+    {q: "________ exercises we are doing now are easy.", c: "these", opts: ["this", "that", "these", "those"]},
+    {q: "________ bikes in the rack outside are locked.", c: "those", opts: ["this", "that", "these", "those"]},
+    {q: "What is in ________ box right here?", c: "this", opts: ["this", "that", "these", "those"]},
+    {q: "Can I have one of ________ cakes on the counter?", c: "those", opts: ["this", "that", "these", "those"]},
+    {q: "________ window here is broken.", c: "this", opts: ["this", "that", "these", "those"]},
+    {q: "________ windows on the second floor are dirty.", c: "those", opts: ["this", "that", "these", "those"]},
+    {q: "________ computer I am using is fast.", c: "this", opts: ["this", "that", "these", "those"]},
+    {q: "Do you know ________ girl standing by the door?", c: "that", opts: ["this", "that", "these", "those"]},
+    {q: "________ trousers I have on are too long.", c: "these", opts: ["this", "that", "these", "those"]},
+    {q: "________ buildings in the city center are tall.", c: "those", opts: ["this", "that", "these", "those"]},
+    {q: "________ soup in this bowl is cold.", c: "this", opts: ["this", "that", "these", "those"]},
+    {q: "Did you see ________ movie last night?", c: "that", opts: ["this", "that", "these", "those"]},
+    {q: "________ pencils here belong to the teacher.", c: "these", opts: ["this", "that", "these", "those"]},
+    {q: "________ stars tonight are very bright.", c: "those", opts: ["this", "that", "these", "those"]},
+    {q: "________ cell phone in my pocket is ringing.", c: "this", opts: ["this", "that", "these", "those"]},
+    {q: "Who are ________ people waiting at the bus stop?", c: "those", opts: ["this", "that", "these", "those"]},
+    {q: "________ pizza I'm eating is the best.", c: "this", opts: ["this", "that", "these", "those"]},
+    {q: "Can you pass me ________ book on the shelf?", c: "that", opts: ["this", "that", "these", "those"]},
+    {q: "________ jeans here are on sale.", c: "these", opts: ["this", "that", "these", "those"]},
+    {q: "________ mountain way over there is a volcano.", c: "that", opts: ["this", "that", "these", "those"]},
+    {q: "________ tests on my desk are graded.", c: "these", opts: ["this", "that", "these", "those"]},
+    {q: "Do you see ________ lighthouse in the distance?", c: "that", opts: ["this", "that", "these", "those"]},
+    {q: "________ rings on her fingers are gold.", c: "those", opts: ["this", "that", "these", "those"]},
+    {q: "________ bus arriving now is mine.", c: "this", opts: ["this", "that", "these", "those"]},
+    {q: "________ cows in that field are sleeping.", c: "those", opts: ["this", "that", "these", "those"]},
+    {q: "What is ________ thing in the water over there?", c: "that", opts: ["this", "that", "these", "those"]},
+    {q: "________ tools in my hand are heavy.", c: "these", opts: ["this", "that", "these", "those"]},
+    {q: "________ horse in the stable here is hungry.", c: "this", opts: ["this", "that", "these", "those"]},
+    {q: "Look at ________ balloons in the sky.", c: "those", opts: ["this", "that", "these", "those"]},
+    {q: "Is ________ lady over there your mother?", c: "that", opts: ["this", "that", "these", "those"]},
+    {q: "________ shoes I am holding are for you.", c: "these", opts: ["this", "that", "these", "those"]},
+    {q: "________ bridge we are crossing now is new.", c: "this", opts: ["this", "that", "these", "those"]},
+    {q: "I can't see ________ signs in the dark.", c: "those", opts: ["this", "that", "these", "those"]},
+    {q: "________ cup in my hand is empty.", c: "this", opts: ["this", "that", "these", "those"]},
+    {q: "________ players on the field are tired.", c: "those", opts: ["this", "that", "these", "those"]},
+    {q: "________ burger I'm eating is great.", c: "this", opts: ["this", "that", "these", "those"]},
+    {q: "Did you hear ________ loud bang just now?", c: "that", opts: ["this", "that", "these", "those"]},
+    {q: "________ keys in my pocket are jangling.", c: "these", opts: ["this", "that", "these", "those"]},
+    {q: "________ flags over the building are waving.", c: "those", opts: ["this", "that", "these", "those"]},
+    {q: "________ shirt I am wearing is blue.", c: "this", opts: ["this", "that", "these", "those"]},
+    {q: "Who is ________ boy in the photo?", c: "that", opts: ["this", "that", "these", "those"]},
+    {q: "________ apples in the basket here are ripe.", c: "these", opts: ["this", "that", "these", "those"]},
+    {q: "________ birds in the sky are flying away.", c: "those", opts: ["this", "that", "these", "those"]},
+    {q: "Is ________ seat next to me free?", c: "this", opts: ["this", "that", "these", "those"]},
+    {q: "Look at ________ kite high above.", c: "that", opts: ["this", "that", "these", "those"]},
+    {q: "________ coins in my palm are from France.", c: "these", opts: ["this", "that", "these", "those"]},
+    {q: "________ clouds over there look like rain.", c: "those", opts: ["this", "that", "these", "those"]}] }
+    ];
+
+    let currentStep = 0, currentQuestionInStep = 0, totalNeeded = 10;
+    let codes = [], completedLocs = [], codeInput = "", fails = 0, isMaster = false;
+    let vaultLocs = [0,1,2,3,4,5,6,7,8,9].sort(() => Math.random() - 0.5);
+    let currentQuestionData = null, selectedVaultId = null, startTime, timerInt;
+    let askedQuestions = [];
+
+    function initGame() {
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('main-ui').style.display = 'block';
+        startTime = new Date();
+        timerInt = setInterval(() => {
+            let d = Math.floor((new Date() - startTime) / 1000);
+            document.getElementById('timer').innerText = `TIME: ${Math.floor(d/60).toString().padStart(2,'0')}:${(d%60).toString().padStart(2,'0')}`;
+        }, 1000);
+        renderMap();
+    }
+
+    function renderMap() {
+        const container = document.getElementById('map-container');
+        container.innerHTML = "";
+        for(let i=0; i<10; i++) {
+            const node = document.createElement('div');
+            const isDone = completedLocs.includes(i);
+            const isBlinking = (i === vaultLocs[currentStep]);
+            node.className = `vault-node ${isDone ? 'completed' : ''} ${isBlinking && !isMaster ? 'active-blink' : ''}`;
+            node.innerHTML = isDone ? (i === vaultLocs[9] ? '⭐' : '✅') : '🔒';
+            node.onclick = () => { if(!isDone) { selectedVaultId = i; openPadlock(isBlinking); } };
+            container.appendChild(node);
+        }
+    }
+
+    function openPadlock(isBlinking) {
+        if(currentStep === 0 && isBlinking) startQuiz();
+        else { document.getElementById('padlock-overlay').style.display = 'flex'; clearCode(); }
+    }
+
+    function checkCode() {
+        let target = isMaster ? codes.reduce((a,b)=>a+parseInt(b),0).toString() : codes[currentStep-1];
+        if(codeInput === target && (isMaster || selectedVaultId === vaultLocs[currentStep])) {
+            document.getElementById('padlock-overlay').style.display = 'none';
+            if(isMaster) showWin(); else startQuiz();
+        } else {
+            fails++; if(fails >= 3) { alert("Mission Failed: Too many errors."); location.reload(); }
+            document.getElementById('code-display').style.color = 'var(--error)';
+            setTimeout(clearCode, 600);
+        }
+    }
+
+    function startQuiz() {
+        currentQuestionInStep = 0;
+        totalNeeded = (currentStep === 9) ? 15 : 10;
+        askedQuestions = []; 
+        nextQuestion();
+    }
+
+    function nextQuestion() {
+        document.getElementById('main-ui').style.display = 'none';
+        document.getElementById('quiz-overlay').style.display = 'flex';
+        
+        let oef;
+        let loopVeiligheid = 0;
+
+        do {
+            if(currentStep === 9) {
+                oef = oefeningen[Math.floor(Math.random() * oefeningen.length)];
+            } else {
+                oef = oefeningen[currentStep];
+            }
+            currentQuestionData = oef.pool[Math.floor(Math.random() * oef.pool.length)];
+            loopVeiligheid++;
+        } while (askedQuestions.includes(currentQuestionData.q) && loopVeiligheid < 200);
+
+        askedQuestions.push(currentQuestionData.q);
+        
+        currentQuestionData.currentType = oef.type;
+
+        let progress = (currentQuestionInStep / totalNeeded) * 100;
+        let html = `<h3>${currentStep === 9 ? "Vault 10: THE EXAM" : oef.titel}</h3>
+                    <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
+                    <p>Question ${currentQuestionInStep + 1} / ${totalNeeded}</p>
+                    <p style="font-size:1.5rem; margin:20px 0;">${currentQuestionData.q}</p>`;
+
+        if(currentQuestionData.currentType === "choice") {
+            currentQuestionData.opts.forEach(o => {
+                html += `<button class="btn-main" onclick="checkAnswer('${o}')">${o}</button>`;
+            });
+        } else {
+            html += `<input type="text" id="ans-in" autocomplete="off"><button class="btn-main" onclick="checkAnswer()">CHECK</button>`;
+        }
+        document.getElementById('quiz-content').innerHTML = html;
+        if(currentQuestionData.currentType === "open") {
+            const input = document.getElementById('ans-in');
+            setTimeout(()=>input.focus(), 100);
+            input.onkeydown = (e) => { if(e.key === 'Enter') checkAnswer(); };
+        }
+    }
+
+    function checkAnswer(choice) {
+        const cleanStr = (str) => str.toLowerCase().replace(/[.?]/g, '').trim();
+        
+        let rawVal = choice ? choice : document.getElementById('ans-in').value;
+        let val = cleanStr(rawVal);
+        
+        let correct = false;
+
+        if (Array.isArray(currentQuestionData.c)) {
+            correct = currentQuestionData.c.some(ans => cleanStr(ans) === val);
+        } else {
+            correct = val === cleanStr(currentQuestionData.c);
+        }
+
+        if(correct) {
+            currentQuestionInStep++;
+            if(currentQuestionInStep >= totalNeeded) finishStep(); else nextQuestion();
+        } else {
+            if(!choice) {
+                document.getElementById('ans-in').style.borderColor = 'var(--error)';
+            } else {
+                alert("Incorrect, try again!");
+            }
+        }
+    }
+
+    function finishStep() {
+        const code = Math.floor(100 + Math.random() * 899).toString();
+        codes.push(code);
+        completedLocs.push(vaultLocs[currentStep]);
+        currentStep++;
+
+        let html = "";
+        if(currentStep < 10) {
+            html = `<h2>VAULT CRACKED!</h2><p>Your code for the next vault:</p>
+                    <div style="font-size:4rem; color:var(--accent); font-weight:900; margin:20px 0;">${code}</div>
+                    <button class="btn-main" onclick="closeOverlays()">BACK TO MAP</button>`;
+        } else {
+            html = `<h2>EXAM PASSED!</h2>
+                    <p>Your 10th and final code is:</p>
+                    <div style="font-size:4rem; color:var(--accent); font-weight:900; margin:20px 0;">${code}</div>
+                    <p style="text-align:left;">You cracked all vaults. One remains: <b>The Master Vault (Vault 11)</b>.</p>
+                    <p style="text-align:left; background:rgba(255,255,255,0.1); padding:15px; border-radius:10px;">
+                        <b>INSTRUCTION FOR VAULT 11:</b><br>
+                        Add up all 10 codes you received. The sum of these numbers is the final access code.
+                    </p>
+                    <button class="btn-main" onclick="activateMaster()">GO TO MASTER VAULT</button>`;
+        }
+        document.getElementById('quiz-content').innerHTML = html;
+    }
+
+    function activateMaster() {
+        closeOverlays();
+        const mv = document.getElementById('master-vault');
+        mv.style.opacity = "1"; mv.innerHTML = "💎";
+        mv.onclick = () => { isMaster = true; document.getElementById('main-ui').style.display = 'none'; document.getElementById('padlock-overlay').style.display = 'flex'; document.getElementById('padlock-title').innerText = "VAULT 11: SUM OF ALL CODES"; clearCode(); };
+    }
+
+    function closeOverlays() { document.querySelectorAll('.overlay').forEach(o => o.style.display='none'); document.getElementById('main-ui').style.display='block'; renderMap(); }
+    function press(n) { codeInput += n; document.getElementById('code-display').innerText = codeInput; }
+    function clearCode() { codeInput = ""; document.getElementById('code-display').innerText = "---"; document.getElementById('code-display').style.color = "var(--primary)"; }
+    
+    function showWin() { 
+        clearInterval(timerInt); 
+        confetti({ particleCount: 200, spread: 80 }); 
+        let finalTime = document.getElementById('timer').innerText; 
+        document.getElementById('quiz-overlay').style.display = 'flex'; 
+        document.getElementById('quiz-content').innerHTML = `
+            <h1>💎 MISSION COMPLETE!</h1>
+            <p>You opened the Master Vault!</p>
+            <div style="font-size:2.5rem; color:var(--primary); font-family:monospace; font-weight:900; margin:20px 0;">
+                ${finalTime}
+            </div>
+            <button class="btn-main" onclick="location.reload()">PLAY AGAIN</button>
+        `; 
+    }
+</script>
+</body>
+</html>
