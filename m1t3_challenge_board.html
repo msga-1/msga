@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Challenge Board</title>
+    <style>
+        :root {
+            --primary: #4fc3f7; --accent: #ff4081; --success: #00e676; --error: #ff5252;
+            --dark: #0f172a; --panel: #1e293b; --glass: rgba(255, 255, 255, 0.1);
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif; background: var(--dark);
+            margin: 0; padding: 0; color: white; display: flex; flex-direction: column;
+            height: 100vh; overflow: hidden;
+        }
+        
+        /* Headers & UI */
+        header { text-align: center; padding: 10px; background: rgba(0,0,0,0.3); }
+        h1 { margin: 0; color: var(--primary); letter-spacing: 2px; text-transform: uppercase; font-size: 2rem;}
+        
+        /* Start Screen */
+        #start-screen {
+            position: absolute; inset: 0; background: var(--dark); z-index: 100;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .btn {
+            background: var(--primary); color: var(--dark); border: none; padding: 15px 30px;
+            font-size: 1.5rem; font-weight: bold; border-radius: 10px; cursor: pointer;
+            margin: 10px; transition: 0.2s; text-transform: uppercase;
+        }
+        .btn:hover { transform: scale(1.05); box-shadow: 0 0 15px var(--primary); }
+        .team-controls { display: flex; align-items: center; gap: 20px; margin: 30px 0; font-size: 2rem; }
+        .circle-btn {
+            width: 50px; height: 50px; border-radius: 50%; border: 2px solid var(--primary);
+            background: transparent; color: var(--primary); font-size: 2rem; cursor: pointer;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .circle-btn:hover { background: var(--glass); }
+
+        /* Game Board */
+        #game-area { display: none; flex: 1; flex-direction: column; padding: 10px; }
+        #board {
+            display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px;
+            flex: 1; margin-bottom: 10px;
+        }
+        .category-header {
+            background: var(--accent); color: white; display: flex; align-items: center; justify-content: center;
+            text-align: center; font-weight: bold; font-size: 1.2rem; border-radius: 8px; padding: 5px;
+            box-shadow: 0 0 10px rgba(255, 64, 129, 0.4);
+        }
+        .tile {
+            background: var(--panel); border: 2px solid var(--glass); border-radius: 8px;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 2.5rem; font-weight: 900; color: var(--primary); cursor: pointer;
+            transition: 0.2s; user-select: none;
+        }
+        .tile:hover:not(.played) { background: var(--glass); border-color: var(--primary); box-shadow: 0 0 15px var(--primary); transform: scale(1.02); }
+        .tile.played { background: transparent; color: rgba(255,255,255,0.1); border-color: transparent; cursor: default; }
+
+        /* Scoreboard */
+        #scoreboard {
+            display: flex; justify-content: space-around; background: rgba(0,0,0,0.4);
+            padding: 15px; border-radius: 15px;
+        }
+        .team-score { text-align: center; font-size: 1.5rem; }
+        .team-score span { display: block; font-size: 2.5rem; font-weight: bold; color: var(--success); }
+
+        /* Modal (Question Overlay) */
+        #modal {
+            position: fixed; inset: 0; background: rgba(15, 23, 42, 0.95); z-index: 1000;
+            display: none; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; padding: 40px;
+        }
+        .modal-content {
+            background: var(--panel); border: 2px solid var(--primary); border-radius: 20px;
+            padding: 40px; max-width: 800px; width: 90%; box-shadow: 0 0 30px rgba(79, 195, 247, 0.3);
+        }
+        .q-cat { color: var(--accent); font-size: 1.2rem; font-weight: bold; letter-spacing: 2px; margin-bottom: 20px; }
+        .q-text { font-size: 2.5rem; margin-bottom: 30px; line-height: 1.4; }
+        .q-opts { font-size: 1.5rem; color: #aaa; margin-bottom: 30px; }
+        .a-text { font-size: 3rem; color: var(--success); font-weight: bold; margin: 30px 0; display: none; }
+        .award-buttons { display: none; flex-wrap: wrap; justify-content: center; gap: 15px; margin-top: 20px; }
+        .btn-award { background: var(--success); color: var(--dark); border: none; padding: 15px 20px; font-size: 1.2rem; font-weight: bold; border-radius: 8px; cursor: pointer; }
+        .btn-nobody { background: var(--error); color: white; border: none; padding: 15px 20px; font-size: 1.2rem; font-weight: bold; border-radius: 8px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div id="start-screen">
+        <h1 style="font-size: 4rem; margin-bottom: 10px;">NEON CHALLENGE</h1>
+        <p style="font-size: 1.5rem; opacity: 0.8;">Classroom Edition</p>
+        
+        <div class="team-controls">
+            <button class="circle-btn" onclick="adjustTeams(-1)">-</button>
+            <span id="team-count-display">2 Teams</span>
+            <button class="circle-btn" onclick="adjustTeams(1)">+</button>
+        </div>
+        
+        <button class="btn" onclick="startGame()">Start Game</button>
+    </div>
+
+    <div id="game-area">
+        <header>
+            <h1>NEON CHALLENGE</h1>
+        </header>
+        <div id="board"></div>
+        <div id="scoreboard"></div>
+    </div>
+
+    <div id="modal">
+        <div class="modal-content">
+            <div class="q-cat" id="m-cat">CATEGORY FOR 100</div>
+            <div class="q-text" id="m-text">Question goes here...</div>
+            <div class="q-opts" id="m-opts"></div>
+            <button class="btn" id="btn-reveal" onclick="revealAnswer()">Show Answer</button>
+            
+            <div class="a-text" id="m-ans">Answer!</div>
+            
+            <div class="award-buttons" id="m-award">
+                </div>
+        </div>
+    </div>
+
+<script>
+    // --- JOUW EXACTE DATA (Met korte titels voor op de bord-knopjes) ---
+    const shortTitles = [
+        "Vocab (NL > EN)", "Vocab (EN > NL)", "Present Cont.", 
+        "Much or Many", "Plurals", "Possessives", 
+        "Have / Have got", "Comparatives", "This / That"
+    ];
+
+    const oefeningen = [
+        // 1
+        { type: "open", pool: [
+            {q: "This grammar rule is very (ingewikkeld).", c: "complicated"}, {q: "Which (land) do you come from?", c: "country"},
+            {q: "The exam was quite (moeilijk).", c: "difficult"}, {q: "I don't know (precies) what happened.", c: "exactly"},
+            {q: "Ah, (ik snap het) now!", c: "i get it"}, {q: "The (regering) makes new laws.", c: "government"},
+            {q: "Great Britain is a large (eiland).", c: "island"}, {q: "I like to buy food at the (lokaal) market.", c: "local"},
+            {q: "We are a proud (natie).", c: "nation"}, {q: "California is a (staat) in the USA.", c: "state"},
+            {q: "London is the capital of the (Verenigd Koninkrijk).", c: ["united kingdom", "uk"]}, {q: "Scotland is part of (Groot Brittannië).", c: ["great britain", "gb"]},
+            {q: "You must (onthouden) to bring your book.", c: "remember"}, {q: "I (heb liever) tea to coffee.", c: "prefer"},
+            {q: "Can you (uitleggen) this to me?", c: "explain"}, {q: "What time does the train (aankomen)?", c: "arrive"},
+            {q: "I want to (verbeteren) my English.", c: "improve"}, {q: "The (bevolking) of London is huge.", c: "population"},
+            {q: "This building looks very (modern).", c: "modern"}, {q: "We (vieren) Christmas in December.", c: "celebrate"},
+            {q: "I want to (reizen) around the world.", c: "travel"}, {q: "The Scottish (landschap) is beautiful.", c: "landscape"},
+            {q: "There is a river in the (vallei).", c: "valley"}, {q: "We walked along the (kustlijn).", c: "coastline"},
+            {q: "The (boer) has many cows.", c: "farmer"}, {q: "This old road was built by a (Romein).", c: "roman"},
+            {q: "The (leger) protected the city.", c: "army"}, {q: "The soldiers lived in a (fort).", c: "fort"},
+            {q: "It is a (traditie) to eat turkey.", c: "tradition"}, {q: "The red rose is a (symbool) of England.", c: "symbol"},
+            {q: "There is a (draak) on the Welsh flag.", c: "dragon"}, {q: "The (kasteel) is on top of the hill.", c: "castle"},
+            {q: "The (koning) lives in a palace.", c: "king"}, {q: "The (prins) will be king one day.", c: "prince"},
+            {q: "The (slag) was fought a long time ago.", c: "battle"}, {q: "It is hard to (overleven) in the desert.", c: "survive"},
+            {q: "I find (geschiedenis) very interesting.", c: "history"}, {q: "The knight was very (dapper).", c: "brave"},
+            {q: "The (stam) lived in the forest.", c: "tribe"}, {q: "The countries were at (oorlog).", c: "war"},
+            {q: "People fought for their (vrijheid).", c: "freedom"}, {q: "He saved the child and became a (held).", c: "hero"},
+            {q: "I love learning about British (cultuur).", c: "culture"}, {q: "We must protect our (erfgoed).", c: "heritage"},
+            {q: "The (soldaat) wore a green uniform.", c: "soldier"}, {q: "He lives in a small (dorp).", c: "village"},
+            {q: "Paris is a famous (hoofdstad).", c: "capital city"}, {q: "No one knows what happens in the (toekomst).", c: "future"},
+            {q: "He is the (leider) of the group.", c: "leader"}, {q: "I won the swimming (wedstrijd).", c: "race"},
+            {q: "The waves crashed on the (kust).", c: "shore"}, {q: "Winning the war was a great (offer).", c: "sacrifice"},
+            {q: "He felt a lot of (pijn) in his leg.", c: "pain"}, {q: "Have you heard the (legende) of King Arthur?", c: "legend"},
+            {q: "A passport proves your (identiteit).", c: "identity"}, {q: "The (vlag) has three colours.", c: "flag"},
+            {q: "You have a (keuze): stay or go.", c: "choice"}, {q: "A helmet will (beschermen) your head.", c: "protect"},
+            {q: "This story is passed to the next (generatie).", c: "generation"}, {q: "They live on the (land), far from the city.", c: "land"},
+            {q: "The (zee) is very blue today.", c: "sea"}, {q: "The (winnaar) gets a gold medal.", c: "winner"},
+            {q: "What is the first (regel) of the game?", c: "rule"}
+        ]},
+        // 2
+        { type: "open", pool: [
+            {q: "This grammar rule is very (complicated).", c: "ingewikkeld"}, {q: "Which (country) do you come from?", c: "land"},
+            {q: "The exam was quite (difficult).", c: "moeilijk"}, {q: "I don't know (exactly) what happened.", c: "precies"},
+            {q: "Ah, (I get it) now!", c: "ik snap het"}, {q: "The (government) makes new laws.", c: "regering"},
+            {q: "Great Britain is a large (island).", c: "eiland"}, {q: "I like to buy food at the (local) market.", c: ["lokaal", "plaatselijk"]},
+            {q: "We are a proud (nation).", c: ["natie", "land"]}, {q: "California is a (state) in the USA.", c: "staat"},
+            {q: "London is the capital of the (United Kingdom).", c: "verenigd koninkrijk"}, {q: "Scotland is part of (Great Britain).", c: "groot brittannië"},
+            {q: "You must (remember) to bring your book.", c: "onthouden"}, {q: "I (prefer) tea to coffee.", c: "liever hebben"},
+            {q: "Can you (explain) this to me?", c: "uitleggen"}, {q: "What time does the train (arrive)?", c: "aankomen"},
+            {q: "I want to (improve) my English.", c: "verbeteren"}, {q: "The (population) of London is huge.", c: "bevolking"},
+            {q: "This building looks very (modern).", c: "modern"}, {q: "We (celebrate) Christmas in December.", c: "vieren"},
+            {q: "I want to (travel) around the world.", c: "reizen"}, {q: "The Scottish (landscape) is beautiful.", c: "landschap"},
+            {q: "There is a river in the (valley).", c: ["vallei", "dal"]}, {q: "We walked along the (coastline).", c: ["kustlijn", "kust"]},
+            {q: "The (farmer) has many cows.", c: "boer"}, {q: "This old road was built by a (Roman).", c: "romein"},
+            {q: "The (army) protected the city.", c: "leger"}, {q: "The soldiers lived in a (fort).", c: ["fort", "vesting"]},
+            {q: "It is a (tradition) to eat turkey.", c: "traditie"}, {q: "The red rose is a (symbol) of England.", c: "symbool"},
+            {q: "There is a (dragon) on the Welsh flag.", c: "draak"}, {q: "The (castle) is on top of the hill.", c: "kasteel"},
+            {q: "The (king) lives in a palace.", c: "koning"}, {q: "The (prince) will be king one day.", c: "prins"},
+            {q: "The (battle) was fought a long time ago.", c: ["slag", "gevecht"]}, {q: "It is hard to (survive) in the desert.", c: "overleven"},
+            {q: "I find (history) very interesting.", c: "geschiedenis"}, {q: "The knight was very (brave).", c: "dapper"},
+            {q: "The (tribe) lived in the forest.", c: "stam"}, {q: "The countries were at (war).", c: "oorlog"},
+            {q: "People fought for their (freedom).", c: "vrijheid"}, {q: "He saved the child and became a (hero).", c: "held"},
+            {q: "I love learning about British (culture).", c: "cultuur"}, {q: "We must protect our (heritage).", c: "erfgoed"},
+            {q: "The (soldier) wore a green uniform.", c: "soldaat"}, {q: "He lives in a small (village).", c: "dorp"},
+            {q: "Paris is a famous (capital city).", c: "hoofdstad"}, {q: "No one knows what happens in the (future).", c: "toekomst"},
+            {q: "He is the (leader) of the group.", c: "leider"}, {q: "I won the swimming (race).", c: "wedstrijd"},
+            {q: "The waves crashed on the (shore).", c: ["kust", "oever"]}, {q: "Winning the war was a great (sacrifice).", c: "offer"},
+            {q: "He felt a lot of (pain) in his leg.", c: "pijn"}, {q: "Have you heard the (legend) of King Arthur?", c: "legende"},
+            {q: "A passport proves your (identity).", c: "identiteit"}, {q: "The (flag) has three colours.", c: "vlag"},
+            {q: "You have a (choice): stay or go.", c: "keuze"}, {q: "A helmet will (protect) your head.", c: "beschermen"},
+            {q: "This story is passed to the next (generation).", c: "generatie"}, {q: "They live on the (land), far from the city.", c: "land"},
+            {q: "The (sea) is very blue today.", c: "zee"}, {q: "The (winner) gets a gold medal.", c: "winnaar"},
+            {q: "What is the first (rule) of the game?", c: "regel"}
+        ]},
+        // 3
+        { type: "open", pool: [
+            {q: "Look! The cat ________ (climb) that tree.", c: ["is climbing", "'s climbing"]},
+            {q: "Listen! They ________ (sing) my favourite song.", c: ["are singing", "'re singing"]},
+            {q: "I ________ (eat) my breakfast right now.", c: ["am eating", "'m eating"]},
+            {q: "Wait a minute, I ________ (put) on my shoes.", c: ["am putting", "'m putting"]},
+            {q: "The children ________ (play) in the garden.", c: ["are playing", "'re playing"]},
+            {q: "She ________ (write) an email to her friend.", c: ["is writing", "'s writing"]},
+            {q: "Quiet! The baby ________ (sleep) in the bedroom.", c: ["is sleeping", "'s sleeping"]},
+            {q: "We ________ (watch) a very exciting film.", c: ["are watching", "'re watching"]},
+            {q: "Look at him! He ________ (dance) like a pro.", c: ["is dancing", "'s dancing"]},
+            {q: "It ________ (rain) very hard outside.", c: ["is raining", "'s raining"]},
+            {q: "You ________ (make) a lot of noise!", c: ["are making", "'re making"]},
+            {q: "My dad ________ (cook) dinner in the kitchen.", c: ["is cooking", "'s cooking"]},
+            {q: "Look, the bus ________ (come) now.", c: ["is coming", "'s coming"]},
+            {q: "I ________ (study) for my English test.", c: ["am studying", "'m studying"]},
+            {q: "We ________ (have) a great time at the party.", c: ["are having", "'re having"]},
+            {q: "The sun ________ (shine) today.", c: ["is shining", "'s shining"]},
+            {q: "They ________ (run) to catch the train.", c: ["are running", "'re running"]},
+            {q: "He ________ (clean) his room at the moment.", c: ["is cleaning", "'s cleaning"]},
+            {q: "My sister ________ (listen) to music.", c: ["is listening", "'s listening"]},
+            {q: "I ________ (wait) for the doctor.", c: ["am waiting", "'m waiting"]},
+            {q: "The dogs ________ (bark) at the postman.", c: ["are barking", "'re barking"]},
+            {q: "She ________ (drink) a glass of orange juice.", c: ["is drinking", "'s drinking"]},
+            {q: "We ________ (sit) on the sofa.", c: ["are sitting", "'re sitting"]},
+            {q: "He ________ (wash) his car in the street.", c: ["is washing", "'s washing"]},
+            {q: "I ________ (read) a very interesting book.", c: ["am reading", "'m reading"]}
+        ]},
+        // 4
+        { type: "choice", pool: [
+            {q: "How ____ water do you drink?", c: "much", opts: ["much", "many"]},
+            {q: "How ____ friends do you have?", c: "many", opts: ["much", "many"]},
+            {q: "There isn't ____ milk in the fridge.", c: "much", opts: ["much", "many"]},
+            {q: "How ____ people live in this city?", c: "many", opts: ["much", "many"]},
+            {q: "I don't have ____ money with me.", c: "much", opts: ["much", "many"]},
+            {q: "How ____ brothers do you have?", c: "many", opts: ["much", "many"]},
+            {q: "We don't have ____ time left.", c: "much", opts: ["much", "many"]},
+            {q: "How ____ books did you read?", c: "many", opts: ["much", "many"]},
+            {q: "There are ____ apples in the basket.", c: "many", opts: ["much", "many"]},
+            {q: "How ____ sugar do you want in your tea?", c: "much", opts: ["much", "many"]},
+            {q: "How ____ students are in the class?", c: "many", opts: ["much", "many"]},
+            {q: "There isn't ____ snow this winter.", c: "much", opts: ["much", "many"]},
+            {q: "How ____ languages can you speak?", c: "many", opts: ["much", "many"]},
+            {q: "I don't eat ____ meat.", c: "much", opts: ["much", "many"]},
+            {q: "How ____ days are in a week?", c: "many", opts: ["much", "many"]},
+            {q: "Is there ____ salt in the soup?", c: "much", opts: ["much", "many"]},
+            {q: "How ____ cars are in the street?", c: "many", opts: ["much", "many"]},
+            {q: "There aren't ____ trees in the desert.", c: "many", opts: ["much", "many"]},
+            {q: "How ____ homework do you have?", c: "much", opts: ["much", "many"]},
+            {q: "How ____ chairs do we need?", c: "many", opts: ["much", "many"]}
+        ]},
+        // 5
+        { type: "open", pool: [
+            {q: "One book, two ________.", c: "books"}, {q: "One car, two ________.", c: "cars"},
+            {q: "One dog, two ________.", c: "dogs"}, {q: "One apple, two ________.", c: "apples"},
+            {q: "One bus, two ________.", c: "buses"}, {q: "One glass, two ________.", c: "glasses"},
+            {q: "One brush, two ________.", c: "brushes"}, {q: "One watch, two ________.", c: "watches"},
+            {q: "One potato, two ________.", c: "potatoes"}, {q: "One tomato, two ________.", c: "tomatoes"},
+            {q: "One hero, two ________.", c: "heroes"}, {q: "One baby, two ________.", c: "babies"}, 
+            {q: "One city, two ________.", c: "cities"}, {q: "One country, two ________.", c: "countries"}, 
+            {q: "One leaf, two ________.", c: "leaves"}, {q: "One knife, two ________.", c: "knives"},
+            {q: "One life, two ________.", c: "lives"}, {q: "One wife, two ________.", c: "wives"},
+            {q: "One child, two ________.", c: "children"}, {q: "One man, two ________.", c: "men"},
+            {q: "One woman, two ________.", c: "women"}, {q: "One person, two ________.", c: "people"},
+            {q: "One foot, two ________.", c: "feet"}, {q: "One tooth, two ________.", c: "teeth"},
+            {q: "One mouse, two ________.", c: "mice"}, {q: "I need some (informatie).", c: "information"}, 
+            {q: "Your (haar) is very long.", c: "hair"}, {q: "I have a lot of (huiswerk).", c: "homework"}, 
+            {q: "Where are my (scissors)?", c: "scissors"}, {q: "I am wearing blue (trousers).", c: "trousers"}
+        ]},
+        // 6
+        { type: "open", pool: [
+            {q: "That pen belongs to me. It is ________.", c: "mine"},
+            {q: "Those shoes belong to you. They are ________.", c: "yours"},
+            {q: "That car belongs to Peter. It is ________.", c: "his"},
+            {q: "This bag belongs to Sarah. It is ________.", c: "hers"},
+            {q: "That house belongs to us. It is ________.", c: "ours"},
+            {q: "Those books belong to them. They are ________.", c: "theirs"},
+            {q: "I have a book. It is ________ book.", c: "my"},
+            {q: "You have a car. It is ________ car.", c: "your"},
+            {q: "He has a dog. It is ________ dog.", c: "his"},
+            {q: "She has a cat. It is ________ cat.", c: "her"},
+            {q: "The dog has a bone. It is ________ bone.", c: "its"},
+            {q: "We have a house. It is ________ house.", c: "our"},
+            {q: "They have a problem. It is ________ problem.", c: "their"},
+            {q: "I can see ________ house from here. (Possession: I)", c: "my"},
+            {q: "Is this ________ pen? (Possession: You)", c: "your"},
+            {q: "John lives here. This is ________ house.", c: "his"},
+            {q: "Amy is eating ________ lunch.", c: "her"},
+            {q: "The cat is licking ________ paw.", c: "its"},
+            {q: "This phone isn't mine. Is it ________? (Possession: You)", c: "yours"},
+            {q: "The victory is ________! (Possession: We)", c: "ours"}
+        ]},
+        // 7
+        { type: "open", pool: [
+            {q: "I have got a sister. (Negative)", c: ["I have not got a sister.", "I haven't got a sister.", "I've not got a sister."]},
+            {q: "He has got a bike. (Negative)", c: ["He has not got a bike.", "He hasn't got a bike.", "He's not got a bike."]},
+            {q: "We have got time. (Negative)", c: ["We have not got time.", "We haven't got time.", "We've not got time."]},
+            {q: "She has got a car. (Negative)", c: ["She has not got a car.", "She hasn't got a car.", "She's not got a car."]},
+            {q: "I have a sister. (Negative)", c: ["I do not have a sister.", "I don't have a sister."]},
+            {q: "He has a bike. (Negative)", c: ["He does not have a bike.", "He doesn't have a bike."]},
+            {q: "We have time. (Negative)", c: ["We do not have time.", "We don't have time."]},
+            {q: "You have got a pen. (Question)", c: "Have you got a pen?"},
+            {q: "She has got a brother. (Question)", c: "Has she got a brother?"},
+            {q: "They have got money. (Question)", c: "Have they got money?"},
+            {q: "You have a pen. (Question)", c: "Do you have a pen?"},
+            {q: "She has a brother. (Question)", c: "Does she have a brother?"},
+            {q: "They have money. (Question)", c: "Do they have money?"},
+            {q: "I have got a headache. (Negative)", c: ["I have not got a headache.", "I haven't got a headache."]},
+            {q: "They have a lot of work. (Negative)", c: ["They do not have a lot of work.", "They don't have a lot of work."]},
+            {q: "He has got enough money. (Question)", c: "Has he got enough money?"},
+            {q: "She has a new job. (Question)", c: "Does she have a new job?"},
+            {q: "You have an idea. (Question)", c: "Do you have an idea?"},
+            {q: "My dog has a bone. (Question)", c: "Does my dog have a bone?"},
+            {q: "We have got a map. (Question)", c: "Have we got a map?"}
+        ]},
+        // 8
+        { type: "open", pool: [
+            {q: "The blue whale is the ________ (large) animal.", c: "largest"},
+            {q: "Mount Everest is the ________ (high) mountain.", c: "highest"},
+            {q: "This is the ________ (cheap) shirt in the shop.", c: "cheapest"},
+            {q: "August is often the ________ (warm) month.", c: "warmest"},
+            {q: "He is the ________ (strong) man I know.", c: "strongest"},
+            {q: "This is the ________ (long) bridge in the country.", c: "longest"},
+            {q: "That was the ________ (nice) thing to do.", c: "nicest"},
+            {q: "The street is the ________ (wide) at the end.", c: "widest"},
+            {q: "Russia is the ________ (big) country in the world.", c: "biggest"},
+            {q: "July was the ________ (hot) month last year.", c: "hottest"},
+            {q: "Who has the ________ (wet) coat?", c: "wettest"},
+            {q: "You are my ________ (good) friend.", c: "best"},
+            {q: "This is the ________ (good) cake ever!", c: "best"},
+            {q: "A plane is faster than a car, but a rocket is the ________ (fast).", c: "fastest"},
+            {q: "My bike is old, but his bike is ________ (old) than mine.", c: "older"},
+            {q: "The sun is ________ (big) than the earth.", c: "bigger"},
+            {q: "A mouse is ________ (small) than a rat.", c: "smaller"},
+            {q: "Gold is ________ (heavy) than silver.", c: "heavier"},
+            {q: "Is the moon ________ (near) than the sun?", c: "nearer"},
+            {q: "She is ________ (smart) than her sister.", c: "smarter"}
+        ]},
+        // 9
+        { type: "choice", pool: [
+            {q: "Look at ________ ring on my finger (here).", c: "this", opts: ["this", "that", "these", "those"]},
+            {q: "I like ________ book in my hand.", c: "this", opts: ["this", "that", "these", "those"]},
+            {q: "Is ________ your pen here on the desk?", c: "this", opts: ["this", "that", "these", "those"]},
+            {q: "Look at ________ star far away in the sky.", c: "that", opts: ["this", "that", "these", "those"]},
+            {q: "Who is ________ man over there across the street?", c: "that", opts: ["this", "that", "these", "those"]},
+            {q: "I want ________ toy on the top shelf.", c: "that", opts: ["this", "that", "these", "those"]},
+            {q: "________ shoes on my feet are new.", c: "these", opts: ["this", "that", "these", "those"]},
+            {q: "Are ________ keys in my hand yours?", c: "these", opts: ["this", "that", "these", "those"]},
+            {q: "________ flowers in this vase smell great.", c: "these", opts: ["this", "that", "these", "those"]},
+            {q: "Look at ________ mountains in the distance.", c: "those", opts: ["this", "that", "these", "those"]},
+            {q: "Who are ________ children playing over there?", c: "those", opts: ["this", "that", "these", "those"]},
+            {q: "Can you see ________ clouds on the horizon?", c: "those", opts: ["this", "that", "these", "those"]},
+            {q: "Is ________ dog over there friendly?", c: "that", opts: ["this", "that", "these", "those"]},
+            {q: "________ cat on my lap is sleeping.", c: "this", opts: ["this", "that", "these", "those"]},
+            {q: "________ posters on that wall are cool.", c: "those", opts: ["this", "that", "these", "those"]},
+            {q: "Are ________ your socks here on the floor?", c: "these", opts: ["this", "that", "these", "those"]},
+            {q: "________ light in the sky is a planet.", c: "that", opts: ["this", "that", "these", "those"]},
+            {q: "________ kids here are very noisy.", c: "these", opts: ["this", "that", "these", "those"]},
+            {q: "I want ________ sandwich on your plate.", c: "that", opts: ["this", "that", "these", "those"]},
+            {q: "________ trees across the field are oaks.", c: "those", opts: ["this", "that", "these", "those"]}
+        ]}
+    ];
+
+    // Combineer categorieën met titels
+    oefeningen.forEach((cat, index) => cat.title = shortTitles[index]);
+
+    let numTeams = 2;
+    let scores = [];
+    let boardData = []; // 6 kolommen
+    let currentTile = null;
+
+    function adjustTeams(change) {
+        numTeams += change;
+        if(numTeams < 1) numTeams = 1;
+        if(numTeams > 4) numTeams = 4;
+        document.getElementById('team-count-display').innerText = `${numTeams} Team${numTeams > 1 ? 's' : ''}`;
+    }
+
+    function startGame() {
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('game-area').style.display = 'flex';
+        
+        // Initialiseer scores
+        scores = Array(numTeams).fill(0);
+        renderScoreboard();
+
+        // Kies willekeurig 6 van de 9 categorieën
+        let shuffledCats = [...oefeningen].sort(() => 0.5 - Math.random()).slice(0, 6);
+        
+        // Bouw het speelbord
+        boardData = shuffledCats.map(cat => {
+            // Kies 5 willekeurige vragen uit de categorie
+            let qs = [...cat.pool].sort(() => 0.5 - Math.random()).slice(0, 5);
+            return {
+                title: cat.title,
+                type: cat.type,
+                questions: qs
+            };
+        });
+
+        renderBoard();
+    }
+
+    function renderScoreboard() {
+        const sb = document.getElementById('scoreboard');
+        sb.innerHTML = '';
+        scores.forEach((score, index) => {
+            sb.innerHTML += `
+                <div class="team-score">
+                    Team ${index + 1}
+                    <span id="score-${index}">${score}</span>
+                </div>
+            `;
+        });
+    }
+
+    function renderBoard() {
+        const board = document.getElementById('board');
+        board.innerHTML = '';
+        
+        // Headers (Kolom titels)
+        boardData.forEach(col => {
+            let header = document.createElement('div');
+            header.className = 'category-header';
+            header.innerText = col.title;
+            board.appendChild(header);
+        });
+
+        // 5 rijen met vakjes (100 t/m 500)
+        for(let row = 0; row < 5; row++) {
+            boardData.forEach((col, colIndex) => {
+                let points = (row + 1) * 100;
+                let tile = document.createElement('div');
+                tile.className = 'tile';
+                tile.innerText = points;
+                tile.onclick = () => openQuestion(tile, colIndex, row, points);
+                board.appendChild(tile);
+            });
+        }
+    }
+
+    function openQuestion(tileElement, colIndex, rowIndex, points) {
+        if(tileElement.classList.contains('played')) return;
+        
+        currentTile = { element: tileElement, points: points };
+        const data = boardData[colIndex];
+        const qData = data.questions[rowIndex];
+
+        document.getElementById('m-cat').innerText = `${data.title.toUpperCase()} FOR ${points}`;
+        document.getElementById('m-text').innerText = qData.q;
+        
+        if (data.type === "choice" && qData.opts) {
+            document.getElementById('m-opts').innerText = `Options: ${qData.opts.join(' or ')}`;
+            document.getElementById('m-opts').style.display = 'block';
+        } else {
+            document.getElementById('m-opts').style.display = 'none';
+        }
+
+        // Formatteer het antwoord (mooi weergeven als het een array is)
+        let ansText = Array.isArray(qData.c) ? qData.c.join('  /  ') : qData.c;
+        document.getElementById('m-ans').innerText = ansText;
+        document.getElementById('m-ans').style.display = 'none';
+        
+        document.getElementById('btn-reveal').style.display = 'inline-block';
+        
+        // Bouw de punten-knoppen op voor het docent-paneel
+        const awardDiv = document.getElementById('m-award');
+        awardDiv.innerHTML = '';
+        awardDiv.style.display = 'none';
+
+        for(let i=0; i<numTeams; i++) {
+            let btn = document.createElement('button');
+            btn.className = 'btn-award';
+            btn.innerText = `Team ${i+1} (+${points})`;
+            btn.onclick = () => awardPoints(i, points);
+            awardDiv.appendChild(btn);
+        }
+        let btnNobody = document.createElement('button');
+        btnNobody.className = 'btn-nobody';
+        btnNobody.innerText = "Nobody (Close)";
+        btnNobody.onclick = () => awardPoints(-1, 0); // -1 = niemand
+        awardDiv.appendChild(btnNobody);
+
+        document.getElementById('modal').style.display = 'flex';
+    }
+
+    function revealAnswer() {
+        document.getElementById('btn-reveal').style.display = 'none';
+        document.getElementById('m-ans').style.display = 'block';
+        document.getElementById('m-award').style.display = 'flex';
+    }
+
+    function awardPoints(teamIndex, points) {
+        if(teamIndex >= 0) {
+            scores[teamIndex] += points;
+            document.getElementById(`score-${teamIndex}`).innerText = scores[teamIndex];
+        }
+        
+        // Markeer het vakje op het bord als gespeeld
+        currentTile.element.classList.add('played');
+        currentTile.element.innerText = '';
+        
+        // Sluit modal
+        document.getElementById('modal').style.display = 'none';
+    }
+</script>
+</body>
+</html>
