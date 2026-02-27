@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unit 3 Revision Tool</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --primary: #00f2fe;
+            --secondary: #4facfe;
+            --bg-solid: #1a1a2e; 
+            --glass: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --text: #ffffff;
+            --warning: #ff9f43;
+            --success: #2ed573;
+            --neutral: #f1c40f;
+            --danger: #ff4757;
+        }
+
+        body {
+            background-color: var(--bg-solid);
+            font-family: 'Outfit', 'Segoe UI', sans-serif;
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        #quiz-container {
+            width: 100%;
+            max-width: 650px;
+            margin-top: 30px;
+        }
+
+        .card {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 24px;
+            border: 1px solid var(--glass-border);
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            display: none;
+        }
+
+        .card.active { display: block; animation: slideIn 0.3s ease-out; }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h2 { font-size: 1.8rem; margin: 0 0 10px 0; color: var(--primary); letter-spacing: 1px; }
+        h3 { color: var(--secondary); font-size: 1rem; margin-top: 25px; text-transform: uppercase; border-bottom: 1px solid var(--glass-border); padding-bottom: 5px; }
+
+        .instr { font-style: italic; color: #ccc; font-size: 0.9em; margin-bottom: 15px; }
+
+        .answer-btn {
+            background: rgba(255, 255, 255, 0.05);
+            margin: 8px 0;
+            padding: 14px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            border: 1px solid var(--glass-border);
+            cursor: pointer;
+            transition: 0.2s;
+            width: 100%;
+            text-align: left;
+            color: white;
+            font-size: 1.05rem;
+        }
+
+        .answer-btn.selected {
+            background: rgba(46, 213, 115, 0.3);
+            border-color: var(--success);
+        }
+
+        .q-num { font-weight: 700; color: var(--primary); margin-right: 12px; width: 25px; }
+
+        .uitleg { display: block; font-size: 0.85em; color: var(--warning); margin-top: 4px; font-weight: 500; }
+        
+        .teacher-note { 
+            background: rgba(255, 159, 67, 0.15);
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 0.85em;
+            margin: 10px 0;
+            border-left: 4px solid var(--warning);
+        }
+
+        .btn-container { display: flex; gap: 15px; margin-top: 30px; }
+
+        .nav-btn {
+            padding: 14px 22px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+            text-transform: uppercase;
+        }
+
+        .btn-next { background: var(--primary); color: #1a1a2e; flex: 2; }
+        .btn-prev { background: transparent; color: white; flex: 1; border: 1px solid var(--glass-border); }
+        .btn-screenshot { background: #e056fd; color: white; width: 100%; margin-top: 15px; }
+
+        .progress-bar { width: 100%; height: 8px; background: rgba(255,255,255,0.05); border-radius: 10px; margin-bottom: 25px; overflow: hidden; }
+        #progress-fill { height: 100%; background: var(--primary); width: 0%; transition: 0.4s ease; }
+
+        /* Analyse Styling */
+        #results-area {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 15px;
+        }
+
+        .result-item { 
+            padding: 12px; 
+            border-radius: 10px; 
+            margin-bottom: 8px; 
+            border-left: 6px solid; 
+            font-size: 0.95rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .res-header { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 4px; }
+        .res-status { font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* Niveaus */
+        .status-goed { background: rgba(46, 213, 115, 0.15); border-color: var(--success); color: #afffcf; }
+        .status-beetje { background: rgba(241, 196, 15, 0.15); border-color: var(--neutral); color: #fff3a0; }
+        .status-niet { background: rgba(255, 71, 87, 0.15); border-color: var(--danger); color: #ffb3ba; }
+        
+        .total-score { font-size: 1.4rem; text-align: center; margin-bottom: 20px; color: var(--primary); font-weight: 800; }
+
+        .final-link {
+            display: block;
+            text-align: center;
+            background: linear-gradient(90deg, #00f2fe, #4facfe);
+            color: #1a1a2e;
+            padding: 16px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 800;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="quiz-container">
+    <div class="progress-bar"><div id="progress-fill"></div></div>
+
+    <div class="card active" data-title="Woordenschat">
+        <h2>Vocabulary 📚</h2>
+        <p class="instr">Klik op de antwoorden die je GOED had.</p>
+        
+        <h3>Translation</h3>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">1</span> freedom → vrijheid</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">2</span> leader → leider</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">3</span> uitleggen → explain</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">4</span> erfgoed → heritage</button>
+
+        <h3>Fill in</h3>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">5</span> coast</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">6</span> battle</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">7</span> population</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">8</span> culture</button>
+
+        <h3>Odd one out</h3>
+        <div class="teacher-note">💡 Heb je een ander woord of andere uitleg? Vraag het je docent!</div>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">9</span> <span>soldier<br><span class="uitleg">Uitleg: de andere woorden zijn leiders / hebben macht.</span></span></button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">10</span> <span>valley<br><span class="uitleg">Uitleg: de andere woorden hebben met zee/water te maken.</span></span></button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">11</span> <span>freedom<br><span class="uitleg">Uitleg: de andere woorden gaan over cultuur/erfgoed/identiteit.</span></span></button>
+
+        <h3>Translation + Choose</h3>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">12</span> soldaat → soldier</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">13</span> beschermen → protect</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">14</span> toekomst → future</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">15</span> generatie → generation</button>
+
+        <div class="btn-container"><button class="nav-btn btn-next" onclick="nextStep(1)">Volgende ➡</button></div>
+    </div>
+
+    <div class="card" data-title="Much / Many">
+        <h2>Grammar: Much or Many?</h2>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">1</span> many</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">2</span> much</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">3</span> many</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">4</span> much</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">5</span> many</button>
+        <div class="btn-container">
+            <button class="nav-btn btn-prev" onclick="prevStep(0)">Terug</button>
+            <button class="nav-btn btn-next" onclick="nextStep(2)">Volgende ➡</button>
+        </div>
+    </div>
+
+    <div class="card" data-title="Bezittelijk voornaamwoord">
+        <h2>Possessive Pronouns</h2>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">1</span> hers</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">2</span> our</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">3</span> its</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">4</span> theirs</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">5</span> Her</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">6</span> yours</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">7</span> our</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">8</span> hers</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">9</span> Their</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">10</span> his</button>
+        <div class="btn-container">
+            <button class="nav-btn btn-prev" onclick="prevStep(1)">Terug</button>
+            <button class="nav-btn btn-next" onclick="nextStep(3)">Volgende ➡</button>
+        </div>
+    </div>
+
+    <div class="card" data-title="Have (got) / Has (got)">
+        <h2>Have (got) & Has (got)</h2>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">1</span> Does she have blue eyes?</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">2</span> They don’t have a new teacher.</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">3</span> Tom hasn’t got a dog.</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">4</span> Do we have a test today?</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">5</span> Has Anna got a brother?</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">6</span> I don’t have a headache.</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">7</span> The king doesn’t have a castle.</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">8</span> Have you got a problem?</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">9</span> The soldiers don’t have weapons.</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">10</span> Has Mark got a bike?</button>
+        <div class="btn-container">
+            <button class="nav-btn btn-prev" onclick="prevStep(2)">Terug</button>
+            <button class="nav-btn btn-next" onclick="nextStep(4)">Volgende ➡</button>
+        </div>
+    </div>
+
+    <div class="card" data-title="Meervoud (Plurals)">
+        <h2>Plurals</h2>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">1</span> men</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">2</span> women</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">3</span> children</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">4</span> teeth</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">5</span> feet</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">6</span> sheep</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">7</span> leaves</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">8</span> countries</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">9</span> babies</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">10</span> heroes</button>
+        <div class="btn-container">
+            <button class="nav-btn btn-prev" onclick="prevStep(3)">Terug</button>
+            <button class="nav-btn btn-next" onclick="nextStep(5)">Volgende ➡</button>
+        </div>
+    </div>
+
+    <div class="card" data-title="Present Continuous">
+        <h2>Present Continuous</h2>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">1</span> is marching</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">2</span> am listening</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">3</span> are visiting</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">4</span> is not doing</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">5</span> Is he swimming</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">6</span> are learning</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">7</span> is not sleeping</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">8</span> Are you telling</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">9</span> is speaking</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">10</span> are not playing</button>
+        <div class="btn-container">
+            <button class="nav-btn btn-prev" onclick="prevStep(4)">Terug</button>
+            <button class="nav-btn btn-next" onclick="nextStep(6)">Volgende ➡</button>
+        </div>
+    </div>
+
+    <div class="card" data-title="Trappen van vergelijking">
+        <h2>Comparisons</h2>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">1</span> stronger</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">2</span> coldest</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">3</span> slower</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">4</span> best</button>
+        <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">5</span> harder</button>
+        <div class="btn-container">
+            <button class="nav-btn btn-prev" onclick="prevStep(5)">Terug</button>
+            <button class="nav-btn btn-next" onclick="showResults()">Naar Analyse 🎯</button>
+        </div>
+    </div>
+
+    <div class="card" id="results-card">
+        <div id="capture-area">
+            <h2>Resultaten Analyse 📈</h2>
+            <div id="results-area"></div>
+        </div>
+        
+        <button class="nav-btn btn-screenshot" onclick="saveAsImage()">📸 Sla op als Afbeelding</button>
+        
+        <a href="https://engliforce.netlify.app/m1t3_theme_3" class="final-link" target="_blank">Oefen meer op Engliforce!</a>
+        <button class="nav-btn" style="margin-top: 15px; width: 100%; background: transparent; color: white; border: 1px solid var(--glass-border);" onclick="location.reload()">Opnieuw Nakijken</button>
+    </div>
+</div>
+
+<script>
+    const cards = document.querySelectorAll('.card');
+    const progress = document.getElementById('progress-fill');
+
+    function toggleBtn(btn) {
+        btn.classList.toggle('selected');
+    }
+
+    function updateProgress(index) {
+        progress.style.width = (index / (cards.length - 1)) * 100 + '%';
+    }
+
+    function nextStep(index) {
+        cards.forEach(c => c.classList.remove('active'));
+        cards[index].classList.add('active');
+        updateProgress(index);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function prevStep(index) {
+        cards.forEach(c => c.classList.remove('active'));
+        cards[index].classList.add('active');
+        updateProgress(index);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function getBeheersing(ratio) {
+        if (ratio >= 0.8) return { text: "Beheerst", class: "status-goed" };
+        if (ratio >= 0.5) return { text: "Beetje beheerst", class: "status-beetje" };
+        return { text: "Niet beheerst", class: "status-niet" };
+    }
+
+    function showResults() {
+        let summaryHtml = "";
+        let totalCorrect = 0;
+        let totalPossible = 0;
+
+        cards.forEach((card, i) => {
+            if (i < cards.length - 1) {
+                const title = card.getAttribute('data-title');
+                const selected = card.querySelectorAll('.answer-btn.selected').length;
+                const total = card.querySelectorAll('.answer-btn').length;
+                
+                totalCorrect += selected;
+                totalPossible += total;
+
+                const ratio = selected / total;
+                const status = getBeheersing(ratio);
+
+                summaryHtml += `
+                    <div class="result-item ${status.class}">
+                        <div class="res-header">
+                            <span>${title}</span>
+                            <span>${selected}/${total}</span>
+                        </div>
+                        <div class="res-status">${status.text}</div>
+                    </div>`;
+            }
+        });
+
+        const percent = Math.round((totalCorrect / totalPossible) * 100);
+        document.getElementById('results-area').innerHTML = 
+            `<div class="total-score">Totaalscore: ${percent}%</div>` + summaryHtml;
+        
+        nextStep(cards.length - 1);
+    }
+
+    function saveAsImage() {
+        const captureElement = document.getElementById('capture-area');
+        html2canvas(captureElement, {
+            backgroundColor: "#1a1a2e",
+            scale: 2
+        }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = 'Mijn_Engels_Analyse.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        });
+    }
+</script>
+
+</body>
+</html>
