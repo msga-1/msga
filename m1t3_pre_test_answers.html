@@ -112,7 +112,6 @@
         .progress-bar { width: 100%; height: 8px; background: rgba(255,255,255,0.05); border-radius: 10px; margin-bottom: 25px; overflow: hidden; }
         #progress-fill { height: 100%; background: var(--primary); width: 0%; transition: 0.4s ease; }
 
-        /* Analyse Styling */
         #results-area {
             background: rgba(255, 255, 255, 0.05);
             padding: 15px;
@@ -132,7 +131,6 @@
         .res-header { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 4px; }
         .res-status { font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.5px; }
 
-        /* Niveaus */
         .status-goed { background: rgba(46, 213, 115, 0.15); border-color: var(--success); color: #afffcf; }
         .status-beetje { background: rgba(241, 196, 15, 0.15); border-color: var(--neutral); color: #fff3a0; }
         .status-niet { background: rgba(255, 71, 87, 0.15); border-color: var(--danger); color: #ffb3ba; }
@@ -201,7 +199,7 @@
         </div>
     </div>
 
-    <div class="card" data-title="Bezittelijk voornaamwoord">
+    <div class="card" data-title="Bezittelijk vnw">
         <h2>Possessive Pronouns</h2>
         <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">1</span> hers</button>
         <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">2</span> our</button>
@@ -255,7 +253,7 @@
         </div>
     </div>
 
-    <div class="card" data-title="Present Continuous">
+    <div class="card" data-title="Pres. Continuous">
         <h2>Present Continuous</h2>
         <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">1</span> is marching</button>
         <button class="answer-btn" onclick="toggleBtn(this)"><span class="q-num">2</span> am listening</button>
@@ -326,8 +324,8 @@
     }
 
     function getBeheersing(ratio) {
-        if (ratio >= 0.8) return { text: "Beheerst", class: "status-goed" };
-        if (ratio >= 0.5) return { text: "Beetje beheerst", class: "status-beetje" };
+        if (ratio >= 0.75) return { text: "Beheerst", class: "status-goed" };
+        if (ratio >= 0.55) return { text: "Beetje beheerst", class: "status-beetje" };
         return { text: "Niet beheerst", class: "status-niet" };
     }
 
