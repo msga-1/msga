@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <title>Inventarisatie Kerndoelen DG 2025</title>
+    <style>
+        :root { --primary: #003366; --accent: #e5f1ff; --border: #cbd5e1; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; line-height: 1.6; padding: 20px; background: #f8fafc; }
+        .page { max-width: 950px; margin: 0 auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        h1 { color: var(--primary); border-bottom: 4px solid var(--primary); padding-bottom: 10px; margin-bottom: 10px; }
+        .sub-header { color: #64748b; margin-bottom: 30px; font-style: italic; }
+        h2 { background: var(--accent); padding: 12px; font-size: 1.2rem; border-left: 6px solid var(--primary); margin-top: 35px; }
+        .meta-info { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; background: #f1f5f9; padding: 20px; border-radius: 6px; }
+        .meta-info label { font-weight: bold; display: block; margin-bottom: 5px; }
+        input[type="text"] { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 4px; box-sizing: border-box; }
+        
+        .goal-container { margin-bottom: 25px; padding: 15px; border: 1px solid #f1f5f9; border-radius: 6px; }
+        .goal-header { display: flex; align-items: flex-start; gap: 15px; margin-bottom: 10px; }
+        .goal-header input[type="checkbox"] { transform: scale(1.5); margin-top: 5px; cursor: pointer; }
+        .goal-title { font-weight: bold; font-size: 1.05rem; color: var(--primary); }
+        .goal-desc { font-size: 0.9rem; color: #475569; margin-top: 4px; }
+        
+        textarea { width: 100%; min-height: 60px; padding: 10px; border: 1px solid var(--border); border-radius: 4px; resize: vertical; margin-top: 10px; font-family: inherit; box-sizing: border-box; }
+        textarea:placeholder-shown { background: #fafafa; }
+
+        .print-btn { background: #10b981; color: white; border: none; padding: 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1.1rem; margin-top: 40px; width: 100%; transition: 0.2s; }
+        .print-btn:hover { background: #059669; }
+
+        @media print {
+            .print-btn, .instructions { display: none; }
+            body { background: white; padding: 0; }
+            .page { box-shadow: none; border: none; width: 100%; max-width: 100%; }
+            textarea { border: 1px solid #eee; overflow: visible; height: auto !important; }
+            h2 { -webkit-print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="page">
+    <h1>Inventarisatie Digitale Geletterdheid</h1>
+    <p class="sub-header">Gebaseerd op de geactualiseerde kerndoelen 2025 (SLO)</p>
+
+    <div class="meta-info">
+        <div><label>Naam docent:</label><input type="text" placeholder="Naam..."></div>
+        <div><label>Vak / Sectie:</label><input type="text" placeholder="Vakgebied..."></div>
+    </div>
+
+    <p class="instructions">Vink aan welke kerndoelen (deels) in jouw lessen aan bod komen en geef een korte toelichting van de activiteit.</p>
+
+    <h2>1. ICT-basisvaardigheden & Systemen</h2>
+    <div class="goal-container">
+        <div class="goal-header">
+            <input type="checkbox">
+            <div>
+                <span class="goal-title">Kerndoel 1: Werking van systemen</span>
+                <p class="goal-desc">Inzicht in hardware, software, netwerken en het oplossen van eenvoudige ICT-problemen.</p>
+            </div>
+        </div>
+        <textarea placeholder="Beschrijf je lesactiviteit (bijv. uitleg over cloudopslag bij verslaglegging)..."></textarea>
+    </div>
+
+    <div class="goal-container">
+        <div class="goal-header">
+            <input type="checkbox">
+            <div>
+                <span class="goal-title">Kerndoel 2: Veiligheid en Privacy</span>
+                <p class="goal-desc">Toepassen van beveiliging en begrijpen van de risico's van data-deling.</p>
+            </div>
+        </div>
+        <textarea placeholder="Hoe besteed je aandacht aan online veiligheid/privacy?"></textarea>
+    </div>
+
+    <h2>2. Informatievaardigheden & Mediawijsheid</h2>
+    <div class="goal-container">
+        <div class="goal-header">
+            <input type="checkbox">
+            <div>
+                <span class="goal-title">Kerndoel 3: Informatie zoeken en selecteren</span>
+                <p class="goal-desc">Formuleren van zoekvragen en kritisch beoordelen van bronnen (betrouwbaarheid/bias).</p>
+            </div>
+        </div>
+        <textarea placeholder="Hoe leren leerlingen bronnen voor jouw vak te valideren?"></textarea>
+    </div>
+
+    <div class="goal-container">
+        <div class="goal-header">
+            <input type="checkbox">
+            <div>
+                <span class="goal-title">Kerndoel 4: Maatschappelijke impact & Beeldvorming</span>
+                <p class="goal-desc">Invloed van media op gedrag, opinie en cultuur (bijv. filterbubbels, deepfakes).</p>
+            </div>
+        </div>
+        <textarea placeholder="Bespreek je de rol van digitale media in de samenleving?"></textarea>
+    </div>
+
+    <h2>3. Computational Thinking & Data</h2>
+    <div class="goal-container">
+        <div class="goal-header">
+            <input type="checkbox">
+            <div>
+                <span class="goal-title">Kerndoel 5: Data en Algoritmes</span>
+                <p class="goal-desc">Begrijpen hoe data wordt verzameld en hoe algoritmes keuzes maken (inclusief AI).</p>
+            </div>
+        </div>
+        <textarea placeholder="Gebruik je data-analyses of bespreek je algoritmes/AI?"></textarea>
+    </div>
+
+    <div class="goal-container">
+        <div class="goal-header">
+            <input type="checkbox">
+            <div>
+                <span class="goal-title">Kerndoel 6: Probleemoplossend denken (CT)</span>
+                <p class="goal-desc">Problemen ontleden (decompositie) en logische stappenreeksen bedenken.</p>
+            </div>
+        </div>
+        <textarea placeholder="Leren leerlingen stapsgewijs complexe problemen op te lossen?"></textarea>
+    </div>
+
+    <h2>4. Creëren & Participeren</h2>
+    <div class="goal-container">
+        <div class="goal-header">
+            <input type="checkbox">
+            <div>
+                <span class="goal-title">Kerndoel 7: Digitale content creëren</span>
+                <p class="goal-desc">Ontwerpen en maken van digitale producten (media, code of prototypes).</p>
+            </div>
+        </div>
+        <textarea placeholder="Maken leerlingen digitale producten (video, site, presentatie)?"></textarea>
+    </div>
+
+    <div class="goal-container">
+        <div class="goal-header">
+            <input type="checkbox">
+            <div>
+                <span class="goal-title">Kerndoel 8: Digitale interactie en ethiek</span>
+                <p class="goal-desc">Samenwerken via digitale kanalen en reflectie op eigen digitaal handelen.</p>
+            </div>
+        </div>
+        <textarea placeholder="Hoe leren leerlingen verantwoord digitaal communiceren/samenwerken?"></textarea>
+    </div>
+
+    <button class="print-btn" onclick="window.print()">Opslaan als PDF / Inventarisatie voltooien</button>
+</div>
+
+</body>
+</html>
